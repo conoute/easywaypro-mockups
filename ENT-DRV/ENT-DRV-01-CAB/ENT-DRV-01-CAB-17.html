@@ -1249,7 +1249,9 @@ function renderLeftPanel(){
   tuneIcon.onclick = ()=> openModal('customizeQuickInfoFields');
   attachTooltip(tuneIcon, 'Show/hide & reorder fields');
   topline.appendChild(tuneIcon);
-  topline.appendChild(el(`<span class="kebab">${iconHTML('more_vert',18)}</span>`));
+  const kebabBtn = el(`<span class="kebab">${iconHTML('more_vert',18)}</span>`);
+  kebabBtn.onclick = (e)=>{ e.stopPropagation(); openQuickInfoActionsFlyout(kebabBtn); };
+  topline.appendChild(kebabBtn);
   p.appendChild(topline);
   p.appendChild(el(`<div class="cab-header"><div class="cab-avatar">MG</div><div><div class="cab-name">MAKSIM GERASIMOV</div><div class="cab-type">Candidate — Company driver</div></div></div>`));
   p.appendChild(el('<div class="cab-pill">CANDIDATE — ONBOARDING</div>'));
@@ -1291,25 +1293,35 @@ function renderLeftPanel(){
   attachTooltip(safetyTbd, 'Internal safety rating, calculated from multiple factors — exact factors TBD, see Decision Log');
   p.appendChild(safetyTbd);
 
-  // ---- ACTIONS (state-machine row per 06_Reusable_UI_Patterns §4d could apply later;
-  // for now a simple always-visible action list, per the approved checklist) ----
-  p.appendChild(el('<div class="cab-section-title">ACTIONS</div>'));
-  const actions = [
-    ['edit','Edit quick-info fields', ()=> showToast('Edit quick-info fields — not wired in this mock')],
-    ['published_with_changes','Change status', ()=> openModal('changeCandidateStatus')],
-    ['person_add','Assign / reassign recruiter', ()=> showToast('Assign/reassign recruiter — not wired in this mock')],
-    ['description','Generate MVR', ()=> { logActivity({name:'Quick Info'}, 'MVR generated'); showToast('MVR generated'); }],
-    ['description','Generate PSP', ()=> { logActivity({name:'Quick Info'}, 'PSP generated'); showToast('PSP generated'); }],
-    ['forum','Send message to candidate', ()=> showToast('Send message — not wired in this mock')],
-    ['open_in_new','Open full profile', ()=> showToast('Open full profile — not wired in this mock')]
-  ];
-  actions.forEach(([icon,label,fn])=>{
-    const row = el(`<div class="cab-action-row">${iconHTML(icon,16)} <span>${label}</span></div>`);
-    row.onclick = fn;
-    p.appendChild(row);
-  });
-
   return p;
+}
+
+// Actions moved out of the panel body — they live in the kebab (⋮) flyout
+// at the top of the panel, not as a standalone always-visible module/section.
+function openQuickInfoActionsFlyout(anchor){
+  document.querySelectorAll('.flyout').forEach(m=>m.remove());
+  const menu = el(`<div class="flyout">
+    <button data-a="edit">${iconHTML('edit',16)}Edit quick-info fields</button>
+    <button data-a="status">${iconHTML('published_with_changes',16)}Change status</button>
+    <button data-a="recruiter">${iconHTML('person_add',16)}Assign / reassign recruiter</button>
+    <hr/>
+    <button data-a="mvr">${iconHTML('description',16)}Generate MVR</button>
+    <button data-a="psp">${iconHTML('description',16)}Generate PSP</button>
+    <hr/>
+    <button data-a="message">${iconHTML('forum',16)}Send message to candidate</button>
+    <button data-a="profile">${iconHTML('open_in_new',16)}Open full profile</button>
+  </div>`);
+  positionFlyout(menu, anchor);
+  menu.querySelector('[data-a="edit"]').onclick = ()=>{ menu.remove(); showToast('Edit quick-info fields — not wired in this mock'); };
+  menu.querySelector('[data-a="status"]').onclick = ()=>{ menu.remove(); openModal('changeCandidateStatus'); };
+  menu.querySelector('[data-a="recruiter"]').onclick = ()=>{ menu.remove(); showToast('Assign/reassign recruiter — not wired in this mock'); };
+  menu.querySelector('[data-a="mvr"]').onclick = ()=>{ menu.remove(); logActivity({name:'Quick Info'}, 'MVR generated'); showToast('MVR generated'); };
+  menu.querySelector('[data-a="psp"]').onclick = ()=>{ menu.remove(); logActivity({name:'Quick Info'}, 'PSP generated'); showToast('PSP generated'); };
+  menu.querySelector('[data-a="message"]').onclick = ()=>{ menu.remove(); showToast('Send message — not wired in this mock'); };
+  menu.querySelector('[data-a="profile"]').onclick = ()=>{ menu.remove(); showToast('Open full profile — not wired in this mock'); };
+  setTimeout(()=>{
+    document.addEventListener('click', function h(ev){ if(!menu.contains(ev.target) && ev.target!==anchor){ menu.remove(); document.removeEventListener('click',h); } });
+  },0);
 }
 
 function renderRightPanel(){
