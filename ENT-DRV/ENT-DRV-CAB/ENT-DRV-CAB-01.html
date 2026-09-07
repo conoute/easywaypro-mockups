@@ -87,6 +87,11 @@
   .cab-left.collapsed{width:44px;padding:20px 0;display:flex;justify-content:center;overflow:hidden;}
   .cab-show-btn{display:flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:8px;color:var(--text400);cursor:pointer;}
   .cab-show-btn:hover{background:var(--bg50);color:var(--text900);}
+  .cab-collapsed-btn{display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer;padding:10px 6px;border-radius:10px;width:100%;}
+  .cab-collapsed-btn:hover{background:var(--bg50);}
+  .cab-collapsed-btn:hover .cab-collapsed-chevron{color:var(--text900);}
+  .cab-avatar-sm{width:30px;height:30px;border-radius:50%;background:#dbeafe;color:#3b82c4;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:11px;flex-shrink:0;}
+  .cab-collapsed-chevron{display:flex;color:var(--text400);transition:color .12s ease;}
   .cab-right{flex:1;min-width:0;display:flex;flex-direction:column;padding:0;overflow:hidden;}
 
   .cab-topline{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
@@ -1212,10 +1217,19 @@ function renderCabinet(){
 function renderLeftPanel(){
   if(state.leftPanelCollapsed){
     const p = el('<div class="cab-left collapsed"></div>');
-    const showBtn = el(`<span class="cab-show-btn">${iconHTML('chevron_right',18)}</span>`);
-    showBtn.onclick = ()=>{ state.leftPanelCollapsed = false; render(); };
-    attachTooltip(showBtn, 'Show Info');
-    p.appendChild(showBtn);
+    // Showing the driver's own avatar here (not just a bare arrow) is the
+    // whole point — it reads as "this collapsed strip IS the driver's
+    // info," which is a much stronger hint that clicking it brings that
+    // info back than an arrow icon alone would ever be. The whole strip is
+    // clickable, not just a small button, so there's a generous target for
+    // someone who isn't yet sure exactly what to click.
+    const collapsedBtn = el(`<div class="cab-collapsed-btn">
+      <div class="cab-avatar-sm">MG</div>
+      <span class="cab-collapsed-chevron">${iconHTML('chevron_right',16)}</span>
+    </div>`);
+    collapsedBtn.onclick = ()=>{ state.leftPanelCollapsed = false; render(); };
+    attachTooltip(collapsedBtn, 'Show Maksim Gerasimov\'s info');
+    p.appendChild(collapsedBtn);
     return p;
   }
 
