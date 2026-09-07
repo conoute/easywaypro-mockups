@@ -1219,6 +1219,74 @@ function renderCabinet(){
   return wrap;
 }
 
+// Quick Info field groups — configurable via the tune icon (show/hide + drag
+// to reorder), same mechanism as TABS for the Documents tab bar. Header
+// (avatar/name/status) is structural and always shown, not part of this list.
+let QUICK_INFO_FIELDS = [
+  { key:'onHold', label:'On Hold toggle', visible:true },
+  { key:'dnaPool', label:'Drug & alcohol pool toggle', visible:true },
+  { key:'assignment', label:'Truck / Trailer / Dispatcher', visible:true },
+  { key:'email', label:'Email', visible:true },
+  { key:'phone', label:'Phone', visible:true },
+  { key:'city', label:'City', visible:true },
+  { key:'screening', label:'Screening (MVR / Background / Drug Test / DOT / PSP)', visible:true },
+  { key:'nextStep', label:'Next Step & Recruiter', visible:true },
+  { key:'aiInsights', label:'AI Insights', visible:true },
+  { key:'safetyRating', label:'Safety Rating', visible:true },
+];
+
+const QUICK_INFO_RENDERERS = {
+  onHold(p){
+    const row = el(`<div class="cab-toggle-row"><div><div class="tlabel">On Hold</div><div class="tsub">Onboarding process</div></div><div class="switch ${state.onHold?'on':''}"><div class="knob"></div></div></div>`);
+    row.querySelector('.switch').onclick = ()=>{ state.onHold=!state.onHold; render(); };
+    p.appendChild(row);
+  },
+  dnaPool(p){
+    p.appendChild(el(`<div class="cab-toggle-row"><div class="tlabel">Drug and alcohol pool</div><div class="switch"><div class="knob"></div></div></div>`));
+  },
+  assignment(p){
+    p.appendChild(el(`<div class="cab-info-row">${iconHTML('local_shipping',18)} No Truck</div>`));
+    p.appendChild(el(`<div class="cab-info-row">${iconHTML('rv_hookup',18)} No Trailer</div>`));
+    p.appendChild(el(`<div class="cab-info-row">${iconHTML('headset_mic',18)} No Dispatcher</div>`));
+  },
+  email(p){
+    p.appendChild(el(`<div class="cab-contact-row"><span class="k">Email:</span><span class="v">${DRIVER_EMAIL}</span></div>`));
+  },
+  phone(p){
+    p.appendChild(el(`<div class="cab-contact-row"><span class="k">Phone:</span><span class="v">+1 (252) 322-5222</span></div>`));
+  },
+  city(p){
+    p.appendChild(el(`<div class="cab-contact-row"><span class="k">City:</span><span class="v">Charlotte, NC</span></div>`));
+  },
+  screening(p){
+    p.appendChild(el('<div class="cab-section-title">Screening</div>'));
+    const screenItems = [
+      ['MVR','pending','Pending'], ['Background Check','clean','Clean'], ['Drug Test','pending','Pending'],
+      ['DOT Physical','na','—'], ['PSP','na','—']
+    ];
+    screenItems.forEach(([label,cls,txt])=>{
+      p.appendChild(el(`<div class="screen-row"><span>${label}</span><span class="screen-pill ${cls}">${txt}</span></div>`));
+    });
+  },
+  nextStep(p){
+    p.appendChild(el(`<div class="cab-contact-row" style="margin-top:8px;"><span class="k">Next Step:</span><span class="v">MVR pull — Sep 8</span></div>`));
+    p.appendChild(el(`<div class="cab-contact-row"><span class="k">Recruiter:</span><span class="v">Marcus Webb</span></div>`));
+  },
+  aiInsights(p){
+    p.appendChild(el(`<div class="cab-section-title" style="color:var(--purple);display:flex;align-items:center;gap:6px;">${iconHTML('auto_awesome',14)} AI INSIGHTS</div>`));
+    p.appendChild(el(`<div class="screen-row"><span>Pre-screening score</span><span class="ai-score-pill">82 / 100</span></div>`));
+    p.appendChild(el(`<div class="cab-contact-row"><span class="k">Next best action</span><span class="v">Schedule phone screen</span></div>`));
+    p.appendChild(el(`<div class="screen-row"><span>Risk indicator</span><span class="screen-pill clean">Low</span></div>`));
+    p.appendChild(el(`<div class="cab-contact-row"><span class="k">Days in current stage</span><span class="v">3 days</span></div>`));
+  },
+  safetyRating(p){
+    p.appendChild(el('<div class="cab-section-title">SAFETY RATING</div>'));
+    const safetyTbd = el(`<div class="safety-tbd-pill">TBD — factors to be defined</div>`);
+    attachTooltip(safetyTbd, 'Internal safety rating, calculated from multiple factors — exact factors TBD, see Decision Log');
+    p.appendChild(safetyTbd);
+  }
+};
+
 function renderLeftPanel(){
   if(state.leftPanelCollapsed){
     const p = el('<div class="cab-left collapsed"></div>');
@@ -1256,42 +1324,7 @@ function renderLeftPanel(){
   p.appendChild(el(`<div class="cab-header"><div class="cab-avatar">MG</div><div><div class="cab-name">MAKSIM GERASIMOV</div><div class="cab-type">Candidate — Company driver</div></div></div>`));
   p.appendChild(el('<div class="cab-pill">CANDIDATE — ONBOARDING</div>'));
 
-  const onHoldRow = el(`<div class="cab-toggle-row"><div><div class="tlabel">On Hold</div><div class="tsub">Onboarding process</div></div><div class="switch ${state.onHold?'on':''}"><div class="knob"></div></div></div>`);
-  onHoldRow.querySelector('.switch').onclick = ()=>{ state.onHold=!state.onHold; render(); };
-  p.appendChild(onHoldRow);
-  p.appendChild(el(`<div class="cab-toggle-row"><div class="tlabel">Drug and alcohol pool</div><div class="switch"><div class="knob"></div></div></div>`));
-
-  p.appendChild(el(`<div class="cab-info-row">${iconHTML('local_shipping',18)} No Truck</div>`));
-  p.appendChild(el(`<div class="cab-info-row">${iconHTML('rv_hookup',18)} No Trailer</div>`));
-  p.appendChild(el(`<div class="cab-info-row">${iconHTML('headset_mic',18)} No Dispatcher</div>`));
-
-  p.appendChild(el(`<div class="cab-contact-row"><span class="k">Email:</span><span class="v">${DRIVER_EMAIL}</span></div>`));
-  p.appendChild(el(`<div class="cab-contact-row"><span class="k">Phone:</span><span class="v">+1 (252) 322-5222</span></div>`));
-  p.appendChild(el(`<div class="cab-contact-row"><span class="k">City:</span><span class="v">Charlotte, NC</span></div>`));
-
-  p.appendChild(el('<div class="cab-section-title">Screening</div>'));
-  const screenItems = [
-    ['MVR','pending','Pending'], ['Background Check','clean','Clean'], ['Drug Test','pending','Pending'],
-    ['DOT Physical','na','—'], ['PSP','na','—']
-  ];
-  screenItems.forEach(([label,cls,txt])=>{
-    p.appendChild(el(`<div class="screen-row"><span>${label}</span><span class="screen-pill ${cls}">${txt}</span></div>`));
-  });
-  p.appendChild(el(`<div class="cab-contact-row" style="margin-top:8px;"><span class="k">Next Step:</span><span class="v">MVR pull — Sep 8</span></div>`));
-  p.appendChild(el(`<div class="cab-contact-row"><span class="k">Recruiter:</span><span class="v">Marcus Webb</span></div>`));
-
-  // ---- AI INSIGHTS (ATOM-AI-BADGE-01 — purple, exclusive to AI content) ----
-  p.appendChild(el(`<div class="cab-section-title" style="color:var(--purple);display:flex;align-items:center;gap:6px;">${iconHTML('auto_awesome',14)} AI INSIGHTS</div>`));
-  p.appendChild(el(`<div class="screen-row"><span>Pre-screening score</span><span class="ai-score-pill">82 / 100</span></div>`));
-  p.appendChild(el(`<div class="cab-contact-row"><span class="k">Next best action</span><span class="v">Schedule phone screen</span></div>`));
-  p.appendChild(el(`<div class="screen-row"><span>Risk indicator</span><span class="screen-pill clean">Low</span></div>`));
-  p.appendChild(el(`<div class="cab-contact-row"><span class="k">Days in current stage</span><span class="v">3 days</span></div>`));
-
-  // ---- SAFETY RATING (TBD — factors not yet defined, see Decision Log) ----
-  p.appendChild(el('<div class="cab-section-title">SAFETY RATING</div>'));
-  const safetyTbd = el(`<div class="safety-tbd-pill">TBD — factors to be defined</div>`);
-  attachTooltip(safetyTbd, 'Internal safety rating, calculated from multiple factors — exact factors TBD, see Decision Log');
-  p.appendChild(safetyTbd);
+  QUICK_INFO_FIELDS.filter(f=>f.visible).forEach(f=> QUICK_INFO_RENDERERS[f.key](p));
 
   return p;
 }
@@ -2629,6 +2662,7 @@ function renderModal(){
   else if(type==='uploadChoice') node = modalUploadChoice();
   else if(type==='customizeRail') node = modalCustomizeRail();
   else if(type==='customizeTabs') node = modalCustomizeTabs();
+  else if(type==='customizeQuickInfoFields') node = modalCustomizeQuickInfoFields();
   else if(type==='bulkDeliveryChoice') node = modalBulkDeliveryChoice(payload);
   else if(type==='bulkReject') node = modalBulkReject(payload);
   else if(type==='bulkCreateTask') node = modalBulkCreateTask(payload);
@@ -2722,6 +2756,48 @@ function modalCustomizeTabs(){
         TABS.splice(evt.newIndex, 0, moved);
         openModal('customizeTabs');
       }catch(err){ console.error('Reorder failed:', err); openModal('customizeTabs'); }
+    }
+  });
+
+  const actions = el('<div class="actions"></div>');
+  const doneBtn = el('<button class="btn primary" style="width:100%;">Done</button>');
+  doneBtn.onclick = ()=>{ closeModal(); render(); };
+  actions.appendChild(doneBtn);
+  modal.appendChild(actions);
+  return m;
+}
+// Quick Info fields: show/hide + drag to reorder — same mechanism as
+// Customize Tabs, applied to QUICK_INFO_FIELDS instead of TABS.
+function modalCustomizeQuickInfoFields(){
+  const m = modalShell(`<h2>Customize Quick Info Fields</h2><p class="mdesc">Choose which fields show in the Quick Info panel, and drag to reorder them.</p>`);
+  const modal = m.querySelector('.modal');
+
+  const selRow = el('<div class="select-all-row"></div>');
+  const selAll = el('<a>Select all</a>');
+  selAll.onclick = ()=>{ QUICK_INFO_FIELDS.forEach(f=>f.visible=true); openModal('customizeQuickInfoFields'); };
+  const deselAll = el('<a>Deselect all</a>');
+  deselAll.onclick = ()=>{ QUICK_INFO_FIELDS.forEach(f=>f.visible=false); openModal('customizeQuickInfoFields'); };
+  selRow.appendChild(selAll); selRow.appendChild(deselAll);
+  modal.appendChild(selRow);
+
+  const list = el('<div></div>');
+  QUICK_INFO_FIELDS.forEach(f=>{
+    const row = el(`<div class="colpanel-row">
+      <span class="drag-handle">${iconHTML('drag_indicator',18)}</span>
+      <input type="checkbox" ${f.visible?'checked':''}/>
+      <span class="name">${f.label}</span>
+    </div>`);
+    row.querySelector('input').onchange = (e)=>{ f.visible = e.target.checked; };
+    list.appendChild(row);
+  });
+  modal.appendChild(list);
+  safeSortable(list, {
+    onEnd: (evt)=>{
+      try{
+        const [moved] = QUICK_INFO_FIELDS.splice(evt.oldIndex, 1);
+        QUICK_INFO_FIELDS.splice(evt.newIndex, 0, moved);
+        openModal('customizeQuickInfoFields');
+      }catch(err){ console.error('Reorder failed:', err); openModal('customizeQuickInfoFields'); }
     }
   });
 
