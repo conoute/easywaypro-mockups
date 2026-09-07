@@ -2,15 +2,203 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>EasyWayPro — Mockups Index</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EasyWayPro — Mockups</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
-  body{font-family:sans-serif;background:#f5f5f7;color:#333761;padding:40px;max-width:700px;margin:0 auto;}
-  h1{font-size:22px;}
-  p{color:#9a9ab0;}
+  :root{
+    --accent:#48C876; --accent-dark:#379a5c; --info:#56a8dd;
+    --warning:#FFAD20; --danger:#E82C3F; --ai:#7852F7;
+    --text-900:#333761; --text-400:#9a9ab0;
+    --bg-50:#f5f5f7; --bg-100:#eeeef2; --white:#ffffff;
+    --rail:#2E2A5C;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:'Source Sans 3',sans-serif;background:var(--bg-50);color:var(--text-900);}
+  .topbar{background:var(--rail);color:white;padding:20px 28px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:14px;}
+  .topbar h1{margin:0;font-size:19px;font-weight:700;}
+  .topbar .sub{color:#c9c7e0;font-size:12.5px;margin-top:2px;}
+  .search-box{position:relative;}
+  .search-box input{
+    width:280px;padding:9px 14px 9px 34px;border-radius:8px;border:none;
+    background:rgba(255,255,255,0.12);color:white;font-size:13px;font-family:inherit;
+  }
+  .search-box input::placeholder{color:#9a97c0;}
+  .search-box input:focus{outline:2px solid var(--accent);background:rgba(255,255,255,0.18);}
+  .search-box svg{position:absolute;left:11px;top:50%;transform:translateY(-50%);opacity:0.6;}
+  .wrap{max-width:920px;margin:0 auto;padding:24px 20px 80px;}
+  .status-bar{display:flex;gap:16px;font-size:12.5px;color:var(--text-400);margin-bottom:18px;flex-wrap:wrap;}
+  .status-bar b{color:var(--text-900);}
+  .domain{
+    background:var(--white);border-radius:14px;margin-bottom:14px;
+    border:1px solid var(--bg-100);overflow:hidden;
+  }
+  .domain-head{
+    padding:14px 18px;display:flex;align-items:center;justify-content:space-between;
+    cursor:pointer;user-select:none;
+  }
+  .domain-head:hover{background:var(--bg-50);}
+  .domain-title{font-size:15px;font-weight:700;display:flex;align-items:center;gap:10px;}
+  .domain-badge{
+    font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;
+    background:var(--bg-100);color:var(--text-400);
+  }
+  .domain-count{font-size:12px;color:var(--text-400);}
+  .chevron{transition:transform .2s ease;color:var(--text-400);}
+  .domain.open .chevron{transform:rotate(180deg);}
+  .domain-body{max-height:0;overflow:hidden;transition:max-height .25s ease;}
+  .domain.open .domain-body{max-height:none;}
+  .tool{border-top:1px solid var(--bg-100);}
+  .tool-head{
+    padding:11px 18px 11px 32px;display:flex;align-items:center;justify-content:space-between;
+    cursor:pointer;user-select:none;font-size:13.5px;font-weight:600;
+  }
+  .tool-head:hover{background:var(--bg-50);}
+  .tool-count{font-size:11px;color:var(--text-400);font-weight:400;}
+  .tool-body{padding:0 18px 10px 32px;display:none;}
+  .tool.open .tool-body{display:block;}
+  .tool.open .tool-chevron{transform:rotate(180deg);}
+  .screen-link{
+    display:flex;align-items:center;gap:8px;padding:7px 10px;margin:2px 0;
+    border-radius:7px;text-decoration:none;color:var(--text-900);font-size:12.5px;
+  }
+  .screen-link:hover{background:var(--bg-50);}
+  .screen-link .dot{width:6px;height:6px;border-radius:50%;background:var(--accent);flex-shrink:0;}
+  .empty-note{padding:8px 10px;color:var(--text-400);font-size:12px;font-style:italic;}
+  .loading{text-align:center;padding:60px 20px;color:var(--text-400);}
+  .error-box{
+    background:#fdecec;border:1px solid var(--danger);color:#791F1F;
+    padding:14px 18px;border-radius:10px;font-size:13px;margin-bottom:16px;
+  }
+  .hidden{display:none !important;}
 </style>
 </head>
 <body>
-  <h1>EasyWayPro — HTML Mockups</h1>
-  <p>No mockups published yet. Screens will appear here, organized by ENT-*/CAT-*/TL-* code, as they're built.</p>
+
+<div class="topbar">
+  <div>
+    <h1>EasyWayPro — HTML Mockups</h1>
+    <div class="sub">Live mirror of the GitHub repo — always current</div>
+  </div>
+  <div class="search-box">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+    <input type="text" id="searchInput" placeholder="Search by code or name...">
+  </div>
+</div>
+
+<div class="wrap">
+  <div class="status-bar" id="statusBar"></div>
+  <div id="content"><div class="loading">Loading mockups from GitHub…</div></div>
+</div>
+
+<script>
+const REPO = 'conoute/easywaypro-mockups';
+const BRANCH = 'main';
+
+// Human-readable labels for known codes — extend as new ENT-*/CAT-* groups appear
+const LABELS = {
+  'ENT-DRV':'Driver','ENT-TRK':'Truck','ENT-TRL':'Trailer','ENT-CMP':'Company',
+  'ENT-TM':'Team Member','ENT-BRK':'Broker','ENT-PTR':'Partner',
+  'CAT-SAF':'Compliance & Safety','CAT-FIN':'Financial','CAT-OPS':'Operations',
+  'CAT-SUP':'Support & System','CAT-FAQ':'FAQ','CAT-SET':'Settings'
+};
+function labelFor(code){ return LABELS[code] ? `${code} — ${LABELS[code]}` : code; }
+
+async function loadTree(){
+  const statusBar = document.getElementById('statusBar');
+  const content = document.getElementById('content');
+  try{
+    const res = await fetch(`https://api.github.com/repos/${REPO}/git/trees/${BRANCH}?recursive=1`);
+    if(!res.ok) throw new Error('GitHub API returned ' + res.status);
+    const data = await res.json();
+    const htmlFiles = data.tree.filter(f => f.type==='blob' && f.path.endsWith('.html') && f.path !== 'index.html');
+
+    if(htmlFiles.length === 0){
+      content.innerHTML = `<div class="domain"><div class="domain-body" style="max-height:none;"><div class="empty-note" style="padding:24px;text-align:center;">No mockups published yet. Screens will appear here automatically as they're added to the repo.</div></div></div>`;
+      statusBar.innerHTML = `<span><b>0</b> mockups</span>`;
+      return;
+    }
+
+    // group by top-level folder (domain), then second-level folder (tool), collect files
+    const tree = {};
+    htmlFiles.forEach(f => {
+      const parts = f.path.split('/');
+      const domain = parts.length > 1 ? parts[0] : '(root)';
+      const tool = parts.length > 2 ? parts[1] : (parts.length > 1 ? parts[0] : '(root)');
+      const fileName = parts[parts.length-1];
+      if(!tree[domain]) tree[domain] = {};
+      if(!tree[domain][tool]) tree[domain][tool] = [];
+      tree[domain][tool].push({ name: fileName.replace('.html',''), path: f.path });
+    });
+
+    statusBar.innerHTML = `<span><b>${htmlFiles.length}</b> mockups</span><span><b>${Object.keys(tree).length}</b> domains</span>`;
+
+    let html = '';
+    Object.keys(tree).sort().forEach((domain, di) => {
+      const tools = tree[domain];
+      const toolCount = Object.keys(tools).length;
+      const fileCount = Object.values(tools).reduce((a,t)=>a+t.length,0);
+      html += `<div class="domain${di===0?' open':''}" data-search="${domain.toLowerCase()}">
+        <div class="domain-head" onclick="this.parentElement.classList.toggle('open')">
+          <div class="domain-title">${labelFor(domain)}</div>
+          <div style="display:flex;align-items:center;gap:10px;">
+            <span class="domain-count">${fileCount} screen${fileCount!==1?'s':''}</span>
+            <span class="chevron">▾</span>
+          </div>
+        </div>
+        <div class="domain-body">`;
+      Object.keys(tools).sort().forEach(tool => {
+        const files = tools[tool];
+        html += `<div class="tool" data-search="${tool.toLowerCase()}">
+          <div class="tool-head" onclick="this.parentElement.classList.toggle('open')">
+            <span>${labelFor(tool)}</span>
+            <span style="display:flex;align-items:center;gap:8px;">
+              <span class="tool-count">${files.length}</span>
+              <span class="chevron tool-chevron">▾</span>
+            </span>
+          </div>
+          <div class="tool-body">`;
+        files.forEach(f => {
+          html += `<a class="screen-link" data-search="${f.name.toLowerCase()} ${f.path.toLowerCase()}" href="${f.path}" target="_blank">
+            <span class="dot"></span>${f.name}
+          </a>`;
+        });
+        html += `</div></div>`;
+      });
+      html += `</div></div>`;
+    });
+    content.innerHTML = html;
+
+  } catch(err){
+    content.innerHTML = `<div class="error-box">Couldn't load the mockup list from GitHub (${err.message}). The repo may be temporarily unreachable — try refreshing.</div>`;
+  }
+}
+
+document.getElementById('searchInput').addEventListener('input', (e) => {
+  const q = e.target.value.toLowerCase().trim();
+  document.querySelectorAll('.domain').forEach(domainEl => {
+    let domainHasMatch = false;
+    domainEl.querySelectorAll('.tool').forEach(toolEl => {
+      let toolHasMatch = false;
+      toolEl.querySelectorAll('.screen-link').forEach(linkEl => {
+        const match = q === '' || linkEl.dataset.search.includes(q);
+        linkEl.classList.toggle('hidden', !match);
+        if(match) toolHasMatch = true;
+      });
+      const toolSelfMatch = toolEl.dataset.search.includes(q);
+      const show = q === '' || toolHasMatch || toolSelfMatch;
+      toolEl.classList.toggle('hidden', !show);
+      if(show){ domainHasMatch = true; if(q!=='') toolEl.classList.add('open'); }
+    });
+    const domainSelfMatch = domainEl.dataset.search.includes(q);
+    const show = q === '' || domainHasMatch || domainSelfMatch;
+    domainEl.classList.toggle('hidden', !show);
+    if(q !== '' && show) domainEl.classList.add('open');
+  });
+});
+
+loadTree();
+</script>
 </body>
 </html>
