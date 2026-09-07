@@ -67,7 +67,10 @@
   .topbar-row1{display:flex;align-items:center;gap:16px;padding:16px 24px;}
   .topbar-search{background:var(--bg50);border-radius:8px;height:38px;display:flex;align-items:center;gap:8px;padding:0 12px;width:320px;flex-shrink:0;}
   .topbar-search input{border:none;background:none;outline:none;font-size:13px;color:var(--text900);font-family:inherit;width:100%;}
-  .topbar-quickview{background:var(--warning);border-radius:8px;height:36px;padding:0 12px;display:flex;align-items:center;gap:7px;color:#fff;font-size:12px;font-weight:700;flex-shrink:0;cursor:pointer;}
+  .topbar-quickview{background:var(--warning);border-radius:8px;height:36px;width:36px;padding:0;display:flex;align-items:center;justify-content:center;gap:7px;color:#fff;font-size:12px;font-weight:700;flex-shrink:0;cursor:pointer;overflow:hidden;white-space:nowrap;transition:width .22s ease,padding .22s ease,justify-content .22s ease;}
+  .topbar-quickview:hover{width:118px;padding:0 12px;justify-content:flex-start;}
+  .topbar-quickview .qv-label{opacity:0;width:0;overflow:hidden;transition:opacity .12s ease;}
+  .topbar-quickview:hover .qv-label{opacity:1;width:auto;transition:opacity .2s ease .1s;}
   .topbar-user{display:flex;align-items:center;gap:10px;flex-shrink:0;}
   .topbar-user .name{font-weight:700;font-size:13px;color:var(--text900);}
   .topbar-user .role{font-size:11px;color:var(--text400);}
@@ -1166,7 +1169,7 @@ function renderTopbar(){
   const row1 = el(`<div class="topbar-row1">
     <div class="topbar-search">${iconHTML('search',18,'color:var(--text400);')}<input type="text" placeholder="Search everything..."/></div>
     <div class="spacer"></div>
-    <div class="topbar-quickview">${iconHTML('bolt',16)}QUICK VIEW</div>
+    <div class="topbar-quickview">${iconHTML('bolt',16)}<span class="qv-label">QUICK VIEW</span></div>
     <div class="topbar-chat">${iconHTML('chat',22,'color:var(--text900);')}</div>
     <div class="topbar-user"><div><div class="name">Jon Doe</div><div class="role">Manager</div></div><div class="avatar-sm"></div></div>
   </div>`);
