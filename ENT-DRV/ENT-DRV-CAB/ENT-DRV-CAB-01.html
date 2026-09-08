@@ -3118,11 +3118,11 @@ function applyTemplate(tpl){
     });
   });
   showToast(`Applied "${tpl.name}" — ${foldersCreated} folder${foldersCreated!==1?'s':''} created, ${slotsCreated} document slot${slotsCreated!==1?'s':''} added${skipped?`, ${skipped} skipped`:''}`);
-  if(slotsCreated > 0){
-    state.page = 1;
-    state.sortKey = null; // natural order, so the just-unshifted slots are what's on top
-    state.search = '';
-  }
+  // Deliberately NOT resetting page/search/sort here — the person applying
+  // a suggestion is often scrolled deep into a long list or mid-search, and
+  // jumping them back to page 1 to "surface" the new slots reads as the
+  // whole table scrolling to the top out of nowhere. The toast already says
+  // what was created; they can navigate to it themselves if they want to.
   // Stay on the Suggested Documents modal — applying one suggestion
   // shouldn't force-close the list when there might be others to apply too.
   // Re-render it in place so the "Already Applied" state updates immediately.
