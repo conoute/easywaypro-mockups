@@ -581,7 +581,14 @@ function clearDragOver(){
 function positionFlyout(menu, anchor){
   menu.style.position = 'fixed';
   menu.style.visibility = 'hidden';
-  document.body.appendChild(menu);
+  // Appended inside #app (not document.body) so it inherits the same zoom
+  // as everything else — position:fixed still measures against the real
+  // viewport regardless (zoom, unlike transform, doesn't create a new
+  // containing block for fixed descendants), so the positioning math below
+  // is unaffected. This replaces an earlier attempt that manually set
+  // style.zoom on a document.body-attached menu, which broke the menu
+  // opening entirely — this version applies no manual zoom logic at all.
+  app.appendChild(menu);
   const anchorRect = anchor.getBoundingClientRect();
   const menuRect = menu.getBoundingClientRect();
   let top = anchorRect.bottom + 6;
