@@ -1090,6 +1090,7 @@ const FOLDERS = [
 let TABS = [
   {key:'profile', label:'Profile', visible:true},
   {key:'documents', label:'Documents', visible:true},
+  {key:'activity', label:'Activity', visible:true},
   {key:'checklists', label:'Checklists', visible:true},
   {key:'previousEmployer', label:'Previous Employer', visible:true},
   {key:'tickets', label:'Tickets', visible:true},
@@ -1490,8 +1491,19 @@ function renderCabinet(){
   return wrap;
 }
 
-// ---- Info panel data ----
-let INFO_MODULES = [
+// ---- Activity Log (audit trail for driver actions)
+let ACTIVITY_LOG = [
+  {time: 'Sep 6, 2:45 PM', action: 'Profile created', details: 'Driver profile created in system', type:'create'},
+  {time: 'Sep 6, 3:10 PM', action: 'Status changed', details: 'Changed from Application to Onboarding', type:'status'},
+  {time: 'Sep 6, 4:30 PM', action: 'Documents uploaded', details: 'CDL and insurance files added', type:'upload'},
+  {time: 'Sep 5, 11:20 AM', action: 'Screening requested', details: 'MVR and Background Check ordered', type:'screening'},
+];
+
+function logActivity(action, details, type='action'){
+  const now = new Date();
+  const time = now.toLocaleString('en-US', {month:'short', day:'numeric', hour:'numeric', minute:'2-digit', hour12:true});
+  ACTIVITY_LOG.unshift({time, action, details, type});
+}
   {key:'toggles', label:'Status Toggles (On Hold / D&A)', visible:true},
   {key:'attachments', label:'Attachments (Truck / Trailer / Dispatcher)', visible:true},
   {key:'personalData', label:'Personal Data', visible:true},
@@ -1618,7 +1630,7 @@ function openPhotoEditor(srcDataUrl, params){
     driverPhoto = canvas.toDataURL('image/jpeg', 0.92);
     driverPhotoOriginal = srcDataUrl;
     driverPhotoParams = {zoom, offX, offY};
-    close(); render(); showToast('Profile photo updated');
+    close(); logActivity('Profile photo', 'Avatar uploaded and cropped', 'avatar'); render(); showToast('Profile photo updated');
   };
 }
 
@@ -1685,7 +1697,7 @@ function renderInfoPanel(){
     photoCard.appendChild(adjustBtn);
     const removeBtn = el(`<span class="photo-remove-btn">${iconHTML('close',14)}</span>`);
     attachTooltip(removeBtn, 'Remove photo');
-    removeBtn.onclick = (e)=>{ e.stopPropagation(); driverPhoto = null; driverPhotoOriginal = null; driverPhotoParams = null; render(); showToast('Profile photo removed'); };
+    removeBtn.onclick = (e)=>{ e.stopPropagation(); driverPhoto = null; driverPhotoOriginal = null; driverPhotoParams = null; logActivity('Profile photo', 'Avatar removed', 'avatar'); render(); showToast('Profile photo removed'); };
     photoCard.appendChild(removeBtn);
   } else {
     photoCard.appendChild(el(`<div class="photo-card-placeholder">${iconHTML('person',64)}</div>`));
@@ -1728,9 +1740,9 @@ function renderInfoPanel(){
         return row;
       }
       sec.appendChild(toggleRow('On Hold', 'Pause this candidate\u2019s onboarding',
-        ()=>onHold, v=>{ onHold=v; showToast(v?'Candidate put on hold':'Candidate resumed'); }));
+        ()=>onHold, v=>{ onHold=v; logActivity('Status changed', v?'Candidate put on hold':'Candidate resumed', 'status'); showToast(v?'Candidate put on hold':'Candidate resumed'); }));
       sec.appendChild(toggleRow('Drug & Alcohol', 'Enrolled in the D&A Consortium pool',
-        ()=>daConsortium, v=>{ daConsortium=v; showToast(v?'Enrolled in D&A Consortium':'Removed from D&A Consortium'); }));
+        ()=>daConsortium, v=>{ daConsortium=v; logActivity('Screening pool', v?'Enrolled in D&A Consortium':'Removed from D&A Consortium', 'screening'); showToast(v?'Enrolled in D&A Consortium':'Removed from D&A Consortium'); }));
       p.appendChild(sec);
     }
     if(mod.key==='attachments'){
@@ -1921,6 +1933,7 @@ function modalCustomizeInfoPanel(){
           VISIBLE_FIELD_KEYS.push(key);
           form.remove();
           renderPDFields();
+          logActivity('Custom field added', `New field "${name}" created`, 'field');
           showToast('Custom field added');
         };
       };
@@ -1960,6 +1973,30 @@ function modalCustomizeInfoPanel(){
   return m;
 }
 
+function renderActivityTab(){
+  const con = el('<div class="doc-panel"></div>');
+  con.appendChild(el('<div style="padding:16px;border-bottom:1px solid var(--border2);"><h3 style="margin:0;font-size:14px;font-weight:700;">Activity Timeline</h3><p style="margin:6px 0 0;font-size:12px;color:var(--text400);">All actions and changes to this driver profile</p></div>'));
+  const list = el('<div style="padding:16px;"></div>');
+  if(ACTIVITY_LOG.length === 0){
+    list.appendChild(el('<div style="color:var(--text400);font-size:13px;">No activity yet</div>'));
+  } else {
+    ACTIVITY_LOG.forEach(entry=>{
+      const badge = el(`<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(${entry.type==='avatar'?'--accent':entry.type==='status'?'--warning':entry.type==='screening'?'--info':entry.type==='create'?'--accent':'--text400'});margin-right:10px;flex-shrink:0;"></span>`);
+      const item = el(`<div style="display:flex;gap:0;margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid var(--border2);">
+        <div style="flex:1;">
+          <div style="font-size:12px;font-weight:700;color:var(--text900);">${entry.action}</div>
+          <div style="font-size:11.5px;color:var(--text600);margin-top:2px;">${entry.details}</div>
+          <div style="font-size:10px;color:var(--text400);margin-top:4px;">${entry.time}</div>
+        </div>
+      </div>`);
+      item.insertBefore(badge, item.firstChild);
+      list.appendChild(item);
+    });
+  }
+  con.appendChild(list);
+  return con;
+}
+
 function renderCabinetContent(){
   const p = el('<div class="cab-full"></div>');
   p.appendChild(renderTabsBar());
@@ -1971,6 +2008,8 @@ function renderCabinetContent(){
     p.appendChild(renderAllFilesLabel());
     p.appendChild(renderTable());
     p.appendChild(renderPagination());
+  } else if(state.activeTab === 'activity'){
+    p.appendChild(renderActivityTab());
   } else {
     const label = TABS.find(t=>t.key===state.activeTab)?.label;
     p.appendChild(el(`<div class="placeholder-tab">${label ? `${label} module — not built in this mock.<br>Only Profile and Documents (ENT-DRV-01-CAB-13 / -01, Candidate) are fully functional here.` : 'All tabs are hidden — use the tune icon above to bring one back.'}</div>`));
