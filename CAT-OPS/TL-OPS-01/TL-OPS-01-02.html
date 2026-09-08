@@ -1,0 +1,1317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TL-OPS-01-02 — Loads Planner — EasyWayPro</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,300..500,0..1,-50..200" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.2/Sortable.min.js" crossorigin="anonymous"></script>
+<style>
+:root{
+  --accent:#48C876; --accent-dark:#379a5c;
+  --info:#56a8dd; --warning:#FFAD20; --danger:#E82C3F; --ai:#7852F7;
+  --accentBlue:#2E5BFF;
+  --text-900:#333761; --text-800:#2E2A5C; --text-400:#9a9ab0;
+  --bg-50:#f5f5f7; --bg-100:#eeeef2; --white:#fff;
+  --rail-bg:#2E2A5C;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;height:100%;}
+body{
+  font-family:'Source Sans 3',sans-serif;
+  background:var(--bg-50);
+  color:var(--text-900);
+  display:flex;
+  justify-content:center;
+}
+.material-symbols-outlined{
+  font-variation-settings:'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 20;
+  font-size:20px; line-height:1; user-select:none;
+}
+#app{
+  width:1320px; min-height:1180px;
+  background:var(--bg-50);
+  position:relative;
+  transform-origin:top center;
+}
+button{font-family:inherit;cursor:pointer;}
+::-webkit-scrollbar{height:8px;width:8px;}
+::-webkit-scrollbar-thumb{background:#d0d0da;border-radius:8px;}
+::-webkit-scrollbar-track{background:transparent;}
+
+/* ===== SHELL ===== */
+.shell{display:flex; height:1180px;}
+
+/* RAIL */
+.rail{
+  background:var(--rail-bg); border-radius:16px; margin:16px;
+  display:flex; flex-direction:column; flex-shrink:0;
+  width:64px; transition:width .22s ease; overflow:hidden;
+  position:relative;
+}
+.rail.expanded{width:220px;}
+.rail-top{padding:16px 0; display:flex; justify-content:center;}
+.rail-logo-mini{width:32px;height:32px;border-radius:9px;background:linear-gradient(135deg,var(--accent),var(--warning));display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:13px;flex-shrink:0;}
+.rail-mid{flex:1; overflow-y:auto; overflow-x:hidden; padding:4px 0;}
+.rail-section-label{color:rgba(255,255,255,.35); font-size:10px; font-weight:700; letter-spacing:.06em; padding:10px 22px 4px; white-space:nowrap; opacity:0; transition:opacity .15s;}
+.rail.expanded .rail-section-label{opacity:1;}
+.rail-item{display:flex; align-items:center; height:40px; padding:0 22px; gap:14px; color:rgba(255,255,255,.55); position:relative; white-space:nowrap;}
+.rail-item .material-symbols-outlined{flex-shrink:0;}
+.rail-item span.lbl{font-size:13px; font-weight:600; opacity:0; transition:opacity .15s;}
+.rail.expanded .rail-item span.lbl{opacity:1;}
+.rail-item:hover{color:#fff; background:rgba(255,255,255,.06); cursor:pointer;}
+.rail-item.active{color:#fff; background:rgba(72,200,118,.16); border-left:3px solid var(--accent); padding-left:19px;}
+.rail-divider{height:1px; background:rgba(255,255,255,.1); margin:8px 18px;}
+.rail-bottom{padding:8px 0 16px; display:flex; flex-direction:column;}
+.rail-collapse-btn{display:flex; align-items:center; justify-content:center; height:36px; margin:0 12px 8px; border-radius:9px; color:rgba(255,255,255,.5);}
+.rail-collapse-btn:hover{background:rgba(255,255,255,.08); color:#fff;}
+.rail-wordmark{display:flex; align-items:center; gap:8px; padding:8px 22px 0; color:#fff; font-weight:700; font-size:15px; white-space:nowrap;}
+.rail-wordmark .dot{width:8px;height:8px;border-radius:50%;background:var(--accent);flex-shrink:0;}
+.rail-wordmark span.txt{opacity:0; transition:opacity .15s;}
+.rail.expanded .rail-wordmark span.txt{opacity:1;}
+.rail-tooltip{position:fixed; background:var(--text-800); color:#fff; font-size:12px; font-weight:600; padding:6px 10px; border-radius:7px; z-index:500; pointer-events:none; white-space:nowrap; box-shadow:0 6px 16px rgba(0,0,0,.25);}
+
+/* MAIN */
+.main{flex:1; display:flex; flex-direction:column; min-width:0; padding:16px 16px 16px 0;}
+.topbar{background:#fff; border-radius:14px 14px 0 0; padding:0 24px; flex-shrink:0;}
+.topbar-row1{display:flex; align-items:center; height:64px; gap:16px;}
+.searchbox{display:flex; align-items:center; gap:10px; background:var(--bg-50); border:1px solid var(--bg-100); border-radius:10px; padding:9px 14px; width:300px; position:relative;}
+.searchbox input{border:none; background:none; outline:none; font-size:13px; width:100%; color:var(--text-900);}
+.searchbox .material-symbols-outlined{color:var(--text-400); font-size:18px;}
+.searchbox .clear-x{display:none; color:var(--text-400); cursor:pointer;}
+.omni-results{position:absolute; top:calc(100% + 8px); left:0; width:340px; background:#fff; border:1px solid var(--bg-100); border-radius:12px; box-shadow:0 16px 40px rgba(51,55,97,.15); z-index:60; max-height:360px; overflow-y:auto; padding:8px;}
+.omni-group-label{font-size:10.5px; font-weight:700; color:var(--text-400); letter-spacing:.03em; padding:8px 10px 4px;}
+.omni-row{display:flex; align-items:center; gap:10px; padding:8px 10px; border-radius:8px; cursor:pointer; font-size:13px;}
+.omni-row:hover{background:var(--bg-50);}
+.omni-row .material-symbols-outlined{color:var(--text-400); font-size:18px;}
+.omni-row .omni-sub{color:var(--text-400); font-size:11.5px; margin-left:auto;}
+.omni-empty{padding:20px; text-align:center; color:var(--text-400); font-size:12.5px;}
+
+.notif-dropdown{position:absolute; top:calc(100% + 14px); right:-10px; width:340px; background:#fff; border:1px solid var(--bg-100); border-radius:12px; box-shadow:0 16px 40px rgba(51,55,97,.18); z-index:60; max-height:420px; overflow-y:auto; cursor:default;}
+.notif-head{padding:14px 16px; font-size:13px; font-weight:700; border-bottom:1px solid var(--bg-100); color:var(--text-900);}
+.notif-item{padding:12px 16px; border-bottom:1px solid var(--bg-100); display:flex; gap:10px; cursor:pointer;}
+.notif-item:hover{background:var(--bg-50);}
+.notif-item:last-child{border-bottom:none;}
+.notif-icon{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.notif-icon.warn{background:rgba(255,173,32,.15); color:var(--warning);}
+.notif-icon.info{background:rgba(86,168,221,.15); color:var(--info);}
+.notif-body{flex:1; min-width:0;}
+.notif-title{font-size:12.5px; font-weight:700; color:var(--text-900);}
+.notif-sub{font-size:11.5px; color:var(--text-400); margin-top:2px;}
+.notif-actions{display:flex; gap:6px; margin-top:8px;}
+.notif-actions button{font-size:11px; font-weight:700; padding:4px 10px; border-radius:7px; border:1px solid var(--bg-100); background:#fff; color:var(--text-900);}
+.notif-actions button.primary{background:var(--accent); border-color:var(--accent); color:#fff;}
+.notif-preview{color:var(--text-400); display:flex; align-items:center; flex-shrink:0;}
+.notif-preview:hover{color:var(--info);}
+.kbd{margin-left:auto; font-size:11px; color:var(--text-400); background:var(--bg-100); padding:2px 6px; border-radius:5px; font-weight:700;}
+.topbar-spacer{flex:1;}
+.quickview{
+  display:flex; align-items:center; gap:8px; background:rgba(255,173,32,.12); color:var(--warning);
+  border-radius:9px; padding:8px; cursor:pointer; overflow:hidden;
+  width:38px; transition:width .2s ease, padding .2s ease;
+}
+.quickview:hover{width:126px; padding:8px 12px;}
+.quickview .material-symbols-outlined{flex-shrink:0; font-size:18px;}
+.quickview span.qv-label{font-size:12px; font-weight:700; letter-spacing:.02em; white-space:nowrap; opacity:0; transition:opacity .15s; transition-delay:0s;}
+.quickview:hover span.qv-label{opacity:1; transition-delay:.1s;}
+.topbar-icon{color:var(--text-400); cursor:pointer; position:relative; display:flex;}
+.topbar-icon:hover{color:var(--text-900);}
+.badge-dot{position:absolute; top:-3px; right:-3px; width:8px; height:8px; border-radius:50%; background:var(--danger); border:2px solid #fff;}
+.user-chip{display:flex; align-items:center; gap:10px; cursor:pointer;}
+.user-chip .name-role{text-align:right; line-height:1.2;}
+.user-chip .name{font-size:13px; font-weight:700;}
+.user-chip .role{font-size:11px; color:var(--text-400);}
+.avatar{width:36px;height:36px;border-radius:50%;background:var(--info);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;flex-shrink:0;}
+.topbar-row2{height:44px; display:flex; align-items:center; gap:8px; border-top:1px solid var(--bg-100);}
+.crumb{font-size:12.5px; color:var(--text-400);}
+.crumb.current{color:var(--text-900); font-weight:700;}
+.crumb-sep{color:var(--text-400); font-size:16px !important;}
+.tabs{display:flex; gap:4px; margin-left:24px;}
+.tab-btn{padding:6px 4px; font-size:13px; font-weight:600; color:var(--text-400); border-bottom:2px solid transparent; position:relative; top:1px;}
+.tab-btn.active{color:var(--text-900); border-color:var(--accent);}
+.tab-btn:hover{color:var(--text-900);}
+
+/* CONTENT */
+.content{flex:1; background:#fff; border-radius:0 0 14px 14px; display:flex; flex-direction:column; min-height:0; overflow:hidden;}
+.planner-toolbar{display:flex; align-items:center; gap:10px; padding:16px 24px; border-bottom:1px solid var(--bg-100); flex-shrink:0; flex-wrap:wrap;}
+.nav-group{display:flex; align-items:center; gap:2px; background:var(--bg-50); border-radius:9px; padding:3px;}
+.nav-btn{width:28px;height:28px;display:flex;align-items:center;justify-content:center;border-radius:7px;color:var(--text-400);border:none;background:none;}
+.nav-btn:hover{background:#fff; color:var(--text-900);}
+.today-btn{font-size:12.5px; font-weight:700; padding:0 12px; height:28px; border-radius:7px; color:var(--text-900); background:#fff; border:1px solid var(--bg-100);}
+.period-label{font-size:14px; font-weight:700; color:var(--text-900); white-space:nowrap;}
+.zoom-toggle{display:flex; background:var(--bg-50); border-radius:9px; padding:3px; margin-left:6px;}
+.zoom-btn{font-size:12px; font-weight:700; padding:5px 14px; border-radius:7px; color:var(--text-400); border:none; background:none;}
+.zoom-btn.active{background:var(--text-900); color:#fff;}
+.tb-spacer{flex:1;}
+.tb-search{display:flex; align-items:center; gap:8px; background:var(--bg-50); border:1px solid var(--bg-100); border-radius:9px; padding:6px 12px; width:260px;}
+.tb-search input{border:none;background:none;outline:none;font-size:12.5px;width:100%;}
+.tb-search .material-symbols-outlined{font-size:17px;color:var(--text-400);}
+.tb-btn{display:flex; align-items:center; gap:6px; padding:0 14px; height:36px; border-radius:9px; font-size:13px; font-weight:700; border:1px solid var(--bg-100); background:#fff; color:var(--text-900);}
+.tb-btn:hover{background:var(--bg-50);}
+.tb-btn .material-symbols-outlined{font-size:18px;}
+.tb-btn.has-count{position:relative;}
+.count-pill{background:var(--accent); color:#fff; font-size:10.5px; font-weight:700; border-radius:10px; padding:1px 6px; margin-left:2px;}
+.tb-btn-primary{background:var(--accent); border-color:var(--accent); color:#fff;}
+.tb-btn-primary:hover{background:var(--accent-dark);}
+.icon-btn-square{width:36px;height:36px;display:flex;align-items:center;justify-content:center;border-radius:9px;border:1px solid var(--bg-100);background:#fff;color:var(--text-400);}
+.icon-btn-square:hover{background:var(--bg-50); color:var(--text-900);}
+
+/* UNASSIGNED TRAY */
+.tray{padding:14px 24px; border-bottom:1px solid var(--bg-100); flex-shrink:0;}
+.tray-head{display:flex; align-items:center; gap:8px; margin-bottom:10px;}
+.tray-head .material-symbols-outlined{color:var(--warning); font-size:18px;}
+.tray-title{font-size:12px; font-weight:700; color:var(--text-900); letter-spacing:.02em; text-transform:uppercase;}
+.tray-hint{font-size:11.5px; color:var(--text-400); margin-left:auto;}
+.tray-cards{display:flex; gap:10px; overflow-x:auto; padding-bottom:2px; min-height:64px;}
+.unassigned-card{
+  flex-shrink:0; width:220px; background:var(--bg-50); border:1.5px dashed var(--bg-100);
+  border-radius:10px; padding:10px 12px; cursor:grab; transition:box-shadow .15s, border-color .15s;
+}
+.unassigned-card:hover{border-color:var(--accent); box-shadow:0 4px 14px rgba(51,55,97,.08);}
+.unassigned-card .route{font-size:12.5px; font-weight:700; color:var(--text-900);}
+.unassigned-card .meta{font-size:11px; color:var(--text-400); margin-top:3px; display:flex; justify-content:space-between;}
+.unassigned-card .rate{color:var(--accent-dark); font-weight:700;}
+.tray-empty{font-size:12px; color:var(--text-400); font-style:italic; padding:8px 2px;}
+.sortable-ghost{opacity:.35;}
+.sortable-drag{opacity:.9 !important; box-shadow:0 10px 30px rgba(51,55,97,.25) !important;}
+
+/* GANTT */
+.gantt-wrap{flex:1; overflow:auto; position:relative;}
+.gantt-inner{display:flex; min-width:max-content;}
+.gantt-left{position:sticky; left:0; z-index:20; background:#fff; width:220px; flex-shrink:0; border-right:1px solid var(--bg-100);}
+.gantt-left-head{height:40px; border-bottom:1px solid var(--bg-100); display:flex; align-items:center; padding:0 16px; font-size:11px; font-weight:700; color:var(--text-400); letter-spacing:.03em; position:sticky; top:0; background:#fff; z-index:21;}
+.dispatcher-group-label{padding:10px 16px 4px; font-size:11px; font-weight:700; color:var(--text-400); letter-spacing:.02em; background:var(--bg-50); border-bottom:1px solid var(--bg-100); border-top:1px solid var(--bg-100);}
+.driver-row-left{height:84px; border-bottom:1px solid var(--bg-100); padding:10px 16px; display:flex; flex-direction:column; justify-content:center; gap:6px;}
+.driver-name-row{display:flex; align-items:center; gap:8px;}
+.driver-avatar{width:26px;height:26px;border-radius:50%;color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.driver-name{font-size:13px; font-weight:700; color:var(--text-900); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+.team-badge{font-size:9.5px; font-weight:700; background:rgba(120,82,247,.12); color:var(--ai); padding:1px 6px; border-radius:8px; flex-shrink:0;}
+.driver-sub{font-size:10.5px; color:var(--text-400);}
+.cycle-row{display:flex; align-items:center; gap:6px;}
+.cycle-track{flex:1; height:5px; background:var(--bg-100); border-radius:4px; overflow:hidden;}
+.cycle-fill{height:100%; border-radius:4px;}
+.cycle-pct{font-size:10px; font-weight:700; color:var(--text-400); width:30px; text-align:right;}
+
+.gantt-right{position:relative; flex:1;}
+.gantt-head{display:flex; height:40px; border-bottom:1px solid var(--bg-100); position:sticky; top:0; background:#fff; z-index:15;}
+.day-col-head{width:220px; flex-shrink:0; display:flex; flex-direction:column; align-items:center; justify-content:center; border-right:1px solid var(--bg-100); font-size:11.5px; font-weight:700; color:var(--text-400);}
+.day-col-head.is-today{color:var(--accent-dark); background:rgba(72,200,118,.06);}
+.day-col-head .dnum{color:var(--text-900); font-weight:700;}
+.gantt-rows{position:relative;}
+.gantt-driver-row{height:84px; border-bottom:1px solid var(--bg-100); position:relative; display:flex;}
+.gantt-driver-row.drag-over{background:rgba(72,200,118,.06); outline:2px dashed var(--accent); outline-offset:-2px;}
+.day-cell{width:220px; flex-shrink:0; border-right:1px solid var(--bg-100); position:relative; cursor:cell;}
+.day-cell:hover{background:rgba(86,168,221,.05);}
+.today-line{position:absolute; top:0; bottom:0; width:2px; background:var(--danger); z-index:5; pointer-events:none;}
+.dispatcher-spacer-row{height:30px; background:var(--bg-50); border-bottom:1px solid var(--bg-100);}
+
+.load-bar{
+  position:absolute; top:14px; height:56px; border-radius:9px; overflow:hidden;
+  color:#fff; font-size:11px; padding:6px 10px; cursor:grab; box-shadow:0 2px 6px rgba(51,55,97,.15);
+  display:flex; flex-direction:column; justify-content:center; gap:2px; z-index:6;
+}
+.load-bar .route-txt{font-weight:700; font-size:12px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+.load-bar .sub-txt{font-size:10px; opacity:.9; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+.load-bar.st-SCHEDULED{background:linear-gradient(135deg,#56a8dd,#4a93c4);}
+.load-bar.st-INTRANSIT{background:linear-gradient(135deg,#48C876,#379a5c);}
+.load-bar.st-ATPICKUP{background:linear-gradient(135deg,#FFAD20,#e0961a);}
+.load-bar.st-DELIVERED{background:linear-gradient(135deg,#9a9ab0,#7c7c93);}
+.load-bar .live-dot{width:6px;height:6px;border-radius:50%;background:#fff;display:inline-block;animation:pulse 1.5s infinite;margin-right:4px;}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.35;}}
+.load-bar .warn-flag{position:absolute; top:4px; right:6px; color:#fff; font-size:15px; filter:drop-shadow(0 1px 2px rgba(0,0,0,.3));}
+.load-bar.flash-warn{animation:flashwarn 1s ease 2;}
+@keyframes flashwarn{0%,100%{box-shadow:0 2px 6px rgba(51,55,97,.15);}50%{box-shadow:0 0 0 4px rgba(255,173,32,.55);}}
+
+.load-tooltip{position:fixed; background:var(--text-800); color:#fff; border-radius:10px; padding:12px 14px; font-size:12px; width:250px; z-index:600; box-shadow:0 12px 30px rgba(0,0,0,.3); pointer-events:none; line-height:1.5;}
+.load-tooltip b{color:#fff;}
+.load-tooltip .lt-row{display:flex; justify-content:space-between; gap:10px; margin-top:2px;}
+.load-tooltip .lt-label{color:rgba(255,255,255,.55);}
+.load-tooltip .lt-late{color:var(--warning); font-weight:700; margin-top:6px; display:flex; align-items:center; gap:5px;}
+
+.toast-stack{position:fixed; bottom:24px; right:24px; z-index:900; display:flex; flex-direction:column; gap:8px;}
+.toast{background:var(--text-800); color:#fff; padding:12px 16px; border-radius:10px; font-size:12.5px; box-shadow:0 10px 30px rgba(0,0,0,.25); display:flex; align-items:center; gap:10px; min-width:260px; animation:toastin .25s ease;}
+.toast .material-symbols-outlined{color:var(--accent); font-size:18px;}
+.toast.warn .material-symbols-outlined{color:var(--warning);}
+@keyframes toastin{from{opacity:0; transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+
+/* FLYOUT PANELS (Filters / KPI / Customize) */
+.flyout-scrim{position:fixed; inset:0; background:rgba(51,55,97,.35); z-index:100; display:none; align-items:stretch; justify-content:flex-end;}
+.flyout-scrim.show{display:flex;}
+.flyout-panel{width:380px; background:#fff; height:100%; box-shadow:-12px 0 40px rgba(0,0,0,.15); display:flex; flex-direction:column; animation:slidein .2s ease;}
+.flyout-panel.customize-mode{outline:2px dashed var(--accent); outline-offset:-2px;}
+.more-toggle{display:flex; align-items:center; justify-content:space-between; cursor:pointer;}
+.more-toggle:hover{color:var(--text-900);}
+.more-toggle.expanded .material-symbols-outlined{transform:rotate(180deg);}
+@keyframes slidein{from{transform:translateX(20px); opacity:.6;}to{transform:translateX(0); opacity:1;}}
+.flyout-head{padding:20px 24px; border-bottom:1px solid var(--bg-100); display:flex; align-items:center; justify-content:space-between;}
+.flyout-head h3{margin:0; font-size:16px;}
+.flyout-close{width:30px;height:30px;border-radius:9px;background:var(--bg-50);border:none;color:var(--text-400);display:flex;align-items:center;justify-content:center;}
+.flyout-body{flex:1; overflow-y:auto; padding:20px 24px;}
+.flyout-footer{padding:16px 24px; border-top:1px solid var(--bg-100); display:flex; gap:10px;}
+.flyout-footer .btn{flex:1; height:40px; border-radius:9px; font-size:13px; font-weight:700; border:1px solid var(--bg-100); background:#fff;}
+.flyout-footer .btn.primary{background:var(--accent); border-color:var(--accent); color:#fff;}
+
+.filter-section-label{font-size:11px; font-weight:700; color:var(--text-400); letter-spacing:.03em; margin:18px 0 10px;}
+.filter-section-label:first-child{margin-top:0;}
+.filter-field{margin-bottom:14px;}
+.filter-field label{font-size:12px; font-weight:600; color:var(--text-900); display:block; margin-bottom:6px;}
+.filter-field select, .filter-field input[type=text]{width:100%; padding:9px 12px; border:1px solid var(--bg-100); border-radius:8px; font-size:13px; font-family:inherit; color:var(--text-900); background:#fff;}
+.chip-row{display:flex; flex-wrap:wrap; gap:6px;}
+.filter-chip{font-size:11.5px; padding:5px 10px; border-radius:16px; background:var(--bg-50); border:1px solid var(--bg-100); color:var(--text-900); display:flex; align-items:center; gap:5px;}
+.filter-chip input{margin:0; accent-color:var(--accent);}
+.customize-toggle-row{display:flex; align-items:center; justify-content:space-between; padding:10px 0; border-bottom:1px solid var(--bg-100);}
+.customize-toggle-row .item-lbl{display:flex; align-items:center; gap:8px; font-size:13px;}
+.switch{width:36px;height:20px;border-radius:11px; background:var(--bg-100); position:relative; flex-shrink:0;}
+.switch.on{background:var(--accent);}
+.switch .knob{position:absolute; top:2px; left:2px; width:16px; height:16px; border-radius:50%; background:#fff; transition:left .15s; box-shadow:0 1px 3px rgba(0,0,0,.2);}
+.switch.on .knob{left:18px;}
+
+.customize-drag-row{display:flex; align-items:center; gap:10px; padding:9px 10px; background:var(--bg-50); border:1px solid var(--bg-100); border-radius:9px; margin-bottom:6px; font-size:13px;}
+.customize-drag-row .drag-handle{color:var(--text-400); cursor:grab;}
+.customize-drag-row .material-symbols-outlined.item-icon{color:var(--text-900); font-size:18px;}
+.customize-actions{display:flex; gap:10px; margin-bottom:14px;}
+.customize-actions button{font-size:12px; font-weight:700; color:var(--info); background:none; border:none; padding:0;}
+
+.empty-state{text-align:center; padding:60px 20px; color:var(--text-400);}
+.empty-state .material-symbols-outlined{font-size:44px; color:var(--bg-100); margin-bottom:10px;}
+.empty-state p{font-size:13px; margin:4px 0;}
+.empty-state button{margin-top:12px; color:var(--info); font-weight:700; font-size:13px; background:none; border:none;}
+
+/* ADD LOAD MODAL */
+.modal-scrim{position:fixed; inset:0; background:rgba(51,55,97,.45); z-index:200; display:none; align-items:flex-start; justify-content:center; overflow-y:auto; padding:40px 20px;}
+.modal-scrim.show{display:flex;}
+.al-modal{background:#fff; border-radius:16px; width:620px; max-width:100%; box-shadow:0 24px 60px rgba(0,0,0,.3);}
+.al-head{padding:24px 28px 16px; display:flex; align-items:center; justify-content:space-between;}
+.al-head h2{font-size:19px; margin:0;}
+.al-back{display:flex; align-items:center; gap:8px; font-size:13px; font-weight:700; color:var(--text-400); cursor:pointer;}
+.al-close{width:30px;height:30px;border-radius:9px;background:var(--bg-50);border:none;color:var(--text-400);display:flex;align-items:center;justify-content:center;}
+.al-body{padding:0 28px 28px;}
+.al-subtitle{font-size:13px; color:var(--text-400); margin:0 0 20px;}
+.method-cards{display:flex; gap:16px;}
+.method-card{flex:1; border:1.5px solid var(--bg-100); border-radius:12px; padding:20px; cursor:pointer; position:relative; transition:border-color .15s, box-shadow .15s;}
+.method-card:hover{border-color:var(--accent); box-shadow:0 6px 18px rgba(72,200,118,.12);}
+.method-card .rec-badge{position:absolute; top:16px; right:16px; font-size:9.5px; font-weight:700; background:rgba(72,200,118,.14); color:var(--accent-dark); padding:3px 8px; border-radius:8px; letter-spacing:.02em;}
+.method-card .mi{width:44px;height:44px;border-radius:11px;background:var(--bg-50);display:flex;align-items:center;justify-content:center;margin-bottom:14px;color:var(--text-900);}
+.method-card h4{margin:0 0 6px; font-size:14.5px;}
+.method-card p{margin:0; font-size:12px; color:var(--text-400); line-height:1.5;}
+.dropzone{border:2px dashed var(--bg-100); border-radius:12px; padding:44px 20px; text-align:center; color:var(--text-400);}
+.dropzone .material-symbols-outlined{font-size:38px; color:var(--info); margin-bottom:10px;}
+.dropzone .dz-title{font-size:14px; font-weight:700; color:var(--text-900);}
+.dropzone .dz-sub{font-size:12px; margin-top:4px;}
+.processing-anim{width:34px;height:34px;border-radius:50%;border:3px solid var(--bg-100); border-top-color:var(--info); margin:0 auto 14px; animation:spin .8s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.section-label-form{font-size:11px; font-weight:700; color:var(--text-400); letter-spacing:.03em; margin:20px 0 10px;}
+.section-label-form:first-child{margin-top:0;}
+.ai-badge-tag{display:inline-flex; align-items:center; gap:4px; background:rgba(120,82,247,.12); color:var(--ai); font-size:10.5px; font-weight:700; padding:2px 8px; border-radius:14px; margin-left:8px;}
+.ai-mini{font-size:9.5px; font-weight:700; color:var(--ai); margin-left:6px;}
+.form-row{display:flex; gap:16px; margin-bottom:14px;}
+.form-field{flex:1;}
+.form-field label{font-size:12px; font-weight:600; display:block; margin-bottom:6px;}
+.form-field label .req{color:var(--danger);}
+.form-field input, .form-field textarea{width:100%; padding:9px 12px; border:1px solid var(--bg-100); border-radius:8px; font-size:13px; font-family:inherit; color:var(--text-900);}
+.stop-card{border:1px solid var(--bg-100); border-radius:10px; padding:12px 14px; margin-bottom:10px; position:relative;}
+.stop-head{display:flex; align-items:center; gap:8px; margin-bottom:6px;}
+.stop-kind{font-size:10.5px; font-weight:700; padding:2px 8px; border-radius:12px;}
+.stop-kind.pickup{background:rgba(86,168,221,.14); color:var(--info);}
+.stop-kind.delivery{background:rgba(72,200,118,.14); color:var(--accent-dark);}
+.appt-tag{font-size:9.5px; font-weight:700; padding:2px 7px; border-radius:10px; background:var(--bg-50); color:var(--text-400);}
+.stop-addr{font-size:13px; font-weight:600;}
+.stop-appt{font-size:11.5px; color:var(--text-400); margin-top:2px;}
+.add-row-btn{font-size:12.5px; font-weight:700; color:var(--info); background:none; border:none; display:flex; align-items:center; gap:4px; margin-bottom:14px;}
+.deadhead-box{display:flex; align-items:center; gap:8px; background:rgba(72,200,118,.08); border-radius:9px; padding:10px 14px; font-size:12.5px; color:var(--accent-dark); font-weight:600;}
+.deadhead-box .material-symbols-outlined{font-size:17px;}
+.al-footer{display:flex; gap:12px; margin-top:22px; padding-top:18px; border-top:1px solid var(--bg-100);}
+.al-footer button{flex:1; height:44px; border-radius:9px; font-size:13.5px; font-weight:700; border:1px solid var(--bg-100); background:#fff; color:var(--text-900);}
+.al-footer button.primary{background:var(--accent); border-color:var(--accent); color:#fff;}
+
+.hidden{display:none !important;}
+</style>
+</head>
+<body>
+
+<div id="app">
+<div class="shell">
+
+  <!-- RAIL -->
+  <div class="rail" id="rail">
+    <div class="rail-top"><div class="rail-logo-mini">EW</div></div>
+    <div class="rail-item" id="railDashboardItem" style="margin:0 0 4px;"><span class="material-symbols-outlined">grid_view</span><span class="lbl">Dashboard</span></div>
+    <div class="rail-divider"></div>
+    <div class="rail-mid" id="railMid"></div>
+    <div class="rail-divider"></div>
+    <div class="rail-bottom">
+      <div class="rail-item" id="railCustomizeBtn"><span class="material-symbols-outlined">tune</span><span class="lbl">Customize</span></div>
+      <div class="rail-collapse-btn" id="railCollapseBtn"><span class="material-symbols-outlined" id="railCollapseIcon">chevron_right</span></div>
+      <div class="rail-wordmark"><span class="dot"></span><span class="txt">easyway</span></div>
+    </div>
+  </div>
+
+  <!-- MAIN -->
+  <div class="main">
+    <div class="topbar">
+      <div class="topbar-row1">
+        <div class="searchbox" id="omniSearchBox">
+          <span class="material-symbols-outlined">search</span>
+          <input type="text" id="omniSearchInput" placeholder="Search everything...">
+          <span class="material-symbols-outlined clear-x" id="omniSearchClear">close</span>
+          <div class="omni-results hidden" id="omniSearchResults"></div>
+        </div>
+        <div class="topbar-spacer"></div>
+        <div class="quickview"><span class="material-symbols-outlined">bolt</span><span class="qv-label">QUICK VIEW</span></div>
+        <div class="topbar-icon"><span class="material-symbols-outlined">chat_bubble</span><span class="badge-dot"></span></div>
+        <div class="user-chip">
+          <div class="name-role"><div class="name">Jon Doe</div><div class="role">Manager</div></div>
+          <div class="avatar">JD</div>
+        </div>
+        <div class="topbar-icon" id="notifBtn">
+          <span class="material-symbols-outlined">notifications</span><span class="badge-dot" id="notifBadge"></span>
+          <div class="notif-dropdown hidden" id="notifDropdown"></div>
+        </div>
+        <div class="topbar-icon"><span class="material-symbols-outlined">account_circle</span></div>
+      </div>
+      <div class="topbar-row2">
+        <span class="crumb">Loads</span><span class="crumb-sep material-symbols-outlined">chevron_right</span><span class="crumb current">Loads Planner</span>
+        <div class="tabs">
+          <div class="tab-btn">Load History</div>
+          <div class="tab-btn active">Loads Planner</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="content">
+      <div class="planner-toolbar">
+        <div class="nav-group">
+          <button class="nav-btn" id="prevBtn"><span class="material-symbols-outlined">chevron_left</span></button>
+          <button class="today-btn" id="todayBtn">Today</button>
+          <button class="nav-btn" id="nextBtn"><span class="material-symbols-outlined">chevron_right</span></button>
+        </div>
+        <div class="period-label" id="periodLabel">Aug 11 – 17, 2026</div>
+        <div class="zoom-toggle">
+          <button class="zoom-btn active" data-zoom="week">Week</button>
+          <button class="zoom-btn" data-zoom="day">Day</button>
+        </div>
+        <div class="tb-spacer"></div>
+        <div class="tb-search">
+          <span class="material-symbols-outlined">search</span>
+          <input type="text" id="plannerSearch" placeholder="Search PO#, broker, dispatcher, driver...">
+        </div>
+        <button class="tb-btn has-count" id="filtersBtn"><span class="material-symbols-outlined">filter_alt</span>Filters<span class="count-pill" id="filterCount">2</span></button>
+        <button class="icon-btn-square" id="kpiBtn" title="Dispatcher KPI Settings"><span class="material-symbols-outlined">settings</span></button>
+        <button class="tb-btn" id="exportBtn"><span class="material-symbols-outlined">file_download</span>Export</button>
+        <button class="tb-btn tb-btn-primary" id="addLoadBtn"><span class="material-symbols-outlined">add</span>Add Load</button>
+      </div>
+
+      <div class="tray">
+        <div class="tray-head">
+          <span class="material-symbols-outlined">inventory_2</span>
+          <span class="tray-title" id="trayTitle">Unassigned loads</span>
+          <span class="tray-hint">Drag onto a driver's row to assign</span>
+        </div>
+        <div class="tray-cards" id="trayCards"></div>
+      </div>
+
+      <div class="gantt-wrap" id="ganttWrap">
+        <div class="gantt-inner">
+          <div class="gantt-left" id="ganttLeft"></div>
+          <div class="gantt-right" id="ganttRight">
+            <div class="gantt-head" id="ganttHead"></div>
+            <div class="gantt-rows" id="ganttRows"></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- TOASTS -->
+<div class="toast-stack" id="toastStack"></div>
+
+<!-- LOAD TOOLTIP -->
+<div class="load-tooltip hidden" id="loadTooltip"></div>
+<div class="rail-tooltip hidden" id="railTooltip"></div>
+
+<!-- FILTERS FLYOUT -->
+<div class="flyout-scrim" id="filtersScrim">
+  <div class="flyout-panel" id="filtersPanel">
+    <div class="flyout-head">
+      <h3>Filters</h3>
+      <div style="display:flex; align-items:center; gap:6px;">
+        <button class="flyout-close" id="filtersCustomizeBtn" title="Customize filters" onclick="enterFiltersCustomize()"><span class="material-symbols-outlined">tune</span></button>
+        <button class="flyout-close" onclick="closeFlyout('filtersScrim')"><span class="material-symbols-outlined">close</span></button>
+      </div>
+    </div>
+    <div class="flyout-body">
+
+      <div id="normalFiltersView">
+        <div class="filter-section-label">QUICK FILTERS</div>
+        <div id="quickFieldsWrap"></div>
+
+        <div class="filter-section-label more-toggle" id="moreToggleRow" onclick="toggleMoreFilters()">
+          <span>MORE FILTERS <span class="count-pill" id="moreCountPill" style="background:var(--info); display:none;"></span></span>
+          <span class="material-symbols-outlined" id="moreChevron" style="font-size:18px; transition:transform .15s;">expand_more</span>
+        </div>
+        <div id="moreFieldsWrap" class="hidden"></div>
+
+        <div class="filter-field" style="margin-top:14px;">
+          <label style="display:flex; align-items:center; justify-content:space-between; margin-bottom:0;">Relay/team only
+            <div class="switch" id="fltRelaySwitch" onclick="toggleSwitch(this)"><div class="knob"></div></div>
+          </label>
+        </div>
+      </div>
+
+      <div id="customizeFiltersView" class="hidden">
+        <p style="font-size:12px;color:var(--text-400);margin-top:0;">Drag fields between sections to reorder them. Toggle fields stay fixed and can't be dragged.</p>
+        <div class="filter-section-label">QUICK FILTERS</div>
+        <div id="quickDragList"></div>
+        <div class="filter-section-label">MORE FILTERS</div>
+        <div id="moreDragList"></div>
+        <div class="filter-section-label">ALWAYS FIXED</div>
+        <div class="customize-drag-row" style="opacity:.55; cursor:default;"><span class="material-symbols-outlined item-icon">toggle_on</span><span style="flex:1;">Relay/team only</span></div>
+      </div>
+
+    </div>
+    <div class="flyout-footer" id="normalFiltersFooter">
+      <button class="btn" onclick="clearFilters()">Clear all</button>
+      <button class="btn primary" onclick="applyFilters()">Apply filters</button>
+    </div>
+    <div class="flyout-footer hidden" id="customizeFiltersFooter">
+      <button class="btn primary" onclick="exitFiltersCustomize()">Done</button>
+    </div>
+  </div>
+</div>
+
+<!-- KPI SETTINGS FLYOUT -->
+<div class="flyout-scrim" id="kpiScrim">
+  <div class="flyout-panel">
+    <div class="flyout-head"><h3>Dispatcher KPI Settings</h3><button class="flyout-close" onclick="closeFlyout('kpiScrim')"><span class="material-symbols-outlined">close</span></button></div>
+    <div class="flyout-body">
+      <p style="font-size:12.5px;color:var(--text-400);margin-top:0;">Choose which metrics show on each load bar and driver row.</p>
+      <div class="customize-toggle-row"><div class="item-lbl"><span class="material-symbols-outlined" style="font-size:18px;">payments</span>Show RPM per load</div><div class="switch on" onclick="toggleSwitch(this)"><div class="knob"></div></div></div>
+      <div class="customize-toggle-row"><div class="item-lbl"><span class="material-symbols-outlined" style="font-size:18px;">route</span>Show deadhead miles</div><div class="switch on" onclick="toggleSwitch(this)"><div class="knob"></div></div></div>
+      <div class="customize-toggle-row"><div class="item-lbl"><span class="material-symbols-outlined" style="font-size:18px;">timer</span>Show cycle (HOS) progress</div><div class="switch on" onclick="toggleSwitch(this)"><div class="knob"></div></div></div>
+      <div class="customize-toggle-row"><div class="item-lbl"><span class="material-symbols-outlined" style="font-size:18px;">satellite_alt</span>Show live GPS/ELD ping</div><div class="switch on" onclick="toggleSwitch(this)"><div class="knob"></div></div></div>
+      <div class="customize-toggle-row"><div class="item-lbl"><span class="material-symbols-outlined" style="font-size:18px;">groups</span>Show relay/team badges</div><div class="switch on" onclick="toggleSwitch(this)"><div class="knob"></div></div></div>
+    </div>
+    <div class="flyout-footer"><button class="btn primary" onclick="closeFlyout('kpiScrim')">Done</button></div>
+  </div>
+</div>
+
+<!-- CUSTOMIZE RAIL FLYOUT -->
+<div class="flyout-scrim" id="customizeScrim">
+  <div class="flyout-panel">
+    <div class="flyout-head"><h3>Customize Toolbar</h3><button class="flyout-close" onclick="closeFlyout('customizeScrim')"><span class="material-symbols-outlined">close</span></button></div>
+    <div class="flyout-body">
+      <div class="filter-section-label" style="display:flex;justify-content:space-between;align-items:center;">
+        ENTITIES
+        <span class="customize-actions"><button onclick="selectAll('entity',true)">Select all</button><button onclick="selectAll('entity',false)">Deselect all</button></span>
+      </div>
+      <div id="entityList"></div>
+      <div class="filter-section-label" style="display:flex;justify-content:space-between;align-items:center;">
+        TOOLS
+        <span class="customize-actions"><button onclick="selectAll('tool',true)">Select all</button><button onclick="selectAll('tool',false)">Deselect all</button></span>
+      </div>
+      <div id="toolList"></div>
+    </div>
+    <div class="flyout-footer"><button class="btn primary" onclick="closeFlyout('customizeScrim')">Done</button></div>
+  </div>
+</div>
+
+<!-- ADD LOAD MODAL -->
+<div class="modal-scrim" id="addLoadScrim">
+  <div class="al-modal">
+
+    <!-- STEP: method -->
+    <div id="stepMethod">
+      <div class="al-head"><h2>Add New Load</h2><button class="al-close" onclick="closeAddLoad()"><span class="material-symbols-outlined">close</span></button></div>
+      <div class="al-body">
+        <p class="al-subtitle">How do you want to enter this load's details?</p>
+        <div class="method-cards">
+          <div class="method-card" onclick="goStep('stepUpload')">
+            <div class="rec-badge">RECOMMENDED</div>
+            <div class="mi"><span class="material-symbols-outlined">document_scanner</span></div>
+            <h4>Scan Rate Confirmation</h4>
+            <p>Upload the RC — AI reads broker, rate, stops & auto-fills the form.</p>
+          </div>
+          <div class="method-card" onclick="goStep('stepForm')">
+            <div class="mi"><span class="material-symbols-outlined">edit_note</span></div>
+            <h4>Enter Manually</h4>
+            <p>Fill in the load details yourself, field by field.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP: upload -->
+    <div id="stepUpload" class="hidden">
+      <div class="al-head"><div class="al-back" onclick="goStep('stepMethod')"><span class="material-symbols-outlined">arrow_back</span>Scan Rate Confirmation</div><button class="al-close" onclick="closeAddLoad()"><span class="material-symbols-outlined">close</span></button></div>
+      <div class="al-body">
+        <div class="dropzone" id="dropzoneEl" onclick="simulateUpload()">
+          <span class="material-symbols-outlined">cloud_upload</span>
+          <div class="dz-title">Drop RC here, or click to upload</div>
+          <div class="dz-sub">PDF, JPG or PNG — one page per load</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP: processing -->
+    <div id="stepProcessing" class="hidden">
+      <div class="al-head"><div class="al-back"><span class="material-symbols-outlined">arrow_back</span>Scan Rate Confirmation</div><button class="al-close" onclick="closeAddLoad()"><span class="material-symbols-outlined">close</span></button></div>
+      <div class="al-body">
+        <div class="dropzone">
+          <div class="processing-anim"></div>
+          <div class="dz-title">Reading rate confirmation...</div>
+          <div class="dz-sub">Extracting broker, rate, stops & dates</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP: full form -->
+    <div id="stepForm" class="hidden">
+      <div class="al-head">
+        <h2>Add New Load <span class="ai-badge-tag hidden" id="aiFilledBadge"><span class="material-symbols-outlined" style="font-size:12px;">auto_awesome</span>Filled from RC — review below</span></h2>
+        <button class="al-close" onclick="closeAddLoad()"><span class="material-symbols-outlined">close</span></button>
+      </div>
+      <div class="al-body">
+        <div class="section-label-form">BROKER &amp; RATE</div>
+        <div class="form-row">
+          <div class="form-field"><label>Broker name <span class="req">*</span><span class="ai-mini hidden aiTag">✦ AI</span></label><input id="fBroker" type="text" placeholder="e.g. Magellan Transport LLC"></div>
+          <div class="form-field"><label>Rate <span class="req">*</span><span class="ai-mini hidden aiTag">✦ AI</span></label><input id="fRate" type="text" placeholder="$0.00"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-field"><label>Broker MC# <span class="ai-mini hidden aiTag">✦ AI</span></label><input id="fMC" type="text"></div>
+          <div class="form-field"><label>PO# <span class="ai-mini hidden aiTag">✦ AI</span></label><input id="fPO" type="text"></div>
+        </div>
+
+        <div class="section-label-form" style="display:flex; justify-content:space-between; align-items:center;">
+          STOPS
+          <button class="add-row-btn" onclick="addStop()"><span class="material-symbols-outlined" style="font-size:15px;">add</span>Add stop</button>
+        </div>
+        <div id="stopsWrap"></div>
+
+        <div class="deadhead-box"><span class="material-symbols-outlined">check_circle</span><span id="deadheadTxt">38 miles — calculated automatically</span></div>
+
+        <div class="section-label-form">MORE FIELDS</div>
+        <div class="form-row">
+          <div class="form-field"><label>Truck / Trailer</label><input id="fTruck" type="text"></div>
+          <div class="form-field"><label>Commodity</label><input id="fCommodity" type="text"></div>
+        </div>
+
+        <div class="section-label-form">COMMENTS</div>
+        <div class="form-field"><textarea id="fComments" rows="2" placeholder="Anything the driver or office needs to know..."></textarea></div>
+
+        <div class="al-footer">
+          <button onclick="saveLoad(false)">Save as draft</button>
+          <button class="primary" onclick="saveLoad(true)">Create Load</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   STATE / DATA
+   ============================================================ */
+const RAIL_ENTITIES = [
+  {id:'drivers', icon:'person', label:'Drivers'},
+  {id:'trucks', icon:'local_shipping', label:'Trucks'},
+  {id:'trailers', icon:'rv_hookup', label:'Trailers'},
+  {id:'company', icon:'business', label:'Company'},
+  {id:'team', icon:'groups', label:'Team Members'},
+  {id:'partners', icon:'badge', label:'Partners'}
+];
+const RAIL_TOOLS = [
+  {id:'safety', icon:'health_and_safety', label:'Safety Monitoring'},
+  {id:'pti', icon:'checklist', label:'PTI'},
+  {id:'trainings', icon:'school', label:'Trainings'},
+  {id:'incidents', icon:'warning', label:'Incidents'},
+  {id:'consortium', icon:'science', label:'Drug & Alcohol'},
+  {id:'billing', icon:'request_quote', label:'Billing'},
+  {id:'payroll', icon:'payments', label:'Payroll'},
+  {id:'invoices', icon:'receipt_long', label:'Invoices'},
+  {id:'reports', icon:'analytics', label:'Reports'},
+  {id:'loads', icon:'local_shipping', label:'Loads', active:true},
+  {id:'fleet', icon:'inventory_2', label:'Fleet Management'},
+  {id:'tasks', icon:'task', label:'Task Manager'},
+  {id:'calendar', icon:'calendar_month', label:'Calendar'},
+  {id:'fuel', icon:'local_gas_station', label:'Fuel Monitoring'},
+  {id:'credentials', icon:'key', label:'Credentials'}
+];
+let railEntityVisible = {}; RAIL_ENTITIES.forEach(e=>railEntityVisible[e.id]=true);
+let railToolVisible = {}; RAIL_TOOLS.forEach(t=>railToolVisible[t.id]=true);
+
+const DISPATCHERS = ['Marcus Webb','Angela Torres','Viktor Denyshchuk'];
+const DRIVER_COLORS = ['#56a8dd','#48C876','#FFAD20','#7852F7','#E82C3F','#2E5BFF'];
+
+let drivers = [
+  {id:'d1', name:'Sultan Suleymanov', dispatcher:'Marcus Webb', truck:'Truck 2758', cycle:72, gps:'Amarillo, TX (I-40 W) · 66 mph · 1 min ago', live:true},
+  {id:'d2', name:'Tariq Nassar', dispatcher:'Marcus Webb', truck:'Truck 147 · Trailer T-22', cycle:45, gps:'Nashville, TN (I-24 W) · 59 mph · 3 min ago', live:true},
+  {id:'d3', name:'Oksana Rybalka', dispatcher:'Marcus Webb', truck:'Truck 41 · Trailer T-09', cycle:15, gps:'Phoenix, AZ (Yard) · 0 mph · 22 min ago', live:false},
+  {id:'d4', name:'Igor Glibiciuc', dispatcher:'Angela Torres', truck:'Truck 1305', cycle:60, gps:'Knoxville, TN (I-40 W) · 64 mph · 2 min ago', live:true},
+  {id:'d5', name:'Jammie Tiereal Dinkins', dispatcher:'Angela Torres', truck:'Truck 17', cycle:30, gps:'Toledo, OH (Yard) · 0 mph · 1 hr ago', live:false},
+  {id:'d6', name:'Beslan Gagiev', dispatcher:'Angela Torres', truck:'Truck 8 · Trailer T-44', cycle:85, gps:'Barstow, CA (I-15 N) · 58 mph · 1 min ago', live:true},
+  {id:'d7', name:'Anton Glukhin / M. Omarov', dispatcher:'Viktor Denyshchuk', truck:'Truck 4409 · Trailer TR-1187', cycle:50, gps:'Indianapolis, IN (Yard) · 0 mph · 38 min ago', live:false, team:true},
+  {id:'d8', name:'Andriy Olexandrovich K.', dispatcher:'Viktor Denyshchuk', truck:'Truck FRHT · Trailer T-18', cycle:96, gps:'Shreveport, LA (I-20 W) · 61 mph · 4 min ago', live:true}
+];
+
+const STATUS_LIST = ['SCHEDULED','IN TRANSIT','AT PICKUP','DELIVERED'];
+function statusClass(s){ return 'st-'+s.replace(/\s/g,''); }
+
+// day index: 0=Mon .. 6=Sun (within currently viewed week)
+let loads = [
+  {id:'L1', route:'TX → GA', broker:'Werner Enterprises', rate:2400, driverId:'d1', dayStart:0, dayLen:2, status:'IN TRANSIT', late:false, hardAppt:true},
+  {id:'L2', route:'CA → WA', broker:'Landstar System', rate:5940, driverId:'d1', dayStart:2.4, dayLen:1.3, status:'SCHEDULED', late:false, hardAppt:false},
+  {id:'L3', route:'OH → IL', broker:'Covenant Logistics', rate:2100, driverId:'d2', dayStart:0.5, dayLen:1, status:'AT PICKUP', late:true, hardAppt:true},
+  {id:'L4', route:'NY → FL (+2 stops)', broker:'Amazon Logistics', rate:4200, driverId:'d4', dayStart:0, dayLen:2.6, status:'IN TRANSIT', late:false, hardAppt:false, duration:'2 days'},
+  {id:'L5', route:'TX → IL (non-stop, driver swap)', broker:'Redstone Logistics', rate:5800, driverId:'d7', dayStart:0, dayLen:3, status:'IN TRANSIT', late:false, hardAppt:false, duration:'3 days', team:true},
+  {id:'L6', route:'Werner Enterprises — Relay', broker:'Werner Enterprises', rate:3150, driverId:'d8', dayStart:0.2, dayLen:1, status:'SCHEDULED', late:false, hardAppt:false, duration:'1 day', team:true}
+];
+let unassigned = [
+  {id:'U1', route:'MI → OH', broker:'XPO Logistics', rate:1890, miles:210},
+  {id:'U2', route:'GA → SC', broker:'Old Dominion Freight', rate:1531.32, miles:88},
+  {id:'U3', route:'IN → KY', broker:'J.B. Hunt Transport', rate:2340, miles:165}
+];
+
+let currentZoom = 'week'; // 'week' | 'day'
+let currentWeekOffset = 0;
+const DAY_LABELS_WEEK = ['MON','TUE','WED','THU','FRI','SAT','SUN'];
+const DAY_NUMS = [11,12,13,14,15,16,17];
+const HOUR_LABELS_DAY = ['6 AM','9 AM','12 PM','3 PM','6 PM','9 PM'];
+
+let activeFilters = {dispatcher:'', statuses:new Set(STATUS_LIST), driver:'', range:'This week'};
+
+/* ============================================================
+   RAIL
+   ============================================================ */
+function renderRail(){
+  const mid = document.getElementById('railMid');
+  mid.innerHTML = '';
+  const entLabel = document.createElement('div'); entLabel.className='rail-section-label'; entLabel.textContent='ENTITIES'; mid.appendChild(entLabel);
+  RAIL_ENTITIES.filter(e=>railEntityVisible[e.id]).forEach(e=>mid.appendChild(makeRailItem(e)));
+  const divider = document.createElement('div'); divider.className='rail-divider'; mid.appendChild(divider);
+  const toolLabel = document.createElement('div'); toolLabel.className='rail-section-label'; toolLabel.textContent='TOOLS'; mid.appendChild(toolLabel);
+  RAIL_TOOLS.filter(t=>railToolVisible[t.id]).forEach(t=>mid.appendChild(makeRailItem(t)));
+
+  const anyVisible = RAIL_ENTITIES.some(e=>railEntityVisible[e.id]) || RAIL_TOOLS.some(t=>railToolVisible[t.id]);
+  if(!anyVisible){
+    mid.innerHTML = `<div style="padding:20px 14px; text-align:center;">
+      <span class="material-symbols-outlined" style="color:rgba(255,255,255,.3); font-size:30px;">visibility_off</span>
+      <div style="color:rgba(255,255,255,.5); font-size:11.5px; margin-top:8px;">Everything is hidden</div>
+      <div onclick="document.getElementById('railCustomizeBtn').click()" style="color:var(--accent); font-size:11.5px; font-weight:700; margin-top:6px; cursor:pointer;">Customize toolbar</div>
+    </div>`;
+  }
+}
+function attachRailTooltip(el, label){
+  el.addEventListener('mouseenter',()=>{
+    if(document.getElementById('rail').classList.contains('expanded')) return;
+    const tt = document.getElementById('railTooltip');
+    tt.textContent = label; tt.classList.remove('hidden');
+    const r = el.getBoundingClientRect();
+    tt.style.left = (r.right+10)+'px'; tt.style.top = (r.top+r.height/2-12)+'px';
+  });
+  el.addEventListener('mouseleave',()=>document.getElementById('railTooltip').classList.add('hidden'));
+}
+function makeRailItem(entry){
+  const el = document.createElement('div');
+  el.className = 'rail-item'+(entry.active?' active':'');
+  el.innerHTML = `<span class="material-symbols-outlined">${entry.icon}</span><span class="lbl">${entry.label}</span>`;
+  attachRailTooltip(el, entry.label);
+  return el;
+}
+attachRailTooltip(document.getElementById('railDashboardItem'), 'Dashboard');
+document.getElementById('railCollapseBtn').addEventListener('click',()=>{
+  const rail = document.getElementById('rail');
+  rail.classList.toggle('expanded');
+  document.getElementById('railCollapseIcon').textContent = rail.classList.contains('expanded') ? 'chevron_left' : 'chevron_right';
+});
+document.getElementById('railCustomizeBtn').addEventListener('click',()=>{
+  renderCustomizeList();
+  document.getElementById('customizeScrim').classList.add('show');
+});
+function renderCustomizeList(){
+  const entWrap = document.getElementById('entityList'); entWrap.innerHTML='';
+  RAIL_ENTITIES.forEach(e=>entWrap.appendChild(customizeRow(e,'entity')));
+  const toolWrap = document.getElementById('toolList'); toolWrap.innerHTML='';
+  RAIL_TOOLS.forEach(t=>toolWrap.appendChild(customizeRow(t,'tool')));
+}
+function customizeRow(entry,kind){
+  const row = document.createElement('div');
+  row.className='customize-drag-row';
+  const visible = kind==='entity' ? railEntityVisible[entry.id] : railToolVisible[entry.id];
+  row.innerHTML = `<span class="material-symbols-outlined drag-handle">drag_indicator</span>
+    <span class="material-symbols-outlined item-icon">${entry.icon}</span>
+    <span style="flex:1;">${entry.label}</span>
+    <div class="switch ${visible?'on':''}" data-kind="${kind}" data-id="${entry.id}" onclick="toggleRailVisibility(this)"><div class="knob"></div></div>`;
+  return row;
+}
+function toggleRailVisibility(el){
+  const kind = el.dataset.kind, id = el.dataset.id;
+  if(kind==='entity') railEntityVisible[id] = !railEntityVisible[id];
+  else railToolVisible[id] = !railToolVisible[id];
+  el.classList.toggle('on');
+  renderRail();
+}
+function selectAll(kind, val){
+  if(kind==='entity') RAIL_ENTITIES.forEach(e=>railEntityVisible[e.id]=val);
+  else RAIL_TOOLS.forEach(t=>railToolVisible[t.id]=val);
+  renderCustomizeList();
+  renderRail();
+}
+
+/* ============================================================
+   TOASTS
+   ============================================================ */
+function showToast(msg, icon='check_circle', warn=false){
+  const stack = document.getElementById('toastStack');
+  const t = document.createElement('div');
+  t.className = 'toast'+(warn?' warn':'');
+  t.innerHTML = `<span class="material-symbols-outlined">${icon}</span><span>${msg}</span>`;
+  stack.appendChild(t);
+  setTimeout(()=>{ t.style.opacity='0'; t.style.transition='opacity .3s'; setTimeout(()=>t.remove(),300); }, 3400);
+}
+
+/* ============================================================
+   TOPBAR: omnisearch + notifications
+   ============================================================ */
+const OMNI_DATA = {
+  'Loads (this screen)': [
+    {icon:'local_shipping', label:'TX → GA · Werner Enterprises', sub:'Sultan Suleymanov'},
+    {icon:'local_shipping', label:'OH → IL · Covenant Logistics', sub:'Tariq Nassar'},
+    {icon:'local_shipping', label:'MI → OH · XPO Logistics', sub:'Unassigned'}
+  ],
+  'Drivers': [
+    {icon:'person', label:'Sultan Suleymanov', sub:'Active'},
+    {icon:'person', label:'Oksana Rybalka', sub:'Active'}
+  ],
+  'Trucks': [
+    {icon:'local_shipping', label:'Truck 2758', sub:'In use'},
+    {icon:'local_shipping', label:'Truck 147', sub:'In use'}
+  ]
+};
+function renderOmniResults(query){
+  const box = document.getElementById('omniSearchResults');
+  if(!query){ box.classList.add('hidden'); return; }
+  const q = query.toLowerCase();
+  let html='';
+  Object.keys(OMNI_DATA).forEach(group=>{
+    const matches = OMNI_DATA[group].filter(r=>r.label.toLowerCase().includes(q) || r.sub.toLowerCase().includes(q));
+    if(matches.length===0) return;
+    html += `<div class="omni-group-label">${group.toUpperCase()}</div>`;
+    matches.forEach(r=>{
+      html += `<div class="omni-row" onclick="pickOmniResult('${r.label.replace(/'/g,"\\'")}')"><span class="material-symbols-outlined">${r.icon}</span><span>${r.label}</span><span class="omni-sub">${r.sub}</span></div>`;
+    });
+  });
+  box.innerHTML = html || `<div class="omni-empty">No matches for "${query}".</div>`;
+  box.classList.remove('hidden');
+}
+function pickOmniResult(label){
+  document.getElementById('omniSearchInput').value = label;
+  document.getElementById('omniSearchResults').classList.add('hidden');
+  showToast(`Opening ${label}...`,'open_in_new');
+}
+const omniInput = document.getElementById('omniSearchInput');
+omniInput.addEventListener('input',(e)=>{
+  const v = e.target.value;
+  document.getElementById('omniSearchClear').style.display = v ? 'flex' : 'none';
+  renderOmniResults(v);
+});
+omniInput.addEventListener('focus',()=>{ if(omniInput.value) renderOmniResults(omniInput.value); });
+document.getElementById('omniSearchClear').addEventListener('click',()=>{
+  omniInput.value='';
+  document.getElementById('omniSearchClear').style.display='none';
+  document.getElementById('omniSearchResults').classList.add('hidden');
+  omniInput.focus();
+});
+document.addEventListener('click',(e)=>{
+  if(!document.getElementById('omniSearchBox').contains(e.target)) document.getElementById('omniSearchResults').classList.add('hidden');
+});
+
+const NOTIF_ITEMS = [
+  {kind:'warn', icon:'warning', title:'Load TX→GA is at risk of missing its appointment', sub:'Sultan Suleymanov · hard appointment in 3 hrs', actionable:true},
+  {kind:'warn', icon:'timer', title:'Beslan Gagiev is near the HOS cycle limit (85%)', sub:'Consider reassigning upcoming loads', actionable:true},
+  {kind:'info', icon:'inventory_2', title:'3 loads have been unassigned for over 2 hours', sub:'MI→OH, GA→SC, IN→KY', actionable:false}
+];
+function renderNotifDropdown(){
+  const dd = document.getElementById('notifDropdown');
+  let html = `<div class="notif-head">Notifications</div>`;
+  NOTIF_ITEMS.forEach((n,i)=>{
+    html += `<div class="notif-item">
+      <div class="notif-icon ${n.kind}"><span class="material-symbols-outlined" style="font-size:17px;">${n.icon}</span></div>
+      <div class="notif-body">
+        <div class="notif-title">${n.title}</div>
+        <div class="notif-sub">${n.sub}</div>
+        ${n.actionable?`<div class="notif-actions">
+          <button class="primary" onclick="event.stopPropagation(); resolveNotif(${i})">Resolve</button>
+          <button onclick="event.stopPropagation(); snoozeNotif(${i})">Snooze</button>
+        </div>`:''}
+      </div>
+      <span class="material-symbols-outlined notif-preview" title="Preview" onclick="event.stopPropagation(); previewNotif(${i})">visibility</span>
+    </div>`;
+  });
+  dd.innerHTML = html;
+}
+function resolveNotif(i){ showToast('Marked as resolved.','check_circle'); closeNotifDropdown(); }
+function snoozeNotif(i){ showToast('Snoozed for 1 hour.','snooze'); closeNotifDropdown(); }
+function previewNotif(i){ showToast('Opening preview...','visibility'); }
+function closeNotifDropdown(){ document.getElementById('notifDropdown').classList.add('hidden'); }
+document.getElementById('notifBtn').addEventListener('click',(e)=>{
+  const dd = document.getElementById('notifDropdown');
+  const willShow = dd.classList.contains('hidden');
+  document.querySelectorAll('.notif-dropdown, .omni-results').forEach(x=>x.classList.add('hidden'));
+  if(willShow){ renderNotifDropdown(); dd.classList.remove('hidden'); }
+});
+document.addEventListener('click',(e)=>{
+  if(!document.getElementById('notifBtn').contains(e.target)) closeNotifDropdown();
+});
+
+/* ============================================================
+   FLYOUTS
+   ============================================================ */
+function closeFlyout(id){ document.getElementById(id).classList.remove('show'); }
+function toggleSwitch(el){ el.classList.toggle('on'); }
+document.getElementById('filtersBtn').addEventListener('click',()=>{
+  if(filtersCustomizeMode) exitFiltersCustomize();
+  document.getElementById('filtersScrim').classList.add('show');
+});
+document.getElementById('kpiBtn').addEventListener('click',()=>document.getElementById('kpiScrim').classList.add('show'));
+document.getElementById('exportBtn').addEventListener('click',()=>showToast('Export started — you will get a download link shortly.','file_download'));
+[...document.querySelectorAll('.flyout-scrim')].forEach(s=>s.addEventListener('click',(e)=>{ if(e.target===s) s.classList.remove('show'); }));
+
+/* ---- Filters: field defs, ordering, Quick/More collapse, Customize mode ---- */
+const FIELD_LABELS = {dispatcher:'Dispatcher', status:'Status', driver:'Driver', range:'Date range', equipment:'Equipment type'};
+const FIELD_HTML = {
+  dispatcher: `<div class="filter-field"><label>Dispatcher</label><select id="fltDispatcher"><option value="">All dispatchers</option><option>Marcus Webb</option><option>Angela Torres</option><option>Viktor Denyshchuk</option></select></div>`,
+  status: `<div class="filter-field"><label>Status</label><div class="chip-row" id="statusChips"></div></div>`,
+  driver: `<div class="filter-field"><label>Driver</label><input type="text" id="fltDriver" placeholder="Search driver name..."></div>`,
+  range: `<div class="filter-field"><label>Date range</label><select id="fltRange"><option>This week</option><option>Next week</option><option>Custom range...</option></select></div>`,
+  equipment: `<div class="filter-field"><label>Equipment type</label><select><option value="">Any</option><option>Dry Van</option><option>Reefer</option><option>Flatbed</option></select></div>`
+};
+let filterFieldOrder = {quick:['dispatcher','status'], more:['driver','range','equipment']};
+let filtersCustomizeMode = false;
+let moreFiltersExpanded = false;
+
+function renderNormalFilterFields(){
+  document.getElementById('quickFieldsWrap').innerHTML = filterFieldOrder.quick.map(id=>FIELD_HTML[id]).join('');
+  document.getElementById('moreFieldsWrap').innerHTML = filterFieldOrder.more.map(id=>FIELD_HTML[id]).join('');
+  if(filterFieldOrder.quick.includes('status') || filterFieldOrder.more.includes('status')) renderStatusChips();
+}
+function toggleMoreFilters(){
+  moreFiltersExpanded = !moreFiltersExpanded;
+  document.getElementById('moreFieldsWrap').classList.toggle('hidden', !moreFiltersExpanded);
+  document.getElementById('moreToggleRow').classList.toggle('expanded', moreFiltersExpanded);
+}
+function enterFiltersCustomize(){
+  filtersCustomizeMode = true;
+  document.getElementById('filtersPanel').classList.add('customize-mode');
+  document.getElementById('normalFiltersView').classList.add('hidden');
+  document.getElementById('customizeFiltersView').classList.remove('hidden');
+  document.getElementById('normalFiltersFooter').classList.add('hidden');
+  document.getElementById('customizeFiltersFooter').classList.remove('hidden');
+
+  const quickList = document.getElementById('quickDragList'); quickList.innerHTML='';
+  const moreList = document.getElementById('moreDragList'); moreList.innerHTML='';
+  filterFieldOrder.quick.forEach(id=>quickList.appendChild(dragFieldRow(id)));
+  filterFieldOrder.more.forEach(id=>moreList.appendChild(dragFieldRow(id)));
+  [quickList, moreList].forEach(listEl=>{
+    new Sortable(listEl, {
+      group:'filterFieldsCustomize', animation:150, forceFallback:true, fallbackOnBody:true, handle:'.drag-handle',
+      onEnd:function(){
+        filterFieldOrder.quick = [...quickList.children].map(c=>c.dataset.fieldId);
+        filterFieldOrder.more = [...moreList.children].map(c=>c.dataset.fieldId);
+      }
+    });
+  });
+}
+function exitFiltersCustomize(){
+  filtersCustomizeMode = false;
+  document.getElementById('filtersPanel').classList.remove('customize-mode');
+  document.getElementById('normalFiltersView').classList.remove('hidden');
+  document.getElementById('customizeFiltersView').classList.add('hidden');
+  document.getElementById('normalFiltersFooter').classList.remove('hidden');
+  document.getElementById('customizeFiltersFooter').classList.add('hidden');
+  renderNormalFilterFields();
+}
+function dragFieldRow(id){
+  const el = document.createElement('div');
+  el.className='customize-drag-row'; el.dataset.fieldId=id;
+  el.innerHTML = `<span class="material-symbols-outlined drag-handle">drag_indicator</span><span style="flex:1;">${FIELD_LABELS[id]}</span>`;
+  return el;
+}
+
+function renderStatusChips(){
+  const wrap = document.getElementById('statusChips');
+  if(!wrap) return;
+  wrap.innerHTML='';
+  STATUS_LIST.forEach(s=>{
+    const lbl = document.createElement('label');
+    lbl.className='filter-chip';
+    const checked = activeFilters.statuses.has(s);
+    lbl.innerHTML = `<input type="checkbox" ${checked?'checked':''} onchange="toggleStatusChip('${s}',this.checked)"><span>${s}</span>`;
+    wrap.appendChild(lbl);
+  });
+}
+function toggleStatusChip(s,checked){ if(checked) activeFilters.statuses.add(s); else activeFilters.statuses.delete(s); }
+function clearFilters(){
+  activeFilters = {dispatcher:'', statuses:new Set(STATUS_LIST), driver:'', range:'This week'};
+  const dEl = document.getElementById('fltDispatcher'); if(dEl) dEl.value='';
+  const drEl = document.getElementById('fltDriver'); if(drEl) drEl.value='';
+  renderStatusChips();
+  updateFilterCount();
+  renderGantt();
+}
+function applyFilters(){
+  const dEl = document.getElementById('fltDispatcher'); if(dEl) activeFilters.dispatcher = dEl.value;
+  const drEl = document.getElementById('fltDriver'); if(drEl) activeFilters.driver = drEl.value.toLowerCase();
+  updateFilterCount();
+  closeFlyout('filtersScrim');
+  renderGantt();
+  showToast('Filters applied.','filter_alt');
+}
+function updateFilterCount(){
+  let n=0;
+  if(activeFilters.dispatcher) n++;
+  if(activeFilters.driver) n++;
+  if(activeFilters.statuses.size < STATUS_LIST.length) n++;
+  document.getElementById('filterCount').textContent = n;
+  document.getElementById('filterCount').style.display = n>0 ? 'inline-block':'none';
+}
+
+/* ============================================================
+   GANTT RENDER
+   ============================================================ */
+const COLW = 220;
+
+function visibleDrivers(){
+  return drivers.filter(d=>{
+    if(activeFilters.dispatcher && d.dispatcher !== activeFilters.dispatcher) return false;
+    if(activeFilters.driver && !d.name.toLowerCase().includes(activeFilters.driver)) return false;
+    return true;
+  });
+}
+function visibleLoadsFor(driverId){
+  return loads.filter(l=> l.driverId===driverId && activeFilters.statuses.has(l.status));
+}
+
+function renderGanttHead(){
+  const head = document.getElementById('ganttHead');
+  head.innerHTML='';
+  const cols = currentZoom==='week' ? DAY_LABELS_WEEK : HOUR_LABELS_DAY;
+  const nums = currentZoom==='week' ? DAY_NUMS : null;
+  cols.forEach((c,i)=>{
+    const el = document.createElement('div');
+    el.className='day-col-head'+(currentZoom==='week' && i===2 ? ' is-today':'');
+    el.innerHTML = nums ? `<span>${c}</span><span class="dnum">Aug ${nums[i]}</span>` : `<span>${c}</span>`;
+    head.appendChild(el);
+  });
+}
+
+function renderGantt(){
+  const ganttWrap = document.getElementById('ganttWrap');
+  const savedScrollLeft = ganttWrap.scrollLeft;
+  const savedScrollTop = ganttWrap.scrollTop;
+
+  renderGanttHead();
+  const left = document.getElementById('ganttLeft');
+  const rows = document.getElementById('ganttRows');
+  left.innerHTML = `<div class="gantt-left-head">DRIVER</div>`;
+  rows.innerHTML='';
+
+  const vDrivers = visibleDrivers();
+  const grouped = {};
+  DISPATCHERS.forEach(d=>grouped[d]=[]);
+  vDrivers.forEach(d=>{ if(grouped[d.dispatcher]) grouped[d.dispatcher].push(d); });
+
+  if(vDrivers.length===0){
+    left.innerHTML += `<div style="padding:16px;"></div>`;
+    rows.innerHTML = `<div class="empty-state"><span class="material-symbols-outlined">local_shipping</span><p>No drivers match the current filters.</p><button onclick="clearFilters()">Clear filters</button></div>`;
+    ganttWrap.scrollLeft = savedScrollLeft; ganttWrap.scrollTop = savedScrollTop;
+    return;
+  }
+
+  const totalCols = currentZoom==='week' ? 7 : 6;
+  const rowWidth = totalCols*COLW;
+
+  DISPATCHERS.forEach(dispName=>{
+    const dDrivers = grouped[dispName];
+    if(dDrivers.length===0) return;
+    const groupLbl = document.createElement('div'); groupLbl.className='dispatcher-group-label'; groupLbl.textContent='Dispatcher: '+dispName;
+    left.appendChild(groupLbl);
+    const spacerRow = document.createElement('div'); spacerRow.className='dispatcher-spacer-row'; spacerRow.style.width=rowWidth+'px'; rows.appendChild(spacerRow);
+
+    dDrivers.forEach(drv=>{
+      const colorIdx = drivers.indexOf(drv) % DRIVER_COLORS.length;
+      const color = DRIVER_COLORS[colorIdx];
+      const initials = drv.name.split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase();
+
+      const leftRow = document.createElement('div'); leftRow.className='driver-row-left';
+      leftRow.innerHTML = `
+        <div class="driver-name-row">
+          <div class="driver-avatar" style="background:${color};">${initials}</div>
+          <div class="driver-name">${drv.name}</div>
+          ${drv.team?'<span class="team-badge">TEAM</span>':''}
+        </div>
+        <div class="driver-sub">${drv.truck}${drv.live?' · <span style="color:var(--accent-dark);">● live</span>':''}</div>
+        <div class="cycle-row">
+          <div class="cycle-track"><div class="cycle-fill" style="width:${drv.cycle}%; background:${drv.cycle>85?'var(--danger)':drv.cycle>60?'var(--warning)':'var(--accent)'};"></div></div>
+          <div class="cycle-pct">${drv.cycle}%</div>
+        </div>`;
+      left.appendChild(leftRow);
+
+      const gRow = document.createElement('div'); gRow.className='gantt-driver-row'; gRow.style.width=rowWidth+'px'; gRow.dataset.driverId=drv.id;
+      for(let i=0;i<totalCols;i++){
+        const cell = document.createElement('div'); cell.className='day-cell';
+        cell.addEventListener('click',(e)=>{ if(e.target===cell) openAddLoadPrefilled(drv, i); });
+        gRow.appendChild(cell);
+      }
+      if(currentZoom==='week'){
+        const todayLine = document.createElement('div'); todayLine.className='today-line'; todayLine.style.left=(2.35*COLW)+'px';
+        gRow.appendChild(todayLine);
+      }
+      visibleLoadsFor(drv.id).forEach(l=>gRow.appendChild(makeLoadBar(l)));
+      rows.appendChild(gRow);
+
+      new Sortable(gRow, {
+        group:'planner', animation:150, forceFallback:true, fallbackOnBody:true,
+        draggable:'.load-bar',
+        onAdd: function(evt){
+          const el = evt.item;
+          const loadId = el.dataset.loadId;
+          handleAssign(loadId, drv.id, el);
+        }
+      });
+    });
+  });
+
+  ganttWrap.scrollLeft = savedScrollLeft;
+  ganttWrap.scrollTop = savedScrollTop;
+}
+
+function makeLoadBar(l){
+  const el = document.createElement('div');
+  el.className = 'load-bar '+statusClass(l.status)+(l._flash?' flash-warn':'');
+  el.dataset.loadId = l.id;
+  const leftPct = (l.dayStart/(currentZoom==='week'?7:6))*100;
+  const widthPct = (l.dayLen/(currentZoom==='week'?7:6))*100;
+  el.style.left = leftPct+'%';
+  el.style.width = 'calc('+widthPct+'% - 6px)';
+  el.innerHTML = `
+    ${l.late?'<span class="material-symbols-outlined warn-flag">warning</span>':''}
+    <div class="route-txt">${l.live!==false && l.status==='IN TRANSIT' ? '<span class=\"live-dot\"></span>' : ''}${l.route}</div>
+    <div class="sub-txt">${l.broker} · $${l.rate.toLocaleString()}</div>`;
+  el.addEventListener('mouseenter',(e)=>showLoadTooltip(l,e));
+  el.addEventListener('mousemove',(e)=>positionTooltip(e));
+  el.addEventListener('mouseleave',hideLoadTooltip);
+  return el;
+}
+
+function showLoadTooltip(l, e){
+  const drv = drivers.find(d=>d.id===l.driverId);
+  const tt = document.getElementById('loadTooltip');
+  tt.innerHTML = `<b>${l.route}</b>
+    <div class="lt-row"><span class="lt-label">Broker</span><span>${l.broker}</span></div>
+    <div class="lt-row"><span class="lt-label">Rate</span><span>$${l.rate.toLocaleString()}</span></div>
+    <div class="lt-row"><span class="lt-label">Status</span><span>${l.status}</span></div>
+    ${l.duration?`<div class="lt-row"><span class="lt-label">Duration</span><span>${l.duration}</span></div>`:''}
+    ${drv?`<div class="lt-row"><span class="lt-label">Driver</span><span>${drv.name}</span></div>
+    <div class="lt-row"><span class="lt-label">Live position</span><span style="text-align:right;">📍 ${drv.gps}</span></div>`:''}
+    ${l.late?`<div class="lt-late"><span class="material-symbols-outlined" style="font-size:15px;">warning</span>At risk of missing appointment</div>`:''}`;
+  tt.classList.remove('hidden');
+  positionTooltip(e);
+}
+function positionTooltip(e){
+  const tt = document.getElementById('loadTooltip');
+  tt.style.left = Math.min(e.clientX+16, window.innerWidth-270)+'px';
+  tt.style.top = (e.clientY+16)+'px';
+}
+function hideLoadTooltip(){ document.getElementById('loadTooltip').classList.add('hidden'); }
+
+function renderTray(){
+  const wrap = document.getElementById('trayCards');
+  const savedScrollLeft = wrap.scrollLeft;
+  document.getElementById('trayTitle').textContent = `Unassigned loads (${unassigned.length})`;
+  wrap.innerHTML='';
+  if(unassigned.length===0){
+    wrap.innerHTML = `<div class="tray-empty">Nothing unassigned right now — nice work.</div>`;
+    return;
+  }
+  unassigned.forEach(u=>{
+    const el = document.createElement('div');
+    el.className='unassigned-card'; el.dataset.loadId=u.id;
+    el.innerHTML = `<div class="route">${u.route}</div>
+      <div class="meta"><span>${u.broker}</span><span class="rate">$${u.rate.toLocaleString()}</span></div>
+      <div class="meta"><span>${u.miles} mi</span></div>`;
+    wrap.appendChild(el);
+  });
+  wrap.scrollLeft = savedScrollLeft;
+}
+new Sortable(document.getElementById('trayCards'), {
+  group:'planner', animation:150, forceFallback:true, fallbackOnBody:true, sort:false,
+  draggable:'.unassigned-card',
+  onAdd: function(evt){ evt.item.remove(); } // dropping something INTO the tray isn't supported yet — no-op guard
+});
+
+function handleAssign(loadId, driverId, ghostEl){
+  try{
+    // was this an unassigned tray card, or an existing load bar being reassigned?
+    const uIdx = unassigned.findIndex(u=>u.id===loadId);
+    const drv = drivers.find(d=>d.id===driverId);
+    if(uIdx > -1){
+      const u = unassigned[uIdx];
+      unassigned.splice(uIdx,1);
+      loads.push({id:u.id, route:u.route, broker:u.broker, rate:u.rate, driverId:driverId, dayStart: currentZoom==='week'?2.4:2, dayLen: currentZoom==='week'?1.2:1, status:'SCHEDULED', late:false, hardAppt:false, _flash:true});
+      showToast(`${u.route} assigned to ${drv.name}. Driver notified.`, 'task_alt');
+    } else {
+      const l = loads.find(x=>x.id===loadId);
+      if(l){
+        const wasHard = l.hardAppt;
+        const oldDriver = drivers.find(d=>d.id===l.driverId);
+        l.driverId = driverId;
+        l._flash = true;
+        const nearHOS = drv.cycle > 85;
+        if(wasHard || nearHOS){
+          showToast(`Reassigned to ${drv.name}. ${wasHard?'Hard appointment':'Near HOS limit'} — double-check timing.`, 'warning', true);
+        } else {
+          showToast(`Reassigned from ${oldDriver?oldDriver.name:'—'} to ${drv.name}. Both notified.`, 'sync_alt');
+        }
+      }
+    }
+  } finally {
+    if(ghostEl && ghostEl.parentNode) ghostEl.parentNode.removeChild(ghostEl);
+    renderTray();
+    renderGantt();
+    setTimeout(()=>{ // clear flash flag after animation
+      loads.forEach(l=>l._flash=false);
+    }, 1200);
+  }
+}
+
+/* ============================================================
+   TOOLBAR: zoom / nav / search
+   ============================================================ */
+[...document.querySelectorAll('.zoom-btn')].forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    [...document.querySelectorAll('.zoom-btn')].forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    currentZoom = btn.dataset.zoom;
+    updatePeriodLabel();
+    renderGantt();
+  });
+});
+document.getElementById('prevBtn').addEventListener('click',()=>{ currentWeekOffset--; updatePeriodLabel(); renderGantt(); });
+document.getElementById('nextBtn').addEventListener('click',()=>{ currentWeekOffset++; updatePeriodLabel(); renderGantt(); });
+document.getElementById('todayBtn').addEventListener('click',()=>{ currentWeekOffset=0; updatePeriodLabel(); renderGantt(); showToast('Jumped to today.','today'); });
+function updatePeriodLabel(){
+  const label = document.getElementById('periodLabel');
+  if(currentZoom==='week'){
+    label.textContent = currentWeekOffset===0 ? 'Aug 11 – 17, 2026' : (currentWeekOffset>0 ? `Week +${currentWeekOffset} — Aug ${11+currentWeekOffset*7} – ${17+currentWeekOffset*7}, 2026` : `Week ${currentWeekOffset} — Aug ${11+currentWeekOffset*7} – ${17+currentWeekOffset*7}, 2026`);
+  } else {
+    label.textContent = currentWeekOffset===0 ? 'Wed, Aug 13, 2026' : `Aug ${13+currentWeekOffset}, 2026`;
+  }
+}
+document.getElementById('plannerSearch').addEventListener('input',(e)=>{
+  const q = e.target.value.toLowerCase();
+  document.querySelectorAll('.load-bar').forEach(bar=>{
+    const l = loads.find(x=>x.id===bar.dataset.loadId);
+    const drv = l ? drivers.find(d=>d.id===l.driverId) : null;
+    const hay = l ? (l.route+' '+l.broker+' '+(drv?drv.name+' '+drv.dispatcher:'')).toLowerCase() : '';
+    bar.style.outline = (q && hay.includes(q)) ? '2px solid var(--info)' : '';
+  });
+});
+
+/* ============================================================
+   ADD LOAD MODAL
+   ============================================================ */
+let stopCounter = 0;
+function openAddLoad(){
+  document.getElementById('addLoadScrim').classList.add('show');
+  goStep('stepMethod');
+}
+function openAddLoadPrefilled(driver, colIdx){
+  openAddLoad();
+  showToast(`New load slot for ${driver.name} — fill in the details.`, 'add_circle');
+}
+function closeAddLoad(){ document.getElementById('addLoadScrim').classList.remove('show'); }
+document.getElementById('addLoadBtn').addEventListener('click', openAddLoad);
+document.getElementById('addLoadScrim').addEventListener('click',(e)=>{ if(e.target===document.getElementById('addLoadScrim')) closeAddLoad(); });
+
+function goStep(id){
+  ['stepMethod','stepUpload','stepProcessing','stepForm'].forEach(s=>document.getElementById(s).classList.add('hidden'));
+  document.getElementById(id).classList.remove('hidden');
+  if(id==='stepForm' && document.getElementById('stopsWrap').children.length===0) seedForm(false);
+}
+function simulateUpload(){
+  goStep('stepProcessing');
+  setTimeout(()=>{
+    goStep('stepForm');
+    seedForm(true);
+  }, 1400);
+}
+function seedForm(aiFilled){
+  document.getElementById('aiFilledBadge').classList.toggle('hidden', !aiFilled);
+  [...document.querySelectorAll('.aiTag')].forEach(t=>t.classList.toggle('hidden', !aiFilled));
+  document.getElementById('fBroker').value = aiFilled ? 'Magellan Transport LLC' : '';
+  document.getElementById('fRate').value = aiFilled ? '$2,100.00' : '';
+  document.getElementById('fMC').value = aiFilled ? '293730' : '';
+  document.getElementById('fPO').value = aiFilled ? '1914553' : '';
+  document.getElementById('fTruck').value = aiFilled ? '2758 / —' : '';
+  document.getElementById('fCommodity').value = aiFilled ? 'General freight' : '';
+  document.getElementById('deadheadTxt').textContent = aiFilled ? '165 miles — calculated automatically' : '38 miles — calculated automatically';
+  document.getElementById('stopsWrap').innerHTML='';
+  stopCounter=0;
+  if(aiFilled){
+    addStop('pickup','1450 Industrial Pkwy, Newark, NJ 07114','Aug 13, 8:00 AM','HARD APPT');
+    addStop('delivery','220 Commerce Dr, Roanoke, VA 24012','Aug 13, 6:00 PM','FCFS');
+  } else {
+    addStop('pickup','','','');
+    addStop('delivery','','','');
+  }
+}
+function addStop(kind, addr, appt, tag){
+  kind = kind || 'delivery';
+  const wrap = document.getElementById('stopsWrap');
+  stopCounter++;
+  const el = document.createElement('div');
+  el.className='stop-card';
+  el.innerHTML = `<div class="stop-head">
+      <span class="stop-kind ${kind}">${kind==='pickup'?'PICKUP':'DELIVERY'} ${stopCounter}</span>
+      ${tag?`<span class="appt-tag">${tag}</span>`:''}
+    </div>
+    <div class="stop-addr" contenteditable="true" data-placeholder="Address">${addr||''}</div>
+    <div class="stop-appt" contenteditable="true" data-placeholder="Appointment date/time">${appt?'Appt: '+appt:''}</div>`;
+  wrap.appendChild(el);
+}
+function saveLoad(create){
+  const broker = document.getElementById('fBroker').value || '(no broker)';
+  closeAddLoad();
+  showToast(create ? `Load created — ${broker}. Ready to assign from the tray.` : `Draft saved — ${broker}.`, create?'check_circle':'save');
+  if(create){
+    unassigned.push({id:'U'+Date.now(), route:'New Route', broker:broker, rate: parseFloat((document.getElementById('fRate').value||'0').replace(/[^0-9.]/g,''))||0, miles: 0});
+    renderTray();
+  }
+}
+
+/* ============================================================
+   INIT
+   ============================================================ */
+renderRail();
+renderNormalFilterFields();
+updateFilterCount();
+renderTray();
+renderGantt();
+updatePeriodLabel();
+
+/* non-responsive scale: width-only zoom, per project convention */
+function applyDesktopScale(){
+  const scale = window.innerWidth / 1320;
+  document.getElementById('app').style.zoom = scale;
+}
+window.addEventListener('resize', applyDesktopScale);
+applyDesktopScale();
+</script>
+</body>
+</html>
