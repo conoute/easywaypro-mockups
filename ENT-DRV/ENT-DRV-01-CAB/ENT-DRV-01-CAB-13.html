@@ -1669,6 +1669,14 @@ function openEntityPicker(cfg){
   search.appendChild(clearBtn);
 
   const countLine = el('<div style="font-size:11px;color:var(--text400);margin-bottom:6px;"></div>');
+
+  // Optional panel above the list — used to show what is currently attached
+  // and offer a detach action, so removing a link is a deliberate step taken
+  // inside the picker rather than a side effect of clicking a row elsewhere.
+  if(cfg.headerFn){
+    const h = cfg.headerFn();
+    if(h) modal.appendChild(h);
+  }
   modal.appendChild(countLine);
 
   const list = el('<div style="max-height:300px;overflow-y:auto;border:1px solid var(--border2);border-radius:8px;"></div>');
@@ -1936,6 +1944,58 @@ function modalDispatcherAccess(){
   return m;
 }
 
+// Detach confirmation — same shape as the reassignment warning, aimed at THIS
+// driver instead of another one. Detaching is not destructive to the unit's
+// own history, but it does leave the driver without equipment, so it states
+// plainly what stops working.
+function modalDetachWarning(type){
+  const label = type==='truck' ? 'truck' : 'trailer';
+  const unit = type==='truck' ? attachedTruck : attachedTrailer;
+  if(!unit){ closeModal(); return el('<div></div>'); }
+
+  const m = modalShell('<h2>Detach this '+label+'?</h2>'
+    + '<p class="mdesc">'+unit.name+' ('+unit.plate+') will be released from Maksim Gerasimov '
+    + 'and becomes available for any other driver.</p>');
+  const modal = m.querySelector('.modal');
+
+  const warn = el('<div style="background:#FFF4E6;border-left:3px solid var(--warning);border-radius:8px;padding:12px 14px;margin:4px 0 12px;"></div>');
+  warn.appendChild(el('<div style="font-size:11.5px;font-weight:700;color:var(--text900);margin-bottom:6px;">What this changes</div>'));
+  [
+    'The driver is left with no '+label+' until another one is attached',
+    'Scheduled loads relying on this unit need to be re-planned in the dispatch board',
+    'Inspections, maintenance and fuel records stay with the '+label+' — they do not follow the driver',
+  ].forEach(t=>{
+    warn.appendChild(el('<div style="display:flex;gap:7px;align-items:flex-start;font-size:11.5px;color:var(--text600);margin-bottom:5px;">'
+      + '<span style="color:var(--warning);flex-shrink:0;margin-top:1px;">'+iconHTML('remove_circle_outline',13)+'</span>'
+      + '<span>'+t+'</span></div>'));
+  });
+  modal.appendChild(warn);
+
+  modal.appendChild(el('<p class="mdesc" style="margin-top:0;">The driver and their dispatcher are notified, and the change is recorded in the activity log.</p>'));
+
+  const actions = el('<div class="actions"></div>');
+  const backBtn = el('<button class="btn">Back</button>');
+  backBtn.onclick = ()=> openModal('attachPicker', type);
+  const goBtn = el('<button class="btn danger">Detach '+label+'</button>');
+  goBtn.onclick = ()=>{
+    if(type==='truck'){
+      attachedTruck = null;
+      logActivity('Truck detached', unit.name+' ('+unit.plate+') released from this driver', 'action');
+    } else {
+      attachedTrailer = null;
+      logActivity('Trailer detached', unit.name+' ('+unit.plate+') released from this driver', 'action');
+    }
+    entityPickerState = {query:'', selectedId:null};
+    closeModal();
+    showToast(label.charAt(0).toUpperCase()+label.slice(1)+' detached');
+    render();
+  };
+  actions.appendChild(backBtn);
+  actions.appendChild(goBtn);
+  modal.appendChild(actions);
+  return m;
+}
+
 // Thin wrapper: attachments (truck / trailer / dispatcher) on the driver panel
 function openAttachmentPicker(type){
   // Dispatchers aren't a single-select attachment — see modalDispatcherAccess
@@ -1966,6 +2026,24 @@ function openAttachmentPicker(type){
     items: CFG.items,
     icon: CFG.icon,
     searchPlaceholder: CFG.searchPlaceholder,
+
+    // What's attached right now, plus the only path to removing it. Detaching
+    // is a real decision, so it lives here behind its own button and its own
+    // confirmation — never on a stray click on the panel row.
+    headerFn: ()=>{
+      if(!CFG.current) return null;
+      const box = el('<div style="display:flex;align-items:center;gap:10px;border:1px solid var(--border2);border-radius:8px;padding:10px 12px;margin-bottom:10px;background:var(--bg50);"></div>');
+      box.appendChild(el('<span style="color:var(--text400);flex-shrink:0;">'+iconHTML(CFG.icon,16)+'</span>'));
+      box.appendChild(el('<div style="flex:1;min-width:0;">'
+        + '<div style="font-size:10px;font-weight:700;color:var(--text400);letter-spacing:.03em;">CURRENTLY ATTACHED</div>'
+        + '<div style="font-size:12px;font-weight:600;color:var(--text900);margin-top:2px;">'+CFG.current.name+'</div>'
+        + '<div style="font-size:10px;color:var(--text400);margin-top:1px;">'+CFG.current.plate+'</div>'
+        + '</div>'));
+      const detachBtn = el('<button class="btn" style="flex-shrink:0;">'+iconHTML('link_off',15)+'Detach</button>');
+      detachBtn.onclick = ()=> openModal('detachWarning', type);
+      box.appendChild(detachBtn);
+      return box;
+    },
     // VIN is how compliance, inspections and title paperwork identify a unit,
     // so it has to be searchable — often it's the only number on the document
     // in front of the person. Partial matches work (typing the last 6 is the
@@ -1978,12 +2056,16 @@ function openAttachmentPicker(type){
 
     // Exclusive resources show who currently holds them, right in the list —
     // the person shouldn't have to pick first and find out afterwards.
-    badgeFn: CFG.exclusive ? (item)=> item.assignedTo
-      ? '<div style="display:inline-flex;align-items:center;gap:4px;margin-top:5px;padding:2px 7px;border-radius:20px;background:#FFF4E6;color:#8a5a00;font-size:10px;font-weight:600;">'
-          + iconHTML('link',12) + 'Attached to ' + item.assignedTo + '</div>'
-      : '<div style="display:inline-flex;align-items:center;gap:4px;margin-top:5px;padding:2px 7px;border-radius:20px;background:#EAF8EF;color:#2c7a4b;font-size:10px;font-weight:600;">'
-          + iconHTML('check_circle',12) + 'Available</div>'
-      : null,
+    badgeFn: CFG.exclusive ? (item)=>{
+      if(CFG.current && item.id === CFG.current.id)
+        return '<div style="display:inline-flex;align-items:center;gap:4px;margin-top:5px;padding:2px 7px;border-radius:20px;background:#EAF0FF;color:#2E5BFF;font-size:10px;font-weight:600;">'
+          + iconHTML('person',12) + 'Attached to this driver</div>';
+      if(item.assignedTo)
+        return '<div style="display:inline-flex;align-items:center;gap:4px;margin-top:5px;padding:2px 7px;border-radius:20px;background:#FFF4E6;color:#8a5a00;font-size:10px;font-weight:600;">'
+          + iconHTML('link',12) + 'Attached to ' + item.assignedTo + '</div>';
+      return '<div style="display:inline-flex;align-items:center;gap:4px;margin-top:5px;padding:2px 7px;border-radius:20px;background:#EAF8EF;color:#2c7a4b;font-size:10px;font-weight:600;">'
+        + iconHTML('check_circle',12) + 'Available</div>';
+    } : null,
 
     // Taking an already-attached unit breaks the other driver's link, so it
     // needs an explicit decision rather than a silent steal.
@@ -2269,23 +2351,23 @@ function renderInfoPanel(){
       sec.appendChild(el('<div class="profile-section-title">ATTACHMENTS</div>'));
       
       // Truck
-      let truckIcon = attachedTruck ? 'close' : 'add';
+      let truckIcon = attachedTruck ? 'chevron_right' : 'add';
       let truckHTML = '<div class="attach-row">'+iconHTML('local_shipping',16)+'<div style="flex:1;"><div style="font-size:12px;font-weight:600;color:var(--text900);">'+(attachedTruck?attachedTruck.name:'Attach Truck')+'</div>';
       if(attachedTruck) truckHTML += '<div style="font-size:10px;color:var(--text400);">'+attachedTruck.plate+'</div>';
       truckHTML += '</div>'+iconHTML(truckIcon,16)+'</div>';
       const truckRow = el(truckHTML);
       truckRow.style.cursor = 'pointer';
-      truckRow.onclick = ()=>{ if(attachedTruck){ attachedTruck=null; logActivity('Truck detached','Removed truck assignment','action'); render(); } else { openModal('attachPicker','truck'); } };
+      truckRow.onclick = ()=> openModal('attachPicker','truck');
       sec.appendChild(truckRow);
       
       // Trailer
-      let trailerIcon = attachedTrailer ? 'close' : 'add';
+      let trailerIcon = attachedTrailer ? 'chevron_right' : 'add';
       let trailerHTML = '<div class="attach-row">'+iconHTML('rv_hookup',16)+'<div style="flex:1;"><div style="font-size:12px;font-weight:600;color:var(--text900);">'+(attachedTrailer?attachedTrailer.name:'Attach Trailer')+'</div>';
       if(attachedTrailer) trailerHTML += '<div style="font-size:10px;color:var(--text400);">'+attachedTrailer.plate+'</div>';
       trailerHTML += '</div>'+iconHTML(trailerIcon,16)+'</div>';
       const trailerRow = el(trailerHTML);
       trailerRow.style.cursor = 'pointer';
-      trailerRow.onclick = ()=>{ if(attachedTrailer){ attachedTrailer=null; logActivity('Trailer detached','Removed trailer assignment','action'); render(); } else { openModal('attachPicker','trailer'); } };
+      trailerRow.onclick = ()=> openModal('attachPicker','trailer');
       sec.appendChild(trailerRow);
       
       // Dispatcher — ownership + shared access, so the row summarises both and
@@ -3939,6 +4021,7 @@ function renderModal(){
   else if(type==='customizeInfoPanel') node = modalCustomizeInfoPanel();
   else if(type==='attachPicker') node = openAttachmentPicker(payload);
   else if(type==='reassignWarning') node = modalReassignWarning(payload);
+  else if(type==='detachWarning') node = modalDetachWarning(payload);
   else if(type==='addPanelField') node = modalAddPanelField();
   else if(type==='bulkDeliveryChoice') node = modalBulkDeliveryChoice(payload);
   else if(type==='bulkReject') node = modalBulkReject(payload);
