@@ -1128,6 +1128,12 @@ function render(){
   const prevTableScrollLeft = tableOuterBefore?.scrollLeft || 0;
   const prevContentScroll = document.querySelector('.content')?.scrollTop || 0;
   const prevLeftScroll = document.querySelector('.cab-left')?.scrollTop || 0;
+  // A modal (like Suggested Documents) can be taller than the viewport and
+  // scroll within its own .modal-scrim — renderModal() below rebuilds it
+  // from scratch on every render(), including ones triggered by an action
+  // INSIDE the modal itself (e.g. Apply Now), so without this it snaps back
+  // to the top every time, which reads as the whole page jumping.
+  const prevModalScroll = document.querySelector('.modal-scrim')?.scrollTop || 0;
 
   app.innerHTML = '';
   app.appendChild(renderRail());
@@ -1144,6 +1150,8 @@ function render(){
   content.scrollTop = prevContentScroll;
   const newLeft = document.querySelector('.cab-left');
   if(newLeft) newLeft.scrollTop = prevLeftScroll;
+  const newModalScrim = document.querySelector('.modal-scrim');
+  if(newModalScrim) newModalScrim.scrollTop = prevModalScroll;
 }
 function renderInPlace(){ render(); }
 
