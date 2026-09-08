@@ -141,7 +141,8 @@ button{font-family:inherit;cursor:pointer;}
 .nav-btn:hover{background:#fff; color:var(--text-900);}
 .today-btn{font-size:12.5px; font-weight:700; padding:0 12px; height:28px; border-radius:7px; color:var(--text-900); background:#fff; border:1px solid var(--bg-100);}
 .period-label{font-size:14px; font-weight:700; color:var(--text-900); white-space:nowrap;}
-.zoom-toggle{display:flex; background:var(--bg-50); border-radius:9px; padding:3px; margin-left:6px;}
+.zoom-toggle{display:flex; align-items:center; background:var(--bg-50); border-radius:9px; padding:3px; margin-left:6px; gap:2px;}
+.zoom-days-label{font-size:12px; font-weight:700; color:var(--text-900); min-width:52px; text-align:center; white-space:nowrap;}
 .zoom-btn{font-size:12px; font-weight:700; padding:5px 14px; border-radius:7px; color:var(--text-400); border:none; background:none;}
 .zoom-btn.active{background:var(--text-900); color:#fff;}
 .tb-spacer{flex:1;}
@@ -459,9 +460,10 @@ button{font-family:inherit;cursor:pointer;}
           <button class="nav-btn" id="nextBtn"><span class="material-symbols-outlined">chevron_right</span></button>
         </div>
         <div class="period-label" id="periodLabel">Aug 11 – 17, 2026</div>
-        <div class="zoom-toggle">
-          <button class="zoom-btn active" data-zoom="week">Week</button>
-          <button class="zoom-btn" data-zoom="day">Day</button>
+        <div class="zoom-toggle" title="How many days are visible at once">
+          <button class="nav-btn" id="zoomOutBtn" title="Show more days"><span class="material-symbols-outlined">zoom_out</span></button>
+          <span class="zoom-days-label" id="zoomDaysLabel">7 days</span>
+          <button class="nav-btn" id="zoomInBtn" title="Show fewer days (more detail)"><span class="material-symbols-outlined">zoom_in</span></button>
         </div>
         <div class="tb-spacer"></div>
         <div class="tb-search">
@@ -469,7 +471,6 @@ button{font-family:inherit;cursor:pointer;}
           <input type="text" id="plannerSearch" placeholder="Search PO#, broker, dispatcher, driver...">
         </div>
         <button class="tb-btn has-count" id="filtersBtn"><span class="material-symbols-outlined">filter_alt</span>Filters<span class="count-pill" id="filterCount">2</span></button>
-        <button class="icon-btn-square" id="kpiBtn" title="Dispatcher KPI Settings"><span class="material-symbols-outlined">settings</span></button>
         <button class="tb-btn" id="exportBtn"><span class="material-symbols-outlined">file_download</span>Export</button>
         <button class="tb-btn tb-btn-primary" id="addLoadBtn"><span class="material-symbols-outlined">add</span>Add Load</button>
       </div>
@@ -606,21 +607,6 @@ button{font-family:inherit;cursor:pointer;}
   </div>
 </div>
 
-<!-- KPI SETTINGS FLYOUT -->
-<div class="flyout-scrim" id="kpiScrim">
-  <div class="flyout-panel">
-    <div class="flyout-head"><h3>Dispatcher KPI Settings</h3><button class="flyout-close" onclick="closeFlyout('kpiScrim')"><span class="material-symbols-outlined">close</span></button></div>
-    <div class="flyout-body">
-      <p style="font-size:12.5px;color:var(--text-400);margin-top:0;">Choose which metrics show on each load bar and driver row.</p>
-      <div class="customize-toggle-row"><div class="item-lbl"><span class="material-symbols-outlined" style="font-size:18px;">payments</span>Show RPM per load</div><div class="switch on" onclick="toggleSwitch(this)"><div class="knob"></div></div></div>
-      <div class="customize-toggle-row"><div class="item-lbl"><span class="material-symbols-outlined" style="font-size:18px;">route</span>Show deadhead miles</div><div class="switch on" onclick="toggleSwitch(this)"><div class="knob"></div></div></div>
-      <div class="customize-toggle-row"><div class="item-lbl"><span class="material-symbols-outlined" style="font-size:18px;">timer</span>Show cycle (HOS) progress</div><div class="switch on" onclick="toggleSwitch(this)"><div class="knob"></div></div></div>
-      <div class="customize-toggle-row"><div class="item-lbl"><span class="material-symbols-outlined" style="font-size:18px;">satellite_alt</span>Show live GPS/ELD ping</div><div class="switch on" onclick="toggleSwitch(this)"><div class="knob"></div></div></div>
-      <div class="customize-toggle-row"><div class="item-lbl"><span class="material-symbols-outlined" style="font-size:18px;">groups</span>Show relay/team badges</div><div class="switch on" onclick="toggleSwitch(this)"><div class="knob"></div></div></div>
-    </div>
-    <div class="flyout-footer"><button class="btn primary" onclick="closeFlyout('kpiScrim')">Done</button></div>
-  </div>
-</div>
 
 <!-- CUSTOMIZE RAIL FLYOUT -->
 <div class="flyout-scrim" id="customizeScrim">
@@ -813,11 +799,10 @@ let unassigned = [
   {id:'U3', route:'IN → KY', broker:'J.B. Hunt Transport', rate:2340, miles:165}
 ];
 
-let currentZoom = 'week'; // 'week' | 'day'
+let visibleDays = 7; // zoom: how many days fill the board width (1..7)
 let currentWeekOffset = 0;
 const DAY_LABELS_WEEK = ['MON','TUE','WED','THU','FRI','SAT','SUN'];
 const DAY_NUMS = [11,12,13,14,15,16,17];
-const HOUR_LABELS_DAY = ['6 AM','9 AM','12 PM','3 PM','6 PM','9 PM'];
 
 let activeFilters = {dispatcher:'', status:'', driver:'', range:'This week'};
 
@@ -1014,7 +999,6 @@ document.getElementById('filtersBtn').addEventListener('click',()=>{
   if(filtersCustomizeMode) toggleFiltersCustomize();
   document.getElementById('filtersScrim').classList.add('show');
 });
-document.getElementById('kpiBtn').addEventListener('click',()=>document.getElementById('kpiScrim').classList.add('show'));
 document.getElementById('exportBtn').addEventListener('click',()=>showToast('Export started — you will get a download link shortly.','file_download'));
 [...document.querySelectorAll('.flyout-scrim'), document.getElementById('filtersScrim')].forEach(s=>s.addEventListener('click',(e)=>{ if(e.target===s) s.classList.remove('show'); }));
 
@@ -1111,7 +1095,13 @@ function updateFilterCount(){
 /* ============================================================
    GANTT RENDER
    ============================================================ */
-const COLW = 220;
+let COLW = 220; // recomputed per render from board width / visibleDays
+function computeColWidth(){
+  const wrap = document.getElementById('ganttWrap');
+  const wrapW = wrap.clientWidth || 1540;
+  const avail = Math.max(420, wrapW - 220);
+  COLW = Math.max(90, Math.floor(avail / visibleDays));
+}
 
 function visibleDrivers(){
   return drivers.filter(d=>{
@@ -1127,12 +1117,11 @@ function visibleLoadsFor(driverId){
 function renderGanttHead(){
   const head = document.getElementById('ganttHead');
   head.innerHTML='';
-  const cols = currentZoom==='week' ? DAY_LABELS_WEEK : HOUR_LABELS_DAY;
-  const nums = currentZoom==='week' ? DAY_NUMS : null;
-  cols.forEach((c,i)=>{
+  DAY_LABELS_WEEK.forEach((c,i)=>{
     const el = document.createElement('div');
-    el.className='day-col-head'+(currentZoom==='week' && i===2 ? ' is-today':'');
-    el.innerHTML = nums ? `<span>${c}</span><span class="dnum">Aug ${nums[i]}</span>` : `<span>${c}</span>`;
+    el.className='day-col-head'+(i===2 ? ' is-today':'');
+    el.style.width = COLW+'px';
+    el.innerHTML = `<span>${c}</span><span class="dnum">Aug ${DAY_NUMS[i]}</span>`;
     head.appendChild(el);
   });
 }
@@ -1160,7 +1149,8 @@ function renderGantt(){
     return;
   }
 
-  const totalCols = currentZoom==='week' ? 7 : 6;
+  computeColWidth();
+  const totalCols = 7;
   const rowWidth = totalCols*COLW;
 
   DISPATCHERS.forEach(dispName=>{
@@ -1192,13 +1182,12 @@ function renderGantt(){
       const gRow = document.createElement('div'); gRow.className='gantt-driver-row'; gRow.style.width=rowWidth+'px'; gRow.dataset.driverId=drv.id;
       for(let i=0;i<totalCols;i++){
         const cell = document.createElement('div'); cell.className='day-cell';
+        cell.style.width = COLW+'px';
         cell.addEventListener('click',(e)=>{ if(e.target===cell) openAddLoadPrefilled(drv, i); });
         gRow.appendChild(cell);
       }
-      if(currentZoom==='week'){
-        const todayLine = document.createElement('div'); todayLine.className='today-line'; todayLine.style.left=(2.35*COLW)+'px';
-        gRow.appendChild(todayLine);
-      }
+      const todayLine = document.createElement('div'); todayLine.className='today-line'; todayLine.style.left=(2.35*COLW)+'px';
+      gRow.appendChild(todayLine);
       visibleLoadsFor(drv.id).forEach(l=>gRow.appendChild(makeLoadBar(l)));
       rows.appendChild(gRow);
 
@@ -1222,8 +1211,8 @@ function makeLoadBar(l){
   const el = document.createElement('div');
   el.className = 'load-bar '+statusClass(l.status)+(l._flash?' flash-warn':'');
   el.dataset.loadId = l.id;
-  const leftPct = (l.dayStart/(currentZoom==='week'?7:6))*100;
-  const widthPct = (l.dayLen/(currentZoom==='week'?7:6))*100;
+  const leftPct = (l.dayStart/7)*100;
+  const widthPct = (l.dayLen/7)*100;
   el.style.left = leftPct+'%';
   el.style.width = 'calc('+widthPct+'% - 6px)';
   el.innerHTML = `
@@ -1290,7 +1279,7 @@ function handleAssign(loadId, driverId, ghostEl){
     if(uIdx > -1){
       const u = unassigned[uIdx];
       unassigned.splice(uIdx,1);
-      loads.push({id:u.id, route:u.route, broker:u.broker, rate:u.rate, driverId:driverId, dayStart: currentZoom==='week'?2.4:2, dayLen: currentZoom==='week'?1.2:1, status:'SCHEDULED', late:false, hardAppt:false, _flash:true});
+      loads.push({id:u.id, route:u.route, broker:u.broker, rate:u.rate, driverId:driverId, dayStart: 2.4, dayLen: 1.2, status:'SCHEDULED', late:false, hardAppt:false, _flash:true});
       showToast(`${u.route} assigned to ${drv.name}. Driver notified.`, 'task_alt');
     } else {
       const l = loads.find(x=>x.id===loadId);
@@ -1320,25 +1309,19 @@ function handleAssign(loadId, driverId, ghostEl){
 /* ============================================================
    TOOLBAR: zoom / nav / search
    ============================================================ */
-[...document.querySelectorAll('.zoom-btn')].forEach(btn=>{
-  btn.addEventListener('click',()=>{
-    [...document.querySelectorAll('.zoom-btn')].forEach(b=>b.classList.remove('active'));
-    btn.classList.add('active');
-    currentZoom = btn.dataset.zoom;
-    updatePeriodLabel();
-    renderGantt();
-  });
-});
+function setVisibleDays(n){
+  visibleDays = Math.min(7, Math.max(1, n));
+  document.getElementById('zoomDaysLabel').textContent = visibleDays + (visibleDays===1 ? ' day' : ' days');
+  renderGantt();
+}
+document.getElementById('zoomInBtn').addEventListener('click',()=>setVisibleDays(visibleDays-1));
+document.getElementById('zoomOutBtn').addEventListener('click',()=>setVisibleDays(visibleDays+1));
 document.getElementById('prevBtn').addEventListener('click',()=>{ currentWeekOffset--; updatePeriodLabel(); renderGantt(); });
 document.getElementById('nextBtn').addEventListener('click',()=>{ currentWeekOffset++; updatePeriodLabel(); renderGantt(); });
 document.getElementById('todayBtn').addEventListener('click',()=>{ currentWeekOffset=0; updatePeriodLabel(); renderGantt(); showToast('Jumped to today.','today'); });
 function updatePeriodLabel(){
   const label = document.getElementById('periodLabel');
-  if(currentZoom==='week'){
-    label.textContent = currentWeekOffset===0 ? 'Aug 11 – 17, 2026' : (currentWeekOffset>0 ? `Week +${currentWeekOffset} — Aug ${11+currentWeekOffset*7} – ${17+currentWeekOffset*7}, 2026` : `Week ${currentWeekOffset} — Aug ${11+currentWeekOffset*7} – ${17+currentWeekOffset*7}, 2026`);
-  } else {
-    label.textContent = currentWeekOffset===0 ? 'Wed, Aug 13, 2026' : `Aug ${13+currentWeekOffset}, 2026`;
-  }
+  label.textContent = currentWeekOffset===0 ? 'Aug 11 – 17, 2026' : `Week ${currentWeekOffset>0?'+':''}${currentWeekOffset} — Aug ${11+currentWeekOffset*7} – ${17+currentWeekOffset*7}, 2026`;
 }
 document.getElementById('plannerSearch').addEventListener('input',(e)=>{
   const q = e.target.value.trim().toLowerCase();
