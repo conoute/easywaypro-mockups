@@ -324,7 +324,7 @@
   .branded-select{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;border:1px solid var(--border);border-radius:8px;padding:9px 10px;font-size:13px;font-family:inherit;color:var(--text900);background:#fff;cursor:pointer;text-align:left;}
   .branded-select:hover{border-color:var(--text400);}
   .branded-select .bs-current{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-  .branded-select-menu{padding:6px;min-width:220px;max-width:320px;max-height:280px;overflow-y:auto;}
+  .branded-select-menu{padding:6px;min-width:180px;max-height:280px;overflow-y:auto;}
   .bs-option{display:flex;align-items:center;gap:8px;width:100%;border:none;background:none;text-align:left;padding:8px 10px;border-radius:7px;font-size:13px;color:var(--text900);cursor:pointer;font-family:inherit;}
   .bs-option:hover{background:var(--bg50);}
   .bs-option.active{color:var(--accent-dark, var(--accent));font-weight:700;}
@@ -581,6 +581,13 @@ function clearDragOver(){
 function positionFlyout(menu, anchor){
   menu.style.position = 'fixed';
   menu.style.visibility = 'hidden';
+  // Flyouts live on document.body, same as the side panel/nested modals —
+  // same fix applies: without this they render at native 1:1 size while
+  // their anchor (possibly inside a zoomed nested modal) doesn't, so a
+  // dropdown opened from Add Form would look like it belongs to different
+  // software than the button that opened it.
+  menu.classList.add('zoom-sync');
+  menu.style.zoom = currentAppScale;
   document.body.appendChild(menu);
   const anchorRect = anchor.getBoundingClientRect();
   const menuRect = menu.getBoundingClientRect();
@@ -1880,6 +1887,15 @@ function createBrandedSelect(options, currentValue, onChange){
       item.onclick = ()=>{ value = opt.value; paint(); menu.remove(); if(onChange) onChange(value); };
       menu.appendChild(item);
     });
+    // Match the trigger's own on-screen width exactly, rather than a fixed
+    // min/max range unrelated to it — a dropdown noticeably narrower than
+    // the button that opened it reads as broken, not stylistic. The
+    // trigger's rendered width is in screen pixels (already scaled by
+    // whatever zoom applies to it); the menu gets its own zoom too (see
+    // positionFlyout), so its CSS width has to be expressed in the menu's
+    // own local units — divide out the scale before assigning.
+    const anchorScreenWidth = el_.getBoundingClientRect().width;
+    menu.style.width = Math.max(180, anchorScreenWidth / currentAppScale) + 'px';
     positionFlyout(menu, el_);
     setTimeout(()=>{
       document.addEventListener('click', function h(ev){ if(!menu.contains(ev.target) && ev.target!==el_){ menu.remove(); document.removeEventListener('click',h); } });
