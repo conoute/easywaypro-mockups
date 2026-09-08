@@ -236,14 +236,10 @@ button{font-family:inherit;cursor:pointer;}
 .toast.warn .material-symbols-outlined{color:var(--warning);}
 @keyframes toastin{from{opacity:0; transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
 
-/* FLYOUT PANELS (Filters / KPI / Customize) */
+/* FLYOUT PANELS (KPI / Customize Toolbar) */
 .flyout-scrim{position:fixed; inset:0; background:rgba(51,55,97,.35); z-index:100; display:none; align-items:stretch; justify-content:flex-end;}
 .flyout-scrim.show{display:flex;}
 .flyout-panel{width:380px; background:#fff; height:100%; box-shadow:-12px 0 40px rgba(0,0,0,.15); display:flex; flex-direction:column; animation:slidein .2s ease;}
-.flyout-panel.customize-mode{outline:2px dashed var(--accent); outline-offset:-2px;}
-.more-toggle{display:flex; align-items:center; justify-content:space-between; cursor:pointer;}
-.more-toggle:hover{color:var(--text-900);}
-.more-toggle.expanded .material-symbols-outlined{transform:rotate(180deg);}
 @keyframes slidein{from{transform:translateX(20px); opacity:.6;}to{transform:translateX(0); opacity:1;}}
 .flyout-head{padding:20px 24px; border-bottom:1px solid var(--bg-100); display:flex; align-items:center; justify-content:space-between;}
 .flyout-head h3{margin:0; font-size:16px;}
@@ -255,9 +251,39 @@ button{font-family:inherit;cursor:pointer;}
 
 .filter-section-label{font-size:11px; font-weight:700; color:var(--text-400); letter-spacing:.03em; margin:18px 0 10px;}
 .filter-section-label:first-child{margin-top:0;}
-.filter-field{margin-bottom:14px;}
-.filter-field label{font-size:12px; font-weight:600; color:var(--text-900); display:block; margin-bottom:6px;}
+.filter-field{margin-bottom:20px;}
+.filter-field label{font-size:14.5px; font-weight:700; color:var(--text-900); display:block; margin-bottom:8px;}
 .filter-field select, .filter-field input[type=text]{width:100%; padding:9px 12px; border:1px solid var(--bg-100); border-radius:8px; font-size:13px; font-family:inherit; color:var(--text-900); background:#fff;}
+
+.filters-modal{width:500px;}
+.filters-head{padding:28px 28px 4px; display:flex; align-items:center; justify-content:space-between;}
+.filters-head h2{font-size:24px; margin:0;}
+.filters-head-actions{display:flex; align-items:center; gap:10px;}
+.pill-btn{height:44px; padding:0 20px; border-radius:12px; border:1.5px solid var(--bg-100); background:#fff; color:var(--text-900); font-size:14px; font-weight:700;}
+.pill-btn:hover{background:var(--bg-50);}
+.pill-btn.active{background:var(--text-900); color:#fff; border-color:var(--text-900);}
+.filters-modal .al-body{padding:8px 28px 28px;}
+.filters-modal .filter-field label{display:flex; justify-content:space-between; align-items:center;}
+.filters-modal select{
+  width:100%; padding:14px 16px; border:1.5px solid var(--bg-100); border-radius:12px; font-size:14.5px;
+  font-family:inherit; color:var(--text-900); background:#fff;
+  appearance:none; -webkit-appearance:none;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24'><path fill='%239a9ab0' d='M7 10l5 5 5-5z'/></svg>");
+  background-repeat:no-repeat; background-position:right 12px center;
+}
+.filters-modal select:disabled{color:var(--text-400);}
+.more-filters-link{
+  display:flex; align-items:center; gap:6px; color:var(--accent-dark); font-weight:700; font-size:14.5px;
+  background:none; border:none; padding:4px 0; margin-bottom:20px;
+}
+.more-filters-link .material-symbols-outlined{font-size:19px; transition:transform .15s;}
+.more-filters-link.expanded .material-symbols-outlined{transform:rotate(45deg);}
+.apply-filters-btn{
+  width:100%; height:54px; border-radius:12px; background:var(--accent); border:none; color:#fff;
+  font-size:15px; font-weight:700; margin-top:8px;
+}
+.apply-filters-btn:hover{background:var(--accent-dark);}
+.filters-modal.customize-mode{outline:2px dashed var(--accent); outline-offset:-2px;}
 .chip-row{display:flex; flex-wrap:wrap; gap:6px;}
 .filter-chip{font-size:11.5px; padding:5px 10px; border-radius:16px; background:var(--bg-50); border:1px solid var(--bg-100); color:var(--text-900); display:flex; align-items:center; gap:5px;}
 .filter-chip input{margin:0; accent-color:var(--accent);}
@@ -434,37 +460,36 @@ button{font-family:inherit;cursor:pointer;}
 <div class="load-tooltip hidden" id="loadTooltip"></div>
 <div class="rail-tooltip hidden" id="railTooltip"></div>
 
-<!-- FILTERS FLYOUT -->
-<div class="flyout-scrim" id="filtersScrim">
-  <div class="flyout-panel" id="filtersPanel">
-    <div class="flyout-head">
-      <h3>Filters</h3>
-      <div style="display:flex; align-items:center; gap:6px;">
-        <button class="flyout-close" id="filtersCustomizeBtn" title="Customize filters" onclick="enterFiltersCustomize()"><span class="material-symbols-outlined">tune</span></button>
-        <button class="flyout-close" onclick="closeFlyout('filtersScrim')"><span class="material-symbols-outlined">close</span></button>
+<!-- FILTERS MODAL -->
+<div class="modal-scrim" id="filtersScrim">
+  <div class="al-modal filters-modal" id="filtersPanel">
+    <div class="filters-head">
+      <h2>Filters</h2>
+      <div class="filters-head-actions">
+        <button class="pill-btn" onclick="clearFilters()">Clear all</button>
+        <button class="pill-btn" id="filtersCustomizeBtn" onclick="toggleFiltersCustomize()">Customize</button>
+        <button class="al-close" onclick="closeFlyout('filtersScrim')"><span class="material-symbols-outlined">close</span></button>
       </div>
     </div>
-    <div class="flyout-body">
+    <div class="al-body">
 
       <div id="normalFiltersView">
-        <div class="filter-section-label">QUICK FILTERS</div>
         <div id="quickFieldsWrap"></div>
-
-        <div class="filter-section-label more-toggle" id="moreToggleRow" onclick="toggleMoreFilters()">
-          <span>MORE FILTERS <span class="count-pill" id="moreCountPill" style="background:var(--info); display:none;"></span></span>
-          <span class="material-symbols-outlined" id="moreChevron" style="font-size:18px; transition:transform .15s;">expand_more</span>
-        </div>
         <div id="moreFieldsWrap" class="hidden"></div>
 
-        <div class="filter-field" style="margin-top:14px;">
+        <div class="filter-field" style="margin:18px 0 4px;">
           <label style="display:flex; align-items:center; justify-content:space-between; margin-bottom:0;">Relay/team only
             <div class="switch" id="fltRelaySwitch" onclick="toggleSwitch(this)"><div class="knob"></div></div>
           </label>
         </div>
+
+        <button class="more-filters-link" id="moreToggleRow" onclick="toggleMoreFilters()">
+          <span class="material-symbols-outlined" id="moreToggleIcon">add</span><span id="moreToggleText">More filters</span>
+        </button>
       </div>
 
       <div id="customizeFiltersView" class="hidden">
-        <p style="font-size:12px;color:var(--text-400);margin-top:0;">Drag fields between sections to reorder them. Toggle fields stay fixed and can't be dragged.</p>
+        <p style="font-size:12.5px;color:var(--text-400);margin-top:0;">Drag fields between sections to reorder them. Toggle fields stay fixed and can't be dragged.</p>
         <div class="filter-section-label">QUICK FILTERS</div>
         <div id="quickDragList"></div>
         <div class="filter-section-label">MORE FILTERS</div>
@@ -473,13 +498,7 @@ button{font-family:inherit;cursor:pointer;}
         <div class="customize-drag-row" style="opacity:.55; cursor:default;"><span class="material-symbols-outlined item-icon">toggle_on</span><span style="flex:1;">Relay/team only</span></div>
       </div>
 
-    </div>
-    <div class="flyout-footer" id="normalFiltersFooter">
-      <button class="btn" onclick="clearFilters()">Clear all</button>
-      <button class="btn primary" onclick="applyFilters()">Apply filters</button>
-    </div>
-    <div class="flyout-footer hidden" id="customizeFiltersFooter">
-      <button class="btn primary" onclick="exitFiltersCustomize()">Done</button>
+      <button class="apply-filters-btn" onclick="applyFilters()">Apply filters</button>
     </div>
   </div>
 </div>
@@ -875,12 +894,12 @@ document.addEventListener('click',(e)=>{
 function closeFlyout(id){ document.getElementById(id).classList.remove('show'); }
 function toggleSwitch(el){ el.classList.toggle('on'); }
 document.getElementById('filtersBtn').addEventListener('click',()=>{
-  if(filtersCustomizeMode) exitFiltersCustomize();
+  if(filtersCustomizeMode) toggleFiltersCustomize();
   document.getElementById('filtersScrim').classList.add('show');
 });
 document.getElementById('kpiBtn').addEventListener('click',()=>document.getElementById('kpiScrim').classList.add('show'));
 document.getElementById('exportBtn').addEventListener('click',()=>showToast('Export started — you will get a download link shortly.','file_download'));
-[...document.querySelectorAll('.flyout-scrim')].forEach(s=>s.addEventListener('click',(e)=>{ if(e.target===s) s.classList.remove('show'); }));
+[...document.querySelectorAll('.flyout-scrim'), document.getElementById('filtersScrim')].forEach(s=>s.addEventListener('click',(e)=>{ if(e.target===s) s.classList.remove('show'); }));
 
 /* ---- Filters: field defs, ordering, Quick/More collapse, Customize mode ---- */
 const FIELD_LABELS = {dispatcher:'Dispatcher', status:'Status', driver:'Driver', range:'Date range', equipment:'Equipment type'};
@@ -904,37 +923,39 @@ function toggleMoreFilters(){
   moreFiltersExpanded = !moreFiltersExpanded;
   document.getElementById('moreFieldsWrap').classList.toggle('hidden', !moreFiltersExpanded);
   document.getElementById('moreToggleRow').classList.toggle('expanded', moreFiltersExpanded);
+  document.getElementById('moreToggleText').textContent = moreFiltersExpanded ? 'Fewer filters' : 'More filters';
+  document.getElementById('moreToggleIcon').textContent = moreFiltersExpanded ? 'remove' : 'add';
 }
-function enterFiltersCustomize(){
-  filtersCustomizeMode = true;
-  document.getElementById('filtersPanel').classList.add('customize-mode');
-  document.getElementById('normalFiltersView').classList.add('hidden');
-  document.getElementById('customizeFiltersView').classList.remove('hidden');
-  document.getElementById('normalFiltersFooter').classList.add('hidden');
-  document.getElementById('customizeFiltersFooter').classList.remove('hidden');
+function toggleFiltersCustomize(){
+  filtersCustomizeMode = !filtersCustomizeMode;
+  const panel = document.getElementById('filtersPanel');
+  const btn = document.getElementById('filtersCustomizeBtn');
+  const applyBtn = document.querySelector('.apply-filters-btn');
 
-  const quickList = document.getElementById('quickDragList'); quickList.innerHTML='';
-  const moreList = document.getElementById('moreDragList'); moreList.innerHTML='';
-  filterFieldOrder.quick.forEach(id=>quickList.appendChild(dragFieldRow(id)));
-  filterFieldOrder.more.forEach(id=>moreList.appendChild(dragFieldRow(id)));
-  [quickList, moreList].forEach(listEl=>{
-    new Sortable(listEl, {
-      group:'filterFieldsCustomize', animation:150, forceFallback:true, fallbackOnBody:true, handle:'.drag-handle',
-      onEnd:function(){
-        filterFieldOrder.quick = [...quickList.children].map(c=>c.dataset.fieldId);
-        filterFieldOrder.more = [...moreList.children].map(c=>c.dataset.fieldId);
-      }
+  panel.classList.toggle('customize-mode', filtersCustomizeMode);
+  btn.classList.toggle('active', filtersCustomizeMode);
+  btn.textContent = filtersCustomizeMode ? 'Done' : 'Customize';
+  document.getElementById('normalFiltersView').classList.toggle('hidden', filtersCustomizeMode);
+  document.getElementById('customizeFiltersView').classList.toggle('hidden', !filtersCustomizeMode);
+  applyBtn.textContent = filtersCustomizeMode ? 'Done' : 'Apply filters';
+
+  if(filtersCustomizeMode){
+    const quickList = document.getElementById('quickDragList'); quickList.innerHTML='';
+    const moreList = document.getElementById('moreDragList'); moreList.innerHTML='';
+    filterFieldOrder.quick.forEach(id=>quickList.appendChild(dragFieldRow(id)));
+    filterFieldOrder.more.forEach(id=>moreList.appendChild(dragFieldRow(id)));
+    [quickList, moreList].forEach(listEl=>{
+      new Sortable(listEl, {
+        group:'filterFieldsCustomize', animation:150, forceFallback:true, fallbackOnBody:true, handle:'.drag-handle',
+        onEnd:function(){
+          filterFieldOrder.quick = [...quickList.children].map(c=>c.dataset.fieldId);
+          filterFieldOrder.more = [...moreList.children].map(c=>c.dataset.fieldId);
+        }
+      });
     });
-  });
-}
-function exitFiltersCustomize(){
-  filtersCustomizeMode = false;
-  document.getElementById('filtersPanel').classList.remove('customize-mode');
-  document.getElementById('normalFiltersView').classList.remove('hidden');
-  document.getElementById('customizeFiltersView').classList.add('hidden');
-  document.getElementById('normalFiltersFooter').classList.remove('hidden');
-  document.getElementById('customizeFiltersFooter').classList.add('hidden');
-  renderNormalFilterFields();
+  } else {
+    renderNormalFilterFields();
+  }
 }
 function dragFieldRow(id){
   const el = document.createElement('div');
@@ -965,6 +986,7 @@ function clearFilters(){
   renderGantt();
 }
 function applyFilters(){
+  if(filtersCustomizeMode){ toggleFiltersCustomize(); return; }
   const dEl = document.getElementById('fltDispatcher'); if(dEl) activeFilters.dispatcher = dEl.value;
   const drEl = document.getElementById('fltDriver'); if(drEl) activeFilters.driver = drEl.value.toLowerCase();
   updateFilterCount();
