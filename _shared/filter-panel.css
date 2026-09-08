@@ -1,0 +1,39 @@
+/* ==========================================================================
+   EasyWayPro — Shared Filter Panel styles
+   Source of truth: ent-drv-cab-01-documents-mockup-25.html (accepted version)
+   Include directly: <link rel="stylesheet" href="../../_shared/filter-panel.css">
+   Do not fork/edit per-mockup — fix here, every mockup picks it up.
+   ========================================================================== */
+
+.switch{width:36px;height:20px;border-radius:10px;background:var(--border2);position:relative;cursor:pointer;flex-shrink:0;transition:background .15s;}
+.switch.on{background:var(--accent);}
+.switch .knob{position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:#fff;transition:left .15s;}
+.switch.on .knob{left:18px;}
+
+.modal.filter-panel{width:460px;}
+.modal.filter-panel.customize-mode{border:1.5px dashed var(--accent);}
+.filter-header{display:flex;align-items:center;gap:8px;margin-bottom:14px;padding-right:40px;}
+.filter-header h2{flex:1;margin:0;font-size:17px;}
+.filter-section-label{font-size:10.5px;font-weight:700;color:var(--text400);letter-spacing:.3px;margin:14px 0 8px;}
+.filter-divider{height:1px;background:var(--border2);margin:10px 0;}
+
+.filter-field{margin-bottom:12px;}
+.filter-field label{display:block;font-size:11px;font-weight:600;color:var(--text600);margin-bottom:6px;}
+.filter-field-row{display:flex;align-items:center;gap:8px;margin-bottom:2px;user-select:none;position:relative;}
+.filter-field-row .drag-handle{color:var(--text400);cursor:grab;flex-shrink:0;}
+.filter-field-row .filter-field{flex:1;margin-bottom:0;}
+
+.filter-input-box{border:1px solid var(--border);border-radius:8px;padding:9px 12px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;font-size:13px;color:var(--text900);background:#fff;}
+.filter-input-box .ph{color:var(--neutral300);}
+.filter-checklist{border:1px solid var(--border2);border-top:none;border-radius:0 0 8px 8px;padding:8px;margin-top:-1px;max-height:220px;overflow-y:auto;}
+.filter-checklist label{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--text900);padding:5px 4px;cursor:pointer;}
+
+.filter-toggle-row{display:flex;align-items:center;justify-content:space-between;padding:6px 0;}
+.filter-toggle-row label{font-size:12.5px;color:var(--text900);}
+
+.filter-range{display:flex;align-items:center;gap:8px;}
+.filter-range input{border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-size:12.5px;font-family:inherit;width:100%;}
+.preset-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;}
+.preset-chip{border:1px solid var(--border);background:#fff;border-radius:20px;padding:6px 12px;font-size:12px;font-weight:600;color:var(--text900);cursor:pointer;font-family:inherit;}
+.preset-chip:hover{background:var(--bg50);}
+.preset-chip.active{background:var(--accent);border-color:var(--accent);color:#fff;}
