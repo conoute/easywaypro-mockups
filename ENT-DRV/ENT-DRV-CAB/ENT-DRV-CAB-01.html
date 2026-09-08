@@ -581,13 +581,6 @@ function clearDragOver(){
 function positionFlyout(menu, anchor){
   menu.style.position = 'fixed';
   menu.style.visibility = 'hidden';
-  // Flyouts live on document.body, same as the side panel/nested modals —
-  // same fix applies: without this they render at native 1:1 size while
-  // their anchor (possibly inside a zoomed nested modal) doesn't, so a
-  // dropdown opened from Add Form would look like it belongs to different
-  // software than the button that opened it.
-  menu.classList.add('zoom-sync');
-  menu.style.zoom = currentAppScale;
   document.body.appendChild(menu);
   const anchorRect = anchor.getBoundingClientRect();
   const menuRect = menu.getBoundingClientRect();
