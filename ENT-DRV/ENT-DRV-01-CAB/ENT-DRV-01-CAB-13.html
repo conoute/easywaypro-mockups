@@ -109,6 +109,12 @@
   .photo-card-placeholder{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--neutral200);}
   .photo-upload-btn{position:absolute;top:10px;right:10px;width:28px;height:28px;border-radius:50%;background:rgba(255,255,255,.92);border:1px solid var(--border2);color:var(--text400);display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 1px 4px rgba(51,55,97,.12);transition:all .12s ease;z-index:2;}
   .photo-upload-btn:hover{color:var(--accent-dark,#1e8e5a);border-color:var(--accent);}
+  .photo-adjust-btn{position:absolute;top:10px;right:44px;width:28px;height:28px;border-radius:50%;background:rgba(255,255,255,.92);border:1px solid var(--border2);color:var(--text400);display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 1px 4px rgba(51,55,97,.12);transition:all .12s ease;z-index:2;}
+  .photo-adjust-btn:hover{color:var(--info);border-color:var(--info);}
+  .pe-frame{width:280px;height:280px;border-radius:16px;overflow:hidden;position:relative;margin:12px auto 0;background:var(--neutral-bg);cursor:grab;touch-action:none;}
+  .pe-img{position:absolute;left:0;top:0;transform-origin:top left;user-select:none;pointer-events:none;max-width:none;}
+  .pe-zoom-row{display:flex;align-items:center;gap:10px;margin:14px 6px 4px;color:var(--text400);}
+  .pe-zoom{flex:1;accent-color:var(--accent);cursor:pointer;}
   .photo-remove-btn{position:absolute;top:10px;left:10px;width:24px;height:24px;border-radius:50%;background:rgba(255,255,255,.92);border:1px solid var(--border2);color:var(--text400);display:none;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 1px 4px rgba(51,55,97,.12);z-index:2;}
   .photo-card:hover .photo-remove-btn{display:flex;}
   .photo-remove-btn:hover{color:var(--danger);border-color:var(--danger);}
@@ -1603,7 +1609,9 @@ function openFieldPickerFlyout(anchor){
   },0);
 }
 
-let driverPhoto = null; // data-URL after a (simulated) upload — testable live
+let driverPhoto = null;          // baked (cropped) data-URL shown everywhere
+let driverPhotoOriginal = null;  // raw upload, kept so the crop can be re-adjusted
+let driverPhotoParams = null;    // last editor params {zoom, offX, offY}
 
 function avatarUploadInput(){
   const input = el('<input type="file" accept="image/*" style="display:none;">');
@@ -1611,10 +1619,86 @@ function avatarUploadInput(){
     const file = input.files && input.files[0];
     if(!file) return;
     const reader = new FileReader();
-    reader.onload = ()=>{ driverPhoto = reader.result; render(); showToast('Profile photo updated'); };
+    reader.onload = ()=>{ openPhotoEditor(reader.result, null); };
     reader.readAsDataURL(file);
   };
   return input;
+}
+
+// Classic avatar editor — drag to reposition, slider to zoom, crop is baked
+// into a square canvas on Save so every consumer (photo card, collapsed
+// mini-avatar) just shows the final image with no per-surface transform math.
+function openPhotoEditor(srcDataUrl, params){
+  const FRAME = 280;
+  const scrim = el('<div class="modal-scrim open" style="z-index:300;"></div>');
+  const modal = el(`<div class="modal" style="width:340px;">
+    <h2>Adjust photo</h2>
+    <p class="mdesc">Drag to reposition, zoom to frame it right.</p>
+    <div class="pe-frame"><img class="pe-img" draggable="false"></div>
+    <div class="pe-zoom-row">${iconHTML('zoom_out',16)}<input type="range" class="pe-zoom" min="1" max="3" step="0.01" value="1">${iconHTML('zoom_in',16)}</div>
+    <div class="actions">
+      <button class="btn" data-a="cancel">Cancel</button>
+      <button class="btn primary" data-a="save">Save</button>
+    </div>
+  </div>`);
+  scrim.appendChild(modal);
+  document.body.appendChild(scrim);
+
+  const img = modal.querySelector('.pe-img');
+  const frame = modal.querySelector('.pe-frame');
+  const zoomEl = modal.querySelector('.pe-zoom');
+  let baseScale=1, zoom=1, offX=0, offY=0, natW=0, natH=0;
+
+  function clamp(){
+    const dispW = natW*baseScale*zoom, dispH = natH*baseScale*zoom;
+    offX = Math.min(0, Math.max(FRAME-dispW, offX));
+    offY = Math.min(0, Math.max(FRAME-dispH, offY));
+  }
+  function apply(){
+    clamp();
+    img.style.transform = `translate(${offX}px, ${offY}px) scale(${baseScale*zoom})`;
+  }
+  img.onload = ()=>{
+    natW = img.naturalWidth; natH = img.naturalHeight;
+    baseScale = Math.max(FRAME/natW, FRAME/natH);
+    if(params){ zoom = params.zoom; offX = params.offX; offY = params.offY; zoomEl.value = zoom; }
+    else { zoom = 1; offX = (FRAME-natW*baseScale)/2; offY = (FRAME-natH*baseScale)/2; }
+    apply();
+  };
+  img.src = srcDataUrl;
+
+  zoomEl.oninput = ()=>{
+    // Zoom around the frame center (the classic behavior)
+    const old = baseScale*zoom;
+    zoom = parseFloat(zoomEl.value);
+    const neu = baseScale*zoom;
+    const cx = FRAME/2 - offX, cy = FRAME/2 - offY;
+    offX = FRAME/2 - cx*(neu/old);
+    offY = FRAME/2 - cy*(neu/old);
+    apply();
+  };
+  let dragging=false, sx=0, sy=0;
+  frame.onpointerdown = (e)=>{ dragging=true; sx=e.clientX-offX; sy=e.clientY-offY; frame.setPointerCapture(e.pointerId); frame.style.cursor='grabbing'; };
+  frame.onpointermove = (e)=>{ if(!dragging) return; offX=e.clientX-sx; offY=e.clientY-sy; apply(); };
+  frame.onpointerup = ()=>{ dragging=false; frame.style.cursor='grab'; };
+
+  function close(){ scrim.remove(); document.removeEventListener('keydown', onKey); }
+  function onKey(e){ if(e.key==='Escape') close(); }
+  document.addEventListener('keydown', onKey);
+  scrim.onclick = (e)=>{ if(e.target===scrim) close(); };
+  modal.querySelector('[data-a="cancel"]').onclick = close;
+  modal.querySelector('[data-a="save"]').onclick = ()=>{
+    const OUT = 600;
+    const canvas = document.createElement('canvas');
+    canvas.width = OUT; canvas.height = OUT;
+    const ctx = canvas.getContext('2d');
+    const disp = baseScale*zoom;
+    ctx.drawImage(img, (-offX)/disp, (-offY)/disp, FRAME/disp, FRAME/disp, 0, 0, OUT, OUT);
+    driverPhoto = canvas.toDataURL('image/jpeg', 0.92);
+    driverPhotoOriginal = srcDataUrl;
+    driverPhotoParams = {zoom, offX, offY};
+    close(); render(); showToast('Profile photo updated');
+  };
 }
 
 function renderInfoPanel(){
@@ -1659,9 +1743,13 @@ function renderInfoPanel(){
   photoCard.appendChild(fileInput);
   if(driverPhoto){
     photoCard.appendChild(el(`<img class="photo-card-img" src="${driverPhoto}">`));
+    const adjustBtn = el(`<span class="photo-adjust-btn">${iconHTML('crop',14)}</span>`);
+    attachTooltip(adjustBtn, 'Adjust photo');
+    adjustBtn.onclick = (e)=>{ e.stopPropagation(); openPhotoEditor(driverPhotoOriginal || driverPhoto, driverPhotoParams); };
+    photoCard.appendChild(adjustBtn);
     const removeBtn = el(`<span class="photo-remove-btn">${iconHTML('close',14)}</span>`);
     attachTooltip(removeBtn, 'Remove photo');
-    removeBtn.onclick = (e)=>{ e.stopPropagation(); driverPhoto = null; render(); showToast('Profile photo removed'); };
+    removeBtn.onclick = (e)=>{ e.stopPropagation(); driverPhoto = null; driverPhotoOriginal = null; driverPhotoParams = null; render(); showToast('Profile photo removed'); };
     photoCard.appendChild(removeBtn);
   } else {
     photoCard.appendChild(el(`<div class="photo-card-placeholder">${iconHTML('person',64)}</div>`));
