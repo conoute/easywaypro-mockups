@@ -390,13 +390,13 @@
   .sp-activity-date{font-size:11px;color:var(--text400);margin-top:2px;}
   .topbar-notif-wrap{position:relative;display:flex;}
   .topbar-notif-badge{position:absolute;top:-5px;right:-6px;background:var(--danger);color:#fff;font-size:10px;font-weight:700;min-width:16px;height:16px;border-radius:8px;display:flex;align-items:center;justify-content:center;padding:0 3px;border:2px solid #fff;}
-  .notif-flyout{width:320px;padding:10px;}
-  .notif-flyout-title{font-size:13px;font-weight:700;color:var(--text900);padding:4px 6px 8px;}
-  .notif-row{padding:10px 6px;border-top:1px solid var(--border2);cursor:pointer;border-radius:6px;}
+  .notif-flyout{width:360px;padding:12px;}
+  .notif-flyout-title{font-size:15px;font-weight:700;color:var(--text900);padding:4px 6px 10px;}
+  .notif-row{padding:12px 8px;border-top:1px solid var(--border2);cursor:pointer;border-radius:6px;}
   .notif-row:hover{background:var(--bg50);}
-  .notif-row-text{font-size:12.5px;color:var(--text900);line-height:1.4;}
-  .notif-row-actions{display:flex;gap:10px;margin-top:8px;}
-  .notif-mini-btn{display:flex;align-items:center;gap:4px;font-size:11.5px;font-weight:700;cursor:pointer;}
+  .notif-row-text{font-size:14px;color:var(--text900);line-height:1.4;}
+  .notif-row-actions{display:flex;gap:12px;margin-top:10px;}
+  .notif-mini-btn{display:flex;align-items:center;gap:5px;font-size:13px;font-weight:700;cursor:pointer;}
   .notif-mini-btn.view{color:var(--info);}
   .notif-mini-btn.approve{color:var(--accent-dark, var(--accent));}
   .notif-mini-btn.reject{color:var(--danger);}
@@ -1014,9 +1014,9 @@ function openNotificationsFlyout(anchor, pendingApprovals){
     const row = el(`<div class="notif-row">
       <div class="notif-row-text"><b>${doc.name}</b> was signed by Maksim Gerasimov and needs your approval.</div>
       <div class="notif-row-actions">
-        <span class="notif-mini-btn view" title="View in browser">${iconHTML('visibility',14)}View</span>
-        <span class="notif-mini-btn approve">${iconHTML('check_circle',14)}Approve</span>
-        <span class="notif-mini-btn reject">${iconHTML('cancel',14)}Reject</span>
+        <span class="notif-mini-btn view" title="View in browser">${iconHTML('visibility',16)}View</span>
+        <span class="notif-mini-btn approve">${iconHTML('check_circle',16)}Approve</span>
+        <span class="notif-mini-btn reject">${iconHTML('cancel',16)}Reject</span>
       </div>
     </div>`);
     row.onclick = ()=>{ menu.remove(); openDocumentPanel(doc); };
