@@ -1985,10 +1985,12 @@ function modalDetachWarning(type){
       attachedTrailer = null;
       logActivity('Trailer detached', unit.name+' ('+unit.plate+') released from this driver', 'action');
     }
+    // Detaching is usually the first half of swapping in a different unit, so
+    // return to the picker (now showing nothing attached) instead of closing.
+    // Clear the selection first, otherwise the just-released unit stays ticked.
     entityPickerState = {query:'', selectedId:null};
-    closeModal();
-    showToast(label.charAt(0).toUpperCase()+label.slice(1)+' detached');
-    render();
+    showToast(label.charAt(0).toUpperCase()+label.slice(1)+' detached — pick another one');
+    openModal('attachPicker', type);
   };
   actions.appendChild(backBtn);
   actions.appendChild(goBtn);
