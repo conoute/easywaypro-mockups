@@ -2212,15 +2212,16 @@ function modalCustomizeInfoPanel(){
 }
 
 function renderCabinetContent(){
-  const wrap = el('<div style="display:flex;gap:12px;flex:1;overflow:hidden;"></div>');
-  
-  // LEFT: Info panel persistent
-  const left = el('<div class="cab-info-left" style="width:380px;flex-shrink:0;border-right:1px solid var(--border2);overflow-y:auto;"></div>');
-  left.appendChild(renderInfoPanel());
-  wrap.appendChild(left);
+  const wrap = el('<div style="display:flex;flex:1;min-height:0;overflow:hidden;"></div>');
+
+  // LEFT: info panel — .cab-left owns its own width, collapse state and
+  // transition (see CSS). Never wrap it in a fixed-width container: that
+  // freezes the width so collapsing can't reclaim the space, and any gap
+  // on the flex parent shows as a dead strip next to the panel border.
+  wrap.appendChild(renderInfoPanel());
   
   // RIGHT: Tabs + content
-  const right = el('<div style="flex:1;display:flex;flex-direction:column;overflow:hidden;"></div>');
+  const right = el('<div style="flex:1;min-width:0;display:flex;flex-direction:column;overflow:hidden;"></div>');
   right.appendChild(renderTabsBar());
   
   const content = el('<div style="flex:1;overflow-y:auto;"></div>');
