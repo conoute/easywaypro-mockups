@@ -190,16 +190,16 @@
   .pc-head b{color:var(--text900);font-size:12px;}
   .pc-text{font-size:12.5px;color:var(--text900);margin-top:3px;line-height:1.45;}
   .pcomment-input{border:1px solid var(--border2);border-radius:9px;padding:9px 12px;font-family:inherit;font-size:12.5px;color:var(--text900);margin-top:10px;outline:none;}
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
+  .pdfield-row{display:flex;align-items:center;gap:8px;padding:6px 8px;background:var(--bg50);border-radius:6px;margin-bottom:4px;}
+  .pdfield-row .drag-handle{color:var(--text400);cursor:grab;flex-shrink:0;}
+  .pdfield-checkbox{width:18px;height:18px;border-radius:4px;border:1.5px solid var(--accent);background:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;color:var(--accent);font-size:12px;font-weight:700;transition:all .12s ease;}
+  .pdfield-checkbox::before{content:'✓';}
+  .pdfield-checkbox.unchecked{border-color:var(--border2);background:var(--bg50);color:transparent;box-shadow:inset 0 0 0 1px var(--border2);}
+  .pdfield-checkbox.unchecked::before{display:none;}
+  .pdfield-checkbox:hover{background:rgba(72,200,118,.06);}
+  .pdfield-checkbox.unchecked:hover{background:var(--border-subtle,rgba(200,200,210,.08));}
+  .pdfield-label{font-size:12px;color:var(--text900);flex:1;}
+  .pdfield-group{font-size:10px;color:var(--text400);}
   .pcomment-input:focus{border-color:var(--info);}
   .panel-empty{padding:24px 10px;text-align:center;font-size:12.5px;color:var(--text400);line-height:1.6;}
   .panel-empty .material-symbols-outlined{vertical-align:middle;}
@@ -1848,41 +1848,52 @@ function modalCustomizeInfoPanel(){
         <div class="pdfield-list"></div>
         <button class="btn-outline" style="width:100%;margin-top:8px;font-size:11px;padding:6px 10px;">${iconHTML('add',14)}Add Custom Field</button>
       </div>`);
-      const pdList = pdSubsection.querySelector('">
-            <span class="drag-handle">${iconHTML('drag_indicator',18)}</span>
-            <input type="checkbox" checked/>
-            <span class="name" style="flex:1;">${f.label}</span>
-            <span style="font-size:10px;color:var(--text400);">${f.group}</span>
+      const pdList = pdSubsection.querySelector('.pdfield-list');
+      const addFieldBtn = pdSubsection.querySelector('button');
+      
+      function renderPDFields(){
+        pdList.innerHTML = '';
+        // First, render all checked fields (bifate) — sortable
+        VISIBLE_FIELD_KEYS.forEach(k=>{
+          const f = DRIVER_FIELD_CATALOG.find(x=>x.key===k);
+          if(!f) return;
+          const row = el(`<div class="pdfield-row pdfield-checked" data-key="${f.key}">
+            <span class="drag-handle">${iconHTML('drag_indicator',16)}</span>
+            <span class="pdfield-checkbox">${iconHTML('check',13)}</span>
+            <span class="pdfield-label">${f.label}</span>
+            <span class="pdfield-group">${f.group}</span>
           </div>`);
-          const chk = row.querySelector('input');
-          chk.onchange = ()=>{
+          const chk = row.querySelector('.pdfield-checkbox');
+          chk.onclick = (e)=>{
+            e.stopPropagation();
             VISIBLE_FIELD_KEYS = VISIBLE_FIELD_KEYS.filter(x=>x!==f.key);
             if(f.group==='Custom') DRIVER_FIELD_CATALOG = DRIVER_FIELD_CATALOG.filter(x=>x.key!==f.key);
             renderPDFields();
           };
           pdList.appendChild(row);
         });
-        // Nebifate jos — non-sortable
+        // Then render all unchecked fields (nebifate) — non-sortable
         DRIVER_FIELD_CATALOG.forEach(f=>{
-          if(VISIBLE_FIELD_KEYS.includes(f.key)) return;
-          const row = el(`<div class="colpanel-row" data-key="${f.key}" style="opacity:.6;">
-            <span class="drag-handle" style="visibility:hidden;">${iconHTML('drag_indicator',18)}</span>
-            <input type="checkbox"/>
-            <span class="name" style="flex:1;">${f.label}</span>
-            <span style="font-size:10px;color:var(--text400);">${f.group}</span>
+          if(VISIBLE_FIELD_KEYS.includes(f.key)) return; // sari peste bifate
+          const row = el(`<div class="pdfield-row pdfield-unchecked" data-key="${f.key}">
+            <span class="drag-handle" style="visibility:hidden;">${iconHTML('drag_indicator',16)}</span>
+            <span class="pdfield-checkbox unchecked"></span>
+            <span class="pdfield-label">${f.label}</span>
+            <span class="pdfield-group">${f.group}</span>
           </div>`);
-          const chk = row.querySelector('input');
-          chk.onchange = ()=>{
+          const chk = row.querySelector('.pdfield-checkbox');
+          chk.onclick = (e)=>{
+            e.stopPropagation();
             if(!VISIBLE_FIELD_KEYS.includes(f.key)) VISIBLE_FIELD_KEYS.push(f.key);
             renderPDFields();
           };
           pdList.appendChild(row);
         });
-        // Sortable pe bifate
-        const checkedRows = pdList.querySelectorAll('.colpanel-row:not([style*="opacity"])');
+        // Activate SortableJS only on checked rows
+        const checkedRows = pdList.querySelectorAll('.pdfield-checked');
         if(checkedRows.length > 0){
           safeSortable(pdList, {
-            draggable: '.colpanel-row:not([style*="opacity"])',
+            draggable: '.pdfield-checked',
             onEnd: (evt)=>{
               try{
                 const [moved] = VISIBLE_FIELD_KEYS.splice(evt.oldIndex, 1);
@@ -1896,8 +1907,31 @@ function modalCustomizeInfoPanel(){
       
       addFieldBtn.onclick = ()=>{
         // Slide down a form right inside the subsection, don't open a separate modal
-        if(pdSubsection.querySelector(';
-        form.querySelector('
+        if(pdSubsection.querySelector('.pdc-custom-form')) return; // deja deschis
+        const form = el(`<div class="pdc-custom-form" style="background:#fff;border-radius:8px;padding:10px;margin-top:8px;border:1px solid var(--border2);">
+          <div style="font-size:11px;font-weight:700;color:var(--text400);margin-bottom:8px;">CREATE CUSTOM FIELD</div>
+          <div style="display:flex;flex-direction:column;gap:6px;">
+            <input class="pdc-name" placeholder="Field name" style="border:1px solid var(--border2);border-radius:6px;padding:6px 8px;font-size:11px;"/>
+            <select class="pdc-type" style="border:1px solid var(--border2);border-radius:6px;padding:6px 8px;font-size:11px;">
+              <option value="text">Text</option>
+              <option value="number">Number</option>
+              <option value="date">Date</option>
+              <option value="select">Single select</option>
+            </select>
+            <div style="display:flex;gap:6px;">
+              <button class="pdc-cancel" style="flex:1;border:none;background:var(--bg50);color:var(--text900);font-size:11px;padding:6px;border-radius:6px;cursor:pointer;font-weight:600;">Cancel</button>
+              <button class="pdc-add" style="flex:1;border:none;background:var(--accent);color:#fff;font-size:11px;padding:6px;border-radius:6px;cursor:pointer;font-weight:600;">Add</button>
+            </div>
+          </div>
+        </div>`);
+        pdSubsection.insertBefore(form, addFieldBtn);
+        const nameInput = form.querySelector('.pdc-name');
+        const typeSelect = form.querySelector('.pdc-type');
+        nameInput.focus();
+        form.querySelector('.pdc-cancel').onclick = ()=>{ form.remove(); };
+        form.querySelector('.pdc-add').onclick = ()=>{
+          const name = nameInput.value.trim();
+          if(!name){ showToast('Field name is required'); return; }
           const key = 'c'+Math.random().toString(36).slice(2,7);
           const fieldType = typeSelect.value;
           DRIVER_FIELD_CATALOG.push({key, label:name, value:'—', icon:'sell', group:'Custom', fieldType});
