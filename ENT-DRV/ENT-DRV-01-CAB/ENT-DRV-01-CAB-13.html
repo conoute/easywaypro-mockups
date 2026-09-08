@@ -112,12 +112,12 @@
   .photo-remove-btn{position:absolute;top:10px;left:10px;width:24px;height:24px;border-radius:50%;background:rgba(255,255,255,.92);border:1px solid var(--border2);color:var(--text400);display:none;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 1px 4px rgba(51,55,97,.12);z-index:2;}
   .photo-card:hover .photo-remove-btn{display:flex;}
   .photo-remove-btn:hover{color:var(--danger);border-color:var(--danger);}
-  .photo-name-card{position:absolute;left:10px;right:10px;bottom:10px;background:#fff;border-radius:14px;padding:10px 12px;display:flex;align-items:center;gap:10px;box-shadow:0 4px 16px rgba(51,55,97,.14);}
-  .pnc-text{flex:1;min-width:0;}
-  .pnc-name{font-weight:700;font-size:14.5px;color:var(--text900);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-  .pnc-meta{font-size:11.5px;color:var(--text400);margin-top:1px;}
-  .pnc-call{width:38px;height:38px;border-radius:50%;background:var(--text900);color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:background .12s ease;}
-  .pnc-call:hover{background:var(--accent-dark,#1e8e5a);}
+  .photo-overlay{position:absolute;left:0;right:0;bottom:0;padding:46px 14px 12px;background:linear-gradient(180deg,rgba(46,42,92,0) 0%,rgba(46,42,92,.55) 45%,rgba(46,42,92,.82) 100%);color:#fff;}
+  .po-name{font-weight:700;font-size:15px;}
+  .po-meta{font-size:11.5px;opacity:.8;margin-top:1px;}
+  .po-qa{display:flex;gap:8px;margin-top:10px;}
+  .po-btn{width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,.18);backdrop-filter:blur(4px);color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background .12s ease;}
+  .po-btn:hover{background:var(--accent);}
   .panel-avatar-wrap{position:relative;width:76px;height:76px;}
   .panel-avatar{width:76px;height:76px;border-radius:50%;background:#dbeafe;color:#3b82c4;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:20px;}
   .panel-avatar.generic{background:var(--neutral-bg);color:var(--neutral300);}
@@ -1663,26 +1663,20 @@ function renderInfoPanel(){
   uploadBtn.onclick = (e)=>{ e.stopPropagation(); fileInput.click(); };
   photoCard.appendChild(uploadBtn);
 
-  const nameCard = el(`<div class="photo-name-card">
-    <div class="pnc-text">
-      <div class="pnc-name">Maksim Gerasimov</div>
-      <div class="pnc-meta">35 yrs old · Male</div>
-    </div>
-    <span class="pnc-call">${iconHTML('call',18)}</span>
+  const overlay = el(`<div class="photo-overlay">
+    <div class="po-name">Maksim Gerasimov</div>
+    <div class="po-meta">35 yrs old · Male</div>
+    <div class="po-qa"></div>
   </div>`);
-  attachTooltip(nameCard.querySelector('.pnc-call'), 'Call');
-  nameCard.querySelector('.pnc-call').onclick = ()=> showToast('Call — not wired in this mock');
-  photoCard.appendChild(nameCard);
+  [['call','Call'],['forum','Chat'],['mail','Email'],['map','Map']].forEach(([icon,label])=>{
+    const b = el(`<span class="po-btn">${iconHTML(icon,16)}</span>`);
+    attachTooltip(b, label);
+    b.onclick = (e)=>{ e.stopPropagation(); showToast(`${label} — not wired in this mock`); };
+    overlay.querySelector('.po-qa').appendChild(b);
+  });
+  photoCard.appendChild(overlay);
   ident.appendChild(photoCard);
   ident.appendChild(el('<div class="cab-pill">CANDIDATE — ONBOARDING</div>'));
-  const qaRow = el('<div class="qa-row"></div>');
-  [['forum','Chat'],['mail','Email'],['map','Map']].forEach(([icon,label])=>{
-    const b = el(`<span class="qa-btn">${iconHTML(icon,17)}</span>`);
-    attachTooltip(b, label);
-    b.onclick = ()=> showToast(`${label} — not wired in this mock`);
-    qaRow.appendChild(b);
-  });
-  ident.appendChild(qaRow);
   p.appendChild(ident);
 
   // Customizable modules, in user-defined order
