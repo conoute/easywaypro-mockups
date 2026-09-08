@@ -1981,7 +1981,12 @@ function renderActivityTab(){
     list.appendChild(el('<div style="color:var(--text400);font-size:13px;">No activity yet</div>'));
   } else {
     ACTIVITY_LOG.forEach(entry=>{
-      const badge = el(`<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(${entry.type==='avatar'?'--accent':entry.type==='status'?'--warning':entry.type==='screening'?'--info':entry.type==='create'?'--accent':'--text400'});margin-right:10px;flex-shrink:0;"></span>`);
+      let badgeColor = '--text400';
+      if(entry.type==='avatar') badgeColor = '--accent';
+      else if(entry.type==='status') badgeColor = '--warning';
+      else if(entry.type==='screening') badgeColor = '--info';
+      else if(entry.type==='create') badgeColor = '--accent';
+      const badge = el(`<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(${badgeColor});margin-right:10px;flex-shrink:0;"></span>`);
       const item = el(`<div style="display:flex;gap:0;margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid var(--border2);">
         <div style="flex:1;">
           <div style="font-size:12px;font-weight:700;color:var(--text900);">${entry.action}</div>
