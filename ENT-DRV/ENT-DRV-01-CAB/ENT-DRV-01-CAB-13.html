@@ -1843,25 +1843,37 @@ function modalCustomizeInfoPanel(){
       
       function renderPDFields(){
         pdList.innerHTML = '';
-        DRIVER_FIELD_CATALOG.forEach(f=>{
-          const isVisible = VISIBLE_FIELD_KEYS.includes(f.key);
-          const chk = el(`<div style="display:flex;align-items:center;gap:8px;padding:4px 0;">
-            <input type="checkbox" ${isVisible?'checked':''} data-key="${f.key}"/>
-            <span style="font-size:12px;color:var(--text900);">${f.label}</span>
-            <span style="font-size:10px;color:var(--text400);margin-left:auto;">${f.group}</span>
+        VISIBLE_FIELD_KEYS.forEach(k=>{
+          const f = DRIVER_FIELD_CATALOG.find(x=>x.key===k);
+          if(!f) return;
+          const row = el(`<div class="pdfield-row" data-key="${f.key}" style="display:flex;align-items:center;gap:8px;padding:6px 0;background:var(--bg50);padding:6px 8px;border-radius:6px;margin-bottom:4px;">
+            <span class="drag-handle" style="color:var(--text400);cursor:grab;flex-shrink:0;">${iconHTML('drag_indicator',16)}</span>
+            <input type="checkbox" checked/>
+            <span style="font-size:12px;color:var(--text900);flex:1;">${f.label}</span>
+            <span style="font-size:10px;color:var(--text400);">${f.group}</span>
           </div>`);
-          const input = chk.querySelector('input');
+          const input = row.querySelector('input');
           input.onchange = (e)=>{
-            if(e.target.checked && !VISIBLE_FIELD_KEYS.includes(f.key)){
-              VISIBLE_FIELD_KEYS.push(f.key);
-            } else if(!e.target.checked){
-              VISIBLE_FIELD_KEYS = VISIBLE_FIELD_KEYS.filter(k=>k!==f.key);
+            if(!e.target.checked){
+              VISIBLE_FIELD_KEYS = VISIBLE_FIELD_KEYS.filter(x=>x!==f.key);
               if(f.group==='Custom') DRIVER_FIELD_CATALOG = DRIVER_FIELD_CATALOG.filter(x=>x.key!==f.key);
             }
             renderPDFields();
           };
-          pdList.appendChild(chk);
+          pdList.appendChild(row);
         });
+        // Activez SortableJS pe lista pentru reordonare
+        if(pdList.childNodes.length > 0){
+          safeSortable(pdList, {
+            onEnd: (evt)=>{
+              try{
+                const [moved] = VISIBLE_FIELD_KEYS.splice(evt.oldIndex, 1);
+                VISIBLE_FIELD_KEYS.splice(evt.newIndex, 0, moved);
+                renderPDFields();
+              }catch(err){ console.error('Field reorder failed:', err); renderPDFields(); }
+            }
+          });
+        }
       }
       
       addFieldBtn.onclick = ()=>{
