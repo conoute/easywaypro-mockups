@@ -236,6 +236,51 @@ button{font-family:inherit;cursor:pointer;}
 .toast.warn .material-symbols-outlined{color:var(--warning);}
 @keyframes toastin{from{opacity:0; transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
 
+/* ===== LOAD HISTORY TABLE ===== */
+#plannerView{display:flex; flex-direction:column; flex:1; min-height:0; overflow:hidden;}
+#historyView{display:flex; flex-direction:column; flex:1; min-height:0; overflow:hidden;}
+.lh-table-wrap{flex:1; overflow:auto; position:relative;}
+.lh-table{border-collapse:collapse; width:100%; min-width:1100px;}
+.lh-table thead{position:sticky; top:0; z-index:10; background:#fff;}
+.lh-table th{
+  text-align:left; font-size:11px; font-weight:700; color:var(--text-400); letter-spacing:.03em;
+  padding:12px 16px; border-bottom:1px solid var(--bg-100); white-space:nowrap; cursor:pointer; user-select:none;
+  background:#fff;
+}
+.lh-table th:hover{color:var(--text-900);}
+.lh-table th .material-symbols-outlined{font-size:15px; vertical-align:-3px; margin-left:2px; color:var(--text-400); opacity:0; transition:opacity .1s;}
+.lh-table th.sorted .material-symbols-outlined{opacity:1; color:var(--text-900);}
+.lh-table th.no-sort{cursor:default;}
+.lh-table td{padding:13px 16px; border-bottom:1px solid var(--bg-100); font-size:13px; color:var(--text-900); white-space:nowrap;}
+.lh-table tbody tr:hover td{background:var(--bg-50);}
+.lh-table th.col-check, .lh-table td.col-check{width:40px; padding-right:0;}
+.lh-table th.pin-left, .lh-table td.pin-left{position:sticky; left:0; z-index:6; background:#fff; box-shadow:2px 0 6px rgba(51,55,97,.04);}
+.lh-table thead th.pin-left{z-index:11;}
+.lh-table tbody tr:hover td.pin-left{background:var(--bg-50);}
+.lh-table th.pin-right, .lh-table td.pin-right{position:sticky; right:0; z-index:6; background:#fff; box-shadow:-2px 0 6px rgba(51,55,97,.04);}
+.lh-table thead th.pin-right{z-index:11;}
+.lh-table tbody tr:hover td.pin-right{background:var(--bg-50);}
+.lh-row-driver{font-weight:600;}
+.lh-status-pill{display:inline-block; font-size:10.5px; font-weight:700; padding:4px 10px; border-radius:20px; letter-spacing:.02em;}
+.lh-status-pill.not-submitted{background:rgba(154,154,176,.15); color:var(--text-400);}
+.lh-status-pill.waiting-payment{background:rgba(255,173,32,.15); color:var(--warning);}
+.lh-status-pill.paid{background:rgba(72,200,118,.15); color:var(--accent-dark);}
+.lh-status-pill.delivered{background:rgba(86,168,221,.15); color:var(--info);}
+.lh-kebab{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--text-400);border:none;background:none;}
+.lh-kebab:hover{background:var(--bg-100); color:var(--text-900);}
+.lh-bulk-bar{display:none; align-items:center; gap:12px; padding:12px 24px; background:rgba(72,200,118,.08); border-bottom:1px solid var(--bg-100); font-size:13px; font-weight:700; color:var(--accent-dark);}
+.lh-bulk-bar.show{display:flex;}
+.lh-bulk-bar button{font-size:12.5px; font-weight:700; padding:7px 14px; border-radius:8px; border:1px solid var(--bg-100); background:#fff; color:var(--text-900);}
+.lh-bulk-bar button:hover{background:var(--bg-50);}
+
+.lh-pagination{display:flex; align-items:center; gap:16px; padding:14px 24px; border-top:1px solid var(--bg-100); flex-shrink:0; font-size:12.5px; color:var(--text-400);}
+.lh-pagination select{padding:6px 10px; border:1px solid var(--bg-100); border-radius:7px; font-size:12.5px; font-family:inherit; color:var(--text-900);}
+.lh-page-nav{display:flex; align-items:center; gap:4px; margin-left:auto;}
+.lh-page-btn{width:28px;height:28px;border-radius:7px;border:1px solid var(--bg-100);background:#fff;color:var(--text-900);font-size:12.5px;font-weight:600;}
+.lh-page-btn.active{background:var(--text-900); color:#fff; border-color:var(--text-900);}
+.lh-page-btn:disabled{color:var(--bg-100); cursor:default;}
+.lh-jump{width:44px; padding:5px 6px; border:1px solid var(--bg-100); border-radius:7px; font-size:12.5px; text-align:center; font-family:inherit;}
+
 /* FLYOUT PANELS (KPI / Customize Toolbar) */
 .flyout-scrim{position:fixed; inset:0; background:rgba(51,55,97,.35); z-index:100; display:none; align-items:stretch; justify-content:flex-end;}
 .flyout-scrim.show{display:flex;}
@@ -396,15 +441,17 @@ button{font-family:inherit;cursor:pointer;}
         <div class="topbar-icon"><span class="material-symbols-outlined">account_circle</span></div>
       </div>
       <div class="topbar-row2">
-        <span class="crumb">Loads</span><span class="crumb-sep material-symbols-outlined">chevron_right</span><span class="crumb current">Loads Planner</span>
+        <span class="crumb">Loads</span><span class="crumb-sep material-symbols-outlined">chevron_right</span><span class="crumb current" id="breadcrumbCurrent">Loads Planner</span>
         <div class="tabs">
-          <div class="tab-btn">Load History</div>
-          <div class="tab-btn active">Loads Planner</div>
+          <div class="tab-btn" id="tabHistory" onclick="switchView('history')">Load History</div>
+          <div class="tab-btn active" id="tabPlanner" onclick="switchView('planner')">Loads Planner</div>
         </div>
       </div>
     </div>
 
     <div class="content">
+
+      <div id="plannerView">
       <div class="planner-toolbar">
         <div class="nav-group">
           <button class="nav-btn" id="prevBtn"><span class="material-symbols-outlined">chevron_left</span></button>
@@ -445,9 +492,40 @@ button{font-family:inherit;cursor:pointer;}
           </div>
         </div>
       </div>
+      </div>
+
+      <div id="historyView" class="hidden">
+      <div class="planner-toolbar">
+        <div class="tb-search" style="width:320px;">
+          <span class="material-symbols-outlined">search</span>
+          <input type="text" id="historySearch" placeholder="Search by broker, load #...">
+        </div>
+        <div class="tb-spacer"></div>
+        <button class="tb-btn has-count" id="lhFiltersBtn"><span class="material-symbols-outlined">filter_alt</span>Filters<span class="count-pill" id="lhFilterCount">0</span></button>
+        <div style="position:relative;">
+          <button class="tb-btn" id="lhColumnsBtn"><span class="material-symbols-outlined">view_column</span>Columns</button>
+          <div class="omni-results hidden" id="lhColumnsMenu" style="left:auto; right:0; width:220px; padding:10px;">
+            <div class="filter-section-label" style="margin:4px 0 8px;">SHOW/HIDE COLUMNS</div>
+            <div id="lhColumnsList"></div>
+          </div>
+        </div>
+        <button class="tb-btn" id="lhExportBtn"><span class="material-symbols-outlined">file_download</span>Export</button>
+        <button class="tb-btn tb-btn-primary" id="lhAddLoadBtn"><span class="material-symbols-outlined">add</span>Add Load</button>
+      </div>
+
+      <div class="lh-table-wrap" id="lhTableWrap">
+        <table class="lh-table" id="lhTable">
+          <thead id="lhThead"></thead>
+          <tbody id="lhTbody"></tbody>
+        </table>
+      </div>
+
+      <div class="lh-pagination" id="lhPagination"></div>
+      </div>
 
     </div>
   </div>
+
 </div>
 </div>
 
@@ -497,6 +575,33 @@ button{font-family:inherit;cursor:pointer;}
       </div>
 
       <button class="apply-filters-btn" onclick="applyFilters()">Apply filters</button>
+    </div>
+  </div>
+</div>
+
+<!-- LOAD HISTORY FILTERS MODAL -->
+<div class="modal-scrim" id="lhFiltersScrim">
+  <div class="al-modal filters-modal">
+    <div class="filters-head">
+      <h2>Filters</h2>
+      <div class="filters-head-actions">
+        <button class="pill-btn" onclick="lhClearFiltersModal()">Clear all</button>
+        <button class="al-close" onclick="closeFlyout('lhFiltersScrim')"><span class="material-symbols-outlined">close</span></button>
+      </div>
+    </div>
+    <div class="al-body">
+      <div class="filter-field"><label>Status</label>
+        <select id="lhFltStatus">
+          <option value="">All statuses</option>
+          <option value="NOT SUBMITTED">Not submitted</option>
+          <option value="WAITING PAYMENT">Waiting payment</option>
+          <option value="PAID">Paid</option>
+          <option value="DELIVERED">Delivered</option>
+        </select>
+      </div>
+      <div class="filter-field"><label>Broker</label><input type="text" id="lhFltBroker" placeholder="Search broker name..."></div>
+      <div class="filter-field"><label>Driver</label><input type="text" id="lhFltDriver" placeholder="Search driver name..."></div>
+      <button class="apply-filters-btn" onclick="lhApplyFilters()">Apply filters</button>
     </div>
   </div>
 </div>
@@ -1335,6 +1440,268 @@ function saveLoad(create){
 }
 
 /* ============================================================
+   LOAD HISTORY — TL-OPS-01-01
+   ============================================================ */
+const LH_STATUS_ORDER = {'NOT SUBMITTED':0, 'WAITING PAYMENT':1, 'PAID':2, 'DELIVERED':3};
+function lhStatusClass(s){ return s.toLowerCase().replace(/\s/g,'-'); }
+
+const LH_COLUMNS = [
+  {key:'broker', label:'BROKER', sortable:true},
+  {key:'driver', label:'DRIVER', sortable:true},
+  {key:'truck', label:'TRUCK', sortable:true},
+  {key:'mc', label:'MC#', sortable:false},
+  {key:'po', label:'PO#', sortable:false},
+  {key:'deliveryDate', label:'DELIVERY DATE', sortable:true},
+  {key:'deadhead', label:'DEADHEAD', sortable:true},
+  {key:'amount', label:'AMOUNT', sortable:true},
+  {key:'status', label:'STATUS', sortable:true}
+];
+let lhColumnVisible = {}; LH_COLUMNS.forEach(c=>lhColumnVisible[c.key]=true);
+
+let LOAD_HISTORY_DATA = [
+  {id:'H1', broker:'Werner Enterprises', driver:'Sultan Suleymanov', truck:'2758', mc:'293730', po:'1914553', deliveryDate:'08-11-2026', deadhead:38, amount:4600, status:'DELIVERED'},
+  {id:'H2', broker:'Landstar System', driver:'Tariq Nassar', truck:'147', mc:'196502', po:'1120345', deliveryDate:'08-12-2026', deadhead:88, amount:5940, status:'WAITING PAYMENT'},
+  {id:'H3', broker:'Covenant Logistics', driver:'Oksana Rybalka', truck:'41', mc:'552310', po:'2201938', deliveryDate:'08-12-2026', deadhead:60, amount:2100, status:'NOT SUBMITTED'},
+  {id:'H4', broker:'Amazon Logistics, Inc.', driver:'Igor Glibiciuc', truck:'1305', mc:'667732', po:'894343', deliveryDate:'08-13-2026', deadhead:210, amount:4200, status:'DELIVERED'},
+  {id:'H5', broker:'Redstone Logistics LLC', driver:'Anton Glukhin', truck:'4409', mc:'6690123', po:'889012', deliveryDate:'08-14-2026', deadhead:165, amount:5800, status:'PAID'},
+  {id:'H6', broker:'XPO Logistics', driver:'Beslan Gagiev', truck:'8', mc:'229981', po:'771002', deliveryDate:'08-09-2026', deadhead:210, amount:1890, status:'PAID'},
+  {id:'H7', broker:'Old Dominion Freight', driver:'Jammie Tiereal Dinkins', truck:'17', mc:'894343', po:'441290', deliveryDate:'08-08-2026', deadhead:88, amount:1531.32, status:'WAITING PAYMENT'},
+  {id:'H8', broker:'J.B. Hunt Transport', driver:'Andriy Olexandrovich K.', truck:'FRHT', mc:'4471023', po:'992810', deliveryDate:'08-10-2026', deadhead:165, amount:2340, status:'NOT SUBMITTED'},
+  {id:'H9', broker:'Knight-Swift', driver:'Nurbolat Konushaliyev', truck:'035580', mc:'826094', po:'7734920', deliveryDate:'08-05-2026', deadhead:35, amount:6000, status:'PAID'},
+  {id:'H10', broker:'Schneider National', driver:'Rustam Dadashov', truck:'2210', mc:'984301', po:'8842019', deliveryDate:'08-07-2026', deadhead:45, amount:3400, status:'DELIVERED'},
+  {id:'H11', broker:'Ryan Transportation Services', driver:'Vitalii Holovash', truck:'110293', mc:'5567234', po:'9981234', deliveryDate:'08-04-2026', deadhead:48, amount:7220, status:'DELIVERED'},
+  {id:'H12', broker:'Ryder System', driver:'Frank Huber', truck:'114420', mc:'2222048', po:'334521', deliveryDate:'08-01-2026', deadhead:22, amount:2980, status:'DELIVERED'},
+  {id:'H13', broker:'Steam Logistics', driver:'Iaroslav Protsenko', truck:'147734', mc:'196502', po:'431508-1', deliveryDate:'08-06-2026', deadhead:310, amount:6535.83, status:'WAITING PAYMENT'},
+  {id:'H14', broker:'American Transportation', driver:'Israpil Evloev', truck:'1867', mc:'9981234', po:'A6669859', deliveryDate:'08-13-2026', deadhead:41, amount:3760, status:'NOT SUBMITTED'},
+  {id:'H15', broker:'BBI Logistics LLC', driver:'Boris Klimenko', truck:'890', mc:'1155HL6W6', po:'115N18LFS', deliveryDate:'08-09-2026', deadhead:640, amount:7900, status:'PAID'},
+  {id:'H16', broker:'Werner Enterprises', driver:'Dmitrii Samarin', truck:'676668', mc:'2673', po:'499910', deliveryDate:'08-03-2026', deadhead:72, amount:2400, status:'DELIVERED'}
+];
+
+let lhSortKey = 'deliveryDate';
+let lhSortDir = 'desc';
+let lhCurrentPage = 1;
+let lhRowsPerPage = 10;
+let lhSelected = new Set();
+let lhSearchQuery = '';
+let lhActiveFilters = {status:'', broker:'', driver:'', range:''};
+
+function lhFilteredSorted(){
+  let rows = LOAD_HISTORY_DATA.filter(r=>{
+    if(lhActiveFilters.status && r.status!==lhActiveFilters.status) return false;
+    if(lhActiveFilters.broker && !r.broker.toLowerCase().includes(lhActiveFilters.broker.toLowerCase())) return false;
+    if(lhActiveFilters.driver && !r.driver.toLowerCase().includes(lhActiveFilters.driver.toLowerCase())) return false;
+    if(lhSearchQuery){
+      const hay = (r.broker+' '+r.driver+' '+r.po+' '+r.mc).toLowerCase();
+      if(!hay.includes(lhSearchQuery)) return false;
+    }
+    return true;
+  });
+  rows.sort((a,b)=>{
+    let av = a[lhSortKey], bv = b[lhSortKey];
+    if(lhSortKey==='status'){ av = LH_STATUS_ORDER[a.status]; bv = LH_STATUS_ORDER[b.status]; }
+    if(typeof av==='string'){ av=av.toLowerCase(); bv=bv.toLowerCase(); }
+    if(av<bv) return lhSortDir==='asc'?-1:1;
+    if(av>bv) return lhSortDir==='asc'?1:-1;
+    return 0;
+  });
+  return rows;
+}
+
+function renderHistoryThead(){
+  const thead = document.getElementById('lhThead');
+  let html = '<tr><th class="col-check pin-left"><input type="checkbox" id="lhSelectAll" onchange="lhToggleSelectAll(this.checked)"></th>';
+  LH_COLUMNS.filter(c=>lhColumnVisible[c.key]).forEach((c,i)=>{
+    const isSorted = lhSortKey===c.key;
+    const pinLeftClass = c.key==='broker' ? 'pin-left' : '';
+    const style = c.key==='broker' ? 'left:40px;' : '';
+    html += `<th class="${c.sortable?'':'no-sort'} ${isSorted?'sorted':''} ${pinLeftClass}" style="${style}" ${c.sortable?`onclick="lhSort('${c.key}')"`:''}>
+      ${c.label}${c.sortable?`<span class="material-symbols-outlined">${isSorted && lhSortDir==='asc' ? 'arrow_upward':'arrow_downward'}</span>`:''}
+    </th>`;
+  });
+  html += '<th class="no-sort pin-right" style="width:44px;"></th></tr>';
+  thead.innerHTML = html;
+}
+function lhSort(key){
+  if(lhSortKey===key){ lhSortDir = lhSortDir==='asc'?'desc':'asc'; }
+  else { lhSortKey=key; lhSortDir='asc'; }
+  lhCurrentPage=1;
+  renderHistoryTable();
+}
+function renderHistoryTable(){
+  renderHistoryThead();
+  const all = lhFilteredSorted();
+  const total = all.length;
+  const totalPages = Math.max(1, Math.ceil(total/lhRowsPerPage));
+  if(lhCurrentPage>totalPages) lhCurrentPage=totalPages;
+  const start = (lhCurrentPage-1)*lhRowsPerPage;
+  const pageRows = all.slice(start, start+lhRowsPerPage);
+
+  const tbody = document.getElementById('lhTbody');
+  if(pageRows.length===0){
+    tbody.innerHTML = `<tr><td colspan="${LH_COLUMNS.length+2}"><div class="empty-state"><span class="material-symbols-outlined">receipt_long</span><p>No loads match the current filters.</p><button onclick="lhClearFilters()">Clear filters</button></div></td></tr>`;
+  } else {
+    tbody.innerHTML = pageRows.map(r=>{
+      const checked = lhSelected.has(r.id);
+      let cells = `<td class="col-check pin-left"><input type="checkbox" ${checked?'checked':''} onchange="lhToggleRow('${r.id}',this.checked)"></td>`;
+      LH_COLUMNS.filter(c=>lhColumnVisible[c.key]).forEach(c=>{
+        const pinLeftStyle = c.key==='broker' ? ' pin-left" style="left:40px;' : '';
+        if(c.key==='broker') cells += `<td class="lh-row-driver pin-left" style="left:40px;">${r.broker}</td>`;
+        else if(c.key==='amount') cells += `<td>$${r.amount.toLocaleString(undefined,{minimumFractionDigits:2, maximumFractionDigits:2})}</td>`;
+        else if(c.key==='deadhead') cells += `<td>${r.deadhead} mi</td>`;
+        else if(c.key==='status') cells += `<td><span class="lh-status-pill ${lhStatusClass(r.status)}">${r.status}</span></td>`;
+        else cells += `<td>${r[c.key]}</td>`;
+      });
+      cells += `<td class="pin-right"><button class="lh-kebab" onclick="lhRowMenu('${r.id}')"><span class="material-symbols-outlined">more_vert</span></button></td>`;
+      return `<tr>${cells}</tr>`;
+    }).join('');
+  }
+
+  renderHistoryPagination(total, totalPages, start, pageRows.length);
+  renderLhBulkBar();
+}
+function renderHistoryPagination(total, totalPages, start, shown){
+  const el = document.getElementById('lhPagination');
+  const from = total===0?0:start+1;
+  const to = start+shown;
+  let pageBtns = '';
+  const maxShown = 5;
+  let pages = [];
+  if(totalPages<=maxShown+2){ for(let i=1;i<=totalPages;i++) pages.push(i); }
+  else {
+    pages.push(1);
+    if(lhCurrentPage>3) pages.push('…');
+    for(let i=Math.max(2,lhCurrentPage-1); i<=Math.min(totalPages-1,lhCurrentPage+1); i++) pages.push(i);
+    if(lhCurrentPage<totalPages-2) pages.push('…');
+    pages.push(totalPages);
+  }
+  pages.forEach(p=>{
+    if(p==='…') pageBtns += `<span style="padding:0 4px;">…</span>`;
+    else pageBtns += `<button class="lh-page-btn ${p===lhCurrentPage?'active':''}" onclick="lhGoToPage(${p})">${p}</button>`;
+  });
+  el.innerHTML = `
+    <span>Showing ${from}–${to} of ${total}</span>
+    <select onchange="lhChangeRowsPerPage(this.value)">
+      <option value="10" ${lhRowsPerPage===10?'selected':''}>10 / page</option>
+      <option value="25" ${lhRowsPerPage===25?'selected':''}>25 / page</option>
+      <option value="50" ${lhRowsPerPage===50?'selected':''}>50 / page</option>
+    </select>
+    <div class="lh-page-nav">
+      <button class="lh-page-btn" onclick="lhGoToPage(${lhCurrentPage-1})" ${lhCurrentPage<=1?'disabled':''}><span class="material-symbols-outlined" style="font-size:16px;">chevron_left</span></button>
+      ${pageBtns}
+      <button class="lh-page-btn" onclick="lhGoToPage(${lhCurrentPage+1})" ${lhCurrentPage>=totalPages?'disabled':''}><span class="material-symbols-outlined" style="font-size:16px;">chevron_right</span></button>
+      <input type="text" class="lh-jump" placeholder="Go to" onkeydown="if(event.key==='Enter'){lhGoToPage(parseInt(this.value)||1); this.value='';}">
+    </div>`;
+}
+function lhGoToPage(p){
+  const totalPages = Math.max(1, Math.ceil(lhFilteredSorted().length/lhRowsPerPage));
+  lhCurrentPage = Math.min(Math.max(1,p), totalPages);
+  renderHistoryTable();
+}
+function lhChangeRowsPerPage(v){ lhRowsPerPage = parseInt(v); lhCurrentPage=1; renderHistoryTable(); }
+function lhToggleRow(id, checked){ if(checked) lhSelected.add(id); else lhSelected.delete(id); renderLhBulkBar(); document.getElementById('lhSelectAll').checked=false; }
+function lhToggleSelectAll(checked){
+  const pageIds = lhFilteredSorted().slice((lhCurrentPage-1)*lhRowsPerPage, lhCurrentPage*lhRowsPerPage).map(r=>r.id);
+  if(checked) pageIds.forEach(id=>lhSelected.add(id)); else pageIds.forEach(id=>lhSelected.delete(id));
+  renderHistoryTable();
+}
+function renderLhBulkBar(){
+  let bar = document.getElementById('lhBulkBar');
+  if(!bar){
+    bar = document.createElement('div'); bar.id='lhBulkBar'; bar.className='lh-bulk-bar';
+    document.getElementById('lhTableWrap').insertAdjacentElement('beforebegin', bar);
+  }
+  const n = lhSelected.size;
+  if(n===0){ bar.classList.remove('show'); return; }
+  const eligiblePaid = LOAD_HISTORY_DATA.filter(r=>lhSelected.has(r.id) && r.status==='WAITING PAYMENT').length;
+  bar.classList.add('show');
+  bar.innerHTML = `<span>${n} selected</span>
+    <button onclick="lhBulkExport()">Export</button>
+    ${eligiblePaid>0?`<button onclick="lhBulkMarkPaid()">Mark as Paid (${eligiblePaid})</button>`:''}
+    <button onclick="lhClearSelection()" style="margin-left:auto;">Clear selection</button>`;
+}
+function lhClearSelection(){ lhSelected.clear(); renderHistoryTable(); }
+function lhBulkExport(){ showToast(`Exporting ${lhSelected.size} load(s)...`,'file_download'); }
+function lhBulkMarkPaid(){
+  let n=0;
+  LOAD_HISTORY_DATA.forEach(r=>{ if(lhSelected.has(r.id) && r.status==='WAITING PAYMENT'){ r.status='PAID'; n++; } });
+  showToast(`Marked ${n} load(s) as Paid.`,'check_circle');
+  lhSelected.clear();
+  renderHistoryTable();
+}
+function lhRowMenu(id){ showToast('Row actions: View / Edit / Download docs...', 'more_vert'); }
+function lhClearFilters(){
+  lhActiveFilters = {status:'', broker:'', driver:'', range:''};
+  lhSearchQuery='';
+  document.getElementById('historySearch').value='';
+  updateLhFilterCount();
+  renderHistoryTable();
+}
+function updateLhFilterCount(){
+  let n=0;
+  if(lhActiveFilters.status) n++;
+  if(lhActiveFilters.broker) n++;
+  if(lhActiveFilters.driver) n++;
+  document.getElementById('lhFilterCount').textContent = n;
+  document.getElementById('lhFilterCount').style.display = n>0?'inline-block':'none';
+}
+function renderLhColumnsList(){
+  const wrap = document.getElementById('lhColumnsList');
+  wrap.innerHTML = LH_COLUMNS.map(c=>`
+    <label style="display:flex; align-items:center; justify-content:space-between; padding:6px 4px; font-size:12.5px; cursor:pointer;">
+      <span>${c.label.charAt(0)+c.label.slice(1).toLowerCase()}</span>
+      <input type="checkbox" ${lhColumnVisible[c.key]?'checked':''} onchange="lhToggleColumn('${c.key}',this.checked)" style="accent-color:var(--accent);">
+    </label>`).join('');
+}
+function lhToggleColumn(key, checked){ lhColumnVisible[key]=checked; renderHistoryTable(); }
+document.addEventListener('click',(e)=>{
+  const menu = document.getElementById('lhColumnsMenu');
+  const btn = document.getElementById('lhColumnsBtn');
+  if(menu && !menu.classList.contains('hidden') && !menu.contains(e.target) && e.target!==btn && !btn.contains(e.target)){
+    menu.classList.add('hidden');
+  }
+});
+document.getElementById('historySearch').addEventListener('input',(e)=>{
+  lhSearchQuery = e.target.value.trim().toLowerCase();
+  lhCurrentPage = 1;
+  renderHistoryTable();
+});
+document.getElementById('lhExportBtn').addEventListener('click',()=>showToast('Export started — you will get a download link shortly.','file_download'));
+document.getElementById('lhAddLoadBtn').addEventListener('click', openAddLoad);
+document.getElementById('lhColumnsBtn').addEventListener('click', ()=>{
+  const box = document.getElementById('lhColumnsMenu');
+  if(box.classList.contains('hidden')) renderLhColumnsList();
+  box.classList.toggle('hidden');
+});
+document.getElementById('lhFiltersBtn').addEventListener('click',()=>document.getElementById('lhFiltersScrim').classList.add('show'));
+function lhApplyFilters(){
+  lhActiveFilters.status = document.getElementById('lhFltStatus').value;
+  lhActiveFilters.broker = document.getElementById('lhFltBroker').value;
+  lhActiveFilters.driver = document.getElementById('lhFltDriver').value;
+  updateLhFilterCount();
+  document.getElementById('lhFiltersScrim').classList.remove('show');
+  lhCurrentPage=1;
+  renderHistoryTable();
+  showToast('Filters applied.','filter_alt');
+}
+function lhClearFiltersModal(){
+  document.getElementById('lhFltStatus').value='';
+  document.getElementById('lhFltBroker').value='';
+  document.getElementById('lhFltDriver').value='';
+  lhClearFilters();
+}
+
+/* ---- Tab switching ---- */
+function switchView(view){
+  const isHistory = view==='history';
+  document.getElementById('plannerView').classList.toggle('hidden', isHistory);
+  document.getElementById('historyView').classList.toggle('hidden', !isHistory);
+  document.getElementById('tabHistory').classList.toggle('active', isHistory);
+  document.getElementById('tabPlanner').classList.toggle('active', !isHistory);
+  document.getElementById('breadcrumbCurrent').textContent = isHistory ? 'Load History' : 'Loads Planner';
+  if(isHistory) renderHistoryTable();
+}
+
+/* ============================================================
    INIT
    ============================================================ */
 renderRail();
@@ -1343,6 +1710,7 @@ updateFilterCount();
 renderTray();
 renderGantt();
 updatePeriodLabel();
+renderHistoryTable();
 
 /* non-responsive scale: width-only zoom, per project convention */
 function applyDesktopScale(){
