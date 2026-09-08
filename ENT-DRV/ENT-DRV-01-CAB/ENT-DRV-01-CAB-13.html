@@ -732,7 +732,7 @@
   
   /* ---- Modal Picker Styles ---- */
   .modal-backdrop{position:fixed;inset:0;background:rgba(51,55,97,0.45);display:flex;align-items:center;justify-content:center;z-index:100;}
-  .modal-content{background:white;border-radius:12px;box-shadow:0 20px 64px rgba(51,55,97,0.3);max-height:80vh;overflow-y:auto;}
+  .modal-content{width:360px;background:white;border-radius:12px;box-shadow:0 20px 64px rgba(51,55,97,0.3);max-height:80vh;overflow-y:auto;}
   .modal-content .actions{padding:16px;border-top:1px solid var(--border2);display:flex;gap:8px;}
   .modal-content .actions .btn{flex:1;}
   
@@ -1605,16 +1605,16 @@ function avatarUploadInput(){
 // into a square canvas on Save so every consumer (photo card, collapsed
 // mini-avatar) just shows the final image with no per-surface transform math.
 function openAttachmentPicker(type){
-  const modal = el('<div class="modal-content" style="width:360px;"></div>');
   const title = type==='truck'?'Select Truck':(type==='trailer'?'Select Trailer':'Assign Dispatcher');
   const items = type==='truck'?AVAILABLE_TRUCKS:(type==='trailer'?AVAILABLE_TRAILERS:AVAILABLE_DISPATCHERS);
   
-  const titleDiv = el('<div style="padding:16px;border-bottom:1px solid var(--border2);"><h3 style="margin:0;font-size:14px;font-weight:700;">'+title+'</h3></div>');
-  modal.appendChild(titleDiv);
+  // Create modal content
+  const modal = el('<div class="modal-content"></div>');
+  modal.appendChild(el('<div style="padding:16px;border-bottom:1px solid var(--border2);"><h3 style="margin:0;font-size:14px;font-weight:700;">'+title+'</h3></div>'));
   
   const list = el('<div style="max-height:300px;overflow-y:auto;"></div>');
   items.forEach(item=>{
-    let rowHTML = '<div style="padding:12px 16px;border-bottom:1px solid var(--border2);cursor:pointer;transition:background 0.15s;" class="picker-row">';
+    let rowHTML = '<div style="padding:12px 16px;border-bottom:1px solid var(--border2);cursor:pointer;transition:background 0.15s;">';
     rowHTML += '<div style="font-size:12px;font-weight:600;color:var(--text900);">'+item.name+'</div>';
     if(item.plate) rowHTML += '<div style="font-size:10px;color:var(--text400);margin-top:2px;">'+item.plate+'</div>';
     rowHTML += '</div>';
@@ -1632,23 +1632,25 @@ function openAttachmentPicker(type){
         attachedDispatcher = item;
         logActivity('Dispatcher assigned', 'Assigned '+item.name, 'action');
       }
-      closeModal();
+      backdrop.remove();
       render();
     };
     list.appendChild(row);
   });
   modal.appendChild(list);
   
-  const actions = el('<div class="actions"></div>');
+  const actions = el('<div style="padding:16px;border-top:1px solid var(--border2);display:flex;gap:8px;"></div>');
   const cancelBtn = el('<button class="btn" style="width:100%;">Cancel</button>');
-  cancelBtn.onclick = closeModal;
+  cancelBtn.onclick = ()=> backdrop.remove();
   actions.appendChild(cancelBtn);
   modal.appendChild(actions);
   
-  window._currentModal = {content:modal, backdrop:el('<div class="modal-backdrop"></div>')};
-  document.body.appendChild(window._currentModal.backdrop);
-  document.body.appendChild(modal);
-  window._currentModal.backdrop.onclick = closeModal;
+  // Create backdrop (container) and add modal inside
+  const backdrop = el('<div class="modal-backdrop"></div>');
+  backdrop.appendChild(modal);
+  backdrop.onclick = (e)=>{ if(e.target === backdrop) backdrop.remove(); };
+  
+  document.body.appendChild(backdrop);
 }
 
 function renderActivityTab(){
