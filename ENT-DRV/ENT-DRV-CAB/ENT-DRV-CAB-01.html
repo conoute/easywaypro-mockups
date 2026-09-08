@@ -321,6 +321,16 @@
   .bc-footer{display:flex;justify-content:space-between;margin-top:10px;padding-top:10px;border-top:1px solid var(--border2);}
   .bc-today-link, .bc-clear-link{font-size:11.5px;font-weight:700;color:var(--info);cursor:pointer;}
   .bc-clear-link{color:var(--text400);}
+  .branded-select{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;border:1px solid var(--border);border-radius:8px;padding:9px 10px;font-size:13px;font-family:inherit;color:var(--text900);background:#fff;cursor:pointer;text-align:left;}
+  .branded-select:hover{border-color:var(--text400);}
+  .branded-select .bs-current{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .branded-select-menu{padding:6px;min-width:220px;max-width:320px;max-height:280px;overflow-y:auto;}
+  .bs-option{display:flex;align-items:center;gap:8px;width:100%;border:none;background:none;text-align:left;padding:8px 10px;border-radius:7px;font-size:13px;color:var(--text900);cursor:pointer;font-family:inherit;}
+  .bs-option:hover{background:var(--bg50);}
+  .bs-option.active{color:var(--accent-dark, var(--accent));font-weight:700;}
+  .bs-option.active svg, .bs-option.active .material-symbols-outlined{color:var(--accent);}
+  .bs-check-spacer{width:15px;flex-shrink:0;display:inline-block;}
+  .bs-option.emphasis{color:var(--info);font-weight:700;border-top:1px solid var(--border2);margin-top:4px;padding-top:10px;}
   .sp-attachment-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--rowBorder);}
   .sp-attachment-row:last-child{border-bottom:none;}
   .sp-att-text{flex:1;min-width:0;}
@@ -1845,6 +1855,38 @@ function openOptionColorPicker(anchor, opt, onDone){
 // which is an unstyleable OS control and doesn't match the brand at all.
 // A lightweight month-grid flyout instead: accent green for the selected
 // day, a subtle outline for today, Source Sans typography throughout. ----
+// ---- Branded select — replaces the native <select> popup (browser-default
+// styling, can't be themed) with our own flyout-based dropdown, matching
+// every other picker in the app. Returns a small object mimicking just
+// enough of a real <select>'s interface (value getter/setter, el, onchange)
+// so call sites barely have to change. ----
+function createBrandedSelect(options, currentValue, onChange){
+  const el_ = el('<button type="button" class="branded-select"></button>');
+  let value = (currentValue && options.some(o=>o.value===currentValue)) ? currentValue : (options[0]?.value ?? '');
+  function currentLabel(){ const o = options.find(o=>o.value===value); return o ? o.label : (options[0]?.placeholder || 'Select...'); }
+  function paint(){
+    el_.innerHTML = `<span class="bs-current">${currentLabel()}</span>${iconHTML('expand_more',16)}`;
+  }
+  paint();
+  el_.onclick = (e)=>{
+    e.preventDefault();
+    document.querySelectorAll('.flyout').forEach(m=>m.remove());
+    const menu = el('<div class="flyout branded-select-menu"></div>');
+    options.forEach(opt=>{
+      const active = opt.value === value;
+      const item = el(`<button type="button" class="bs-option${active?' active':''}${opt.emphasis?' emphasis':''}">${active?iconHTML('check',15):'<span class="bs-check-spacer"></span>'}<span>${opt.label}</span></button>`);
+      item.onclick = ()=>{ value = opt.value; paint(); menu.remove(); if(onChange) onChange(value); };
+      menu.appendChild(item);
+    });
+    positionFlyout(menu, el_);
+    setTimeout(()=>{
+      document.addEventListener('click', function h(ev){ if(!menu.contains(ev.target) && ev.target!==el_){ menu.remove(); document.removeEventListener('click',h); } });
+    },0);
+  };
+  Object.defineProperty(el_, 'value', { get: ()=>value, set: (v)=>{ value=v; paint(); } });
+  el_.refreshOptions = (newOptions)=>{ options = newOptions; if(!options.some(o=>o.value===value)) value = options[0]?.value ?? ''; paint(); };
+  return el_;
+}
 function openBrandedCalendar(anchor, currentIso, onSelect){
   document.querySelectorAll('.flyout').forEach(m=>m.remove());
   const today = new Date('2026-09-06');
@@ -2526,17 +2568,25 @@ function openAddFormPicker(doc, onDone){
   modal.appendChild(el(`<h2>Add Form</h2><p class="mdesc">Attach a fillable form to this document — treated just like any other attached file (view, edit, archive, delete).</p>
     <div class="field"><label>Form</label></div>`));
   const selectRow = el('<div style="display:flex;gap:8px;align-items:center;"></div>');
-  const select = el('<select style="flex:1;"></select>');
-  function refresh(){
-    select.innerHTML = '';
+  function buildOptions(){
     // Built-in forms are reference samples only — a real request can only go
     // out with a form the company actually created and owns the content of.
     const custom = FILE_TEMPLATES.filter(ft=>!ft.isBuiltIn);
-    if(custom.length===0) select.appendChild(el('<option value="">No custom forms yet — create one</option>'));
-    else custom.forEach(ft=> select.appendChild(el(`<option value="${ft.id}">${ft.name}</option>`)));
-    select.appendChild(el('<option value="__new__">+ Create new form...</option>'));
+    const opts = custom.length===0
+      ? [{value:'', label:'No custom forms yet — create one'}]
+      : custom.map(ft=>({value:ft.id, label:ft.name}));
+    opts.push({value:'__new__', label:'+ Create new form...', emphasis:true});
+    return opts;
   }
-  refresh();
+  const select = createBrandedSelect(buildOptions(), '', (v)=>{
+    if(v==='__new__'){
+      let closeNested;
+      const node = modalFileTemplateEditor(null, { onSave:(f)=>{ closeNested(); select.refreshOptions(buildOptions()); select.value=f.id; }, onCancel:()=>{ closeNested(); select.refreshOptions(buildOptions()); } });
+      closeNested = openNestedModal(node);
+    }
+  });
+  select.style.flex = '1';
+  function refresh(){ select.refreshOptions(buildOptions()); }
   selectRow.appendChild(select);
   const viewBtn = el(`<button type="button" class="btn" style="flex-shrink:0;">${iconHTML('visibility',15)}View</button>`);
   viewBtn.onclick = ()=>{
@@ -2546,13 +2596,6 @@ function openAddFormPicker(doc, onDone){
     closeNested = openNestedModal(node);
   };
   selectRow.appendChild(viewBtn);
-  select.onchange = ()=>{
-    if(select.value==='__new__'){
-      let closeNested;
-      const node = modalFileTemplateEditor(null, { onSave:(f)=>{ closeNested(); refresh(); select.value=f.id; }, onCancel:()=>{ closeNested(); refresh(); } });
-      closeNested = openNestedModal(node);
-    }
-  };
   modal.appendChild(selectRow);
   const actions = el('<div class="actions"></div>');
   const cancelBtn = el('<button class="btn">Cancel</button>');
@@ -2783,15 +2826,23 @@ function modalCreateEmptyDoc(opts){
   modal.appendChild(signRow);
   const signSelectWrap = el('<div class="field" style="display:none;margin-top:6px;"><label>Form</label></div>');
   const selectRow = el('<div style="display:flex;gap:8px;align-items:center;"></div>');
-  const ftSelect = el('<select style="flex:1;"></select>');
-  function refreshFt(){
-    ftSelect.innerHTML = '';
+  const ftSelect = createBrandedSelect(buildFtOptions(), '', (v)=>{
+    if(v==='__new__'){
+      let closeNested;
+      const node = modalFileTemplateEditor(null, { onSave:(f)=>{ closeNested(); ftSelect.refreshOptions(buildFtOptions()); ftSelect.value=f.id; }, onCancel:()=>{ closeNested(); ftSelect.refreshOptions(buildFtOptions()); } });
+      closeNested = openNestedModal(node);
+    }
+  });
+  ftSelect.style.flex = '1';
+  function buildFtOptions(){
     const custom = FILE_TEMPLATES.filter(ft=>!ft.isBuiltIn);
-    if(custom.length===0) ftSelect.appendChild(el('<option value="">No custom forms yet — create one</option>'));
-    else custom.forEach(ft=> ftSelect.appendChild(el(`<option value="${ft.id}">${ft.name}</option>`)));
-    ftSelect.appendChild(el('<option value="__new__">+ Create new form...</option>'));
+    const opts = custom.length===0
+      ? [{value:'', label:'No custom forms yet — create one'}]
+      : custom.map(ft=>({value:ft.id, label:ft.name}));
+    opts.push({value:'__new__', label:'+ Create new form...', emphasis:true});
+    return opts;
   }
-  refreshFt();
+  function refreshFt(){ ftSelect.refreshOptions(buildFtOptions()); }
   selectRow.appendChild(ftSelect);
   const viewBtn = el(`<button type="button" class="btn" style="flex-shrink:0;">${iconHTML('visibility',15)}View</button>`);
   viewBtn.onclick = ()=>{
@@ -2801,13 +2852,6 @@ function modalCreateEmptyDoc(opts){
     closeNested = openNestedModal(node);
   };
   selectRow.appendChild(viewBtn);
-  ftSelect.onchange = ()=>{
-    if(ftSelect.value==='__new__'){
-      let closeNested;
-      const node = modalFileTemplateEditor(null, { onSave:(f)=>{ closeNested(); refreshFt(); ftSelect.value=f.id; }, onCancel:()=>{ closeNested(); refreshFt(); } });
-      closeNested = openNestedModal(node);
-    }
-  };
   signSelectWrap.appendChild(selectRow);
   modal.appendChild(signSelectWrap);
   signRow.querySelector('input').onchange = (e)=>{ signSelectWrap.style.display = e.target.checked ? 'block' : 'none'; };
@@ -3705,18 +3749,26 @@ function modalCreateTemplate(existingTpl){
   docBuilder.appendChild(signRow);
   const signSelectWrap = el('<div class="field" style="display:none;margin-top:6px;"><label>Form</label></div>');
   const selectRow = el('<div style="display:flex;gap:8px;align-items:center;"></div>');
-  const signSelect = el('<select style="flex:1;"></select>');
-  function refreshFileTemplateOptions(){
-    signSelect.innerHTML = '';
+  function buildSignOptions(){
     const custom = FILE_TEMPLATES.filter(ft=>!ft.isBuiltIn);
-    if(custom.length===0){
-      signSelect.appendChild(el('<option value="">No custom forms yet — create one</option>'));
-    } else {
-      custom.forEach(ft=> signSelect.appendChild(el(`<option value="${ft.id}">${ft.name}</option>`)));
-    }
-    signSelect.appendChild(el('<option value="__new__">+ Create new form...</option>'));
+    const opts = custom.length===0
+      ? [{value:'', label:'No custom forms yet — create one'}]
+      : custom.map(ft=>({value:ft.id, label:ft.name}));
+    opts.push({value:'__new__', label:'+ Create new form...', emphasis:true});
+    return opts;
   }
-  refreshFileTemplateOptions();
+  const signSelect = createBrandedSelect(buildSignOptions(), '', (v)=>{
+    if(v === '__new__'){
+      let closeNested;
+      const editorNode = modalFileTemplateEditor(null, {
+        onSave: (savedFt)=>{ closeNested(); refreshFileTemplateOptions(); signSelect.value = savedFt.id; },
+        onCancel: ()=>{ closeNested(); refreshFileTemplateOptions(); },
+      });
+      closeNested = openNestedModal(editorNode);
+    }
+  });
+  signSelect.style.flex = '1';
+  function refreshFileTemplateOptions(){ signSelect.refreshOptions(buildSignOptions()); }
   selectRow.appendChild(signSelect);
   const viewEditBtn = el(`<button type="button" class="btn" style="flex-shrink:0;">${iconHTML('visibility',15)}View</button>`);
   viewEditBtn.onclick = ()=>{
@@ -3729,16 +3781,6 @@ function modalCreateTemplate(existingTpl){
     closeNested = openNestedModal(editorNode);
   };
   selectRow.appendChild(viewEditBtn);
-  signSelect.onchange = ()=>{
-    if(signSelect.value === '__new__'){
-      let closeNested;
-      const editorNode = modalFileTemplateEditor(null, {
-        onSave: (savedFt)=>{ closeNested(); refreshFileTemplateOptions(); signSelect.value = savedFt.id; },
-        onCancel: ()=>{ closeNested(); refreshFileTemplateOptions(); },
-      });
-      closeNested = openNestedModal(editorNode);
-    }
-  };
   signSelectWrap.appendChild(selectRow);
   docBuilder.appendChild(signSelectWrap);
   signRow.querySelector('input').onchange = (e)=>{ signSelectWrap.style.display = e.target.checked ? 'block' : 'none'; };
