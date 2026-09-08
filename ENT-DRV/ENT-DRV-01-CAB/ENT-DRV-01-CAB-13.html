@@ -1177,16 +1177,22 @@ function showToast(msg){
   document.body.appendChild(t);
   setTimeout(()=>t.remove(), 2800);
 }
+function clearTooltips(){ document.querySelectorAll('.rail-tooltip').forEach(t=>t.remove()); }
 function attachTooltip(target, textFn){
-  let tip=null;
   target.addEventListener('mouseenter', ()=>{
+    // Only ever one tooltip on screen — also sweeps any orphan left behind
+    // when a hovered element was removed/replaced before mouseleave fired.
+    clearTooltips();
     const text = typeof textFn==='function' ? textFn() : textFn;
-    tip = document.createElement('div'); tip.className='rail-tooltip'; tip.textContent=text;
+    const tip = document.createElement('div'); tip.className='rail-tooltip'; tip.textContent=text;
     document.body.appendChild(tip);
     const r = target.getBoundingClientRect();
     tip.style.left = (r.right+10)+'px'; tip.style.top = (r.top+r.height/2)+'px';
   });
-  target.addEventListener('mouseleave', ()=>{ if(tip){ tip.remove(); tip=null; } });
+  target.addEventListener('mouseleave', clearTooltips);
+  // Clicks usually mutate the DOM (toggle, render) — the hovered element can
+  // vanish without a mouseleave, so clean up on click too.
+  target.addEventListener('click', clearTooltips);
 }
 const TYPE_COLOR = {PDF:'var(--doc-pdf)', DOC:'var(--doc-doc)', XLS:'var(--doc-xls)', JPG:'var(--doc-jpg)'};
 const TYPE_ICON = {PDF:'picture_as_pdf', DOC:'description', XLS:'table_chart', JPG:'image'};
@@ -1351,6 +1357,7 @@ function emptySlotActions(f){
 // ============ APP ROOT ============
 const app = document.getElementById('app');
 function render(){
+  clearTooltips(); // hovered elements may be about to vanish without mouseleave
   // Full rebuild replaces every DOM node, which would otherwise snap the file
   // table's scroll back to the top on every interaction (sort, edit, toggle,
   // select...) — capture the relevant scroll positions first and restore them
@@ -1518,6 +1525,7 @@ function makeEditable(span, getVal, setVal){
 // transition actually animates; a full re-render would create a new element
 // and kill the animation. Content is swapped in place after the class flip.
 function toggleInfoPanel(){
+  clearTooltips(); // the hovered toggle button is about to be replaced in place
   state.leftPanelCollapsed = !state.leftPanelCollapsed;
   const node = document.querySelector('.cab-left');
   if(!node){ render(); return; }
