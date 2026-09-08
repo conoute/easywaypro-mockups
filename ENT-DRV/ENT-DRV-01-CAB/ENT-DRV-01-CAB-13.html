@@ -1823,11 +1823,12 @@ function renderInfoPanel(){
       sec.appendChild(el('<div class="profile-section-title">ATTACHMENTS</div>'));
       
       // Truck
+      let truckIcon = attachedTruck ? 'close' : 'add';
       let truckHTML = '<div class="attach-row">' + iconHTML('local_shipping',16) + 
         '<div style="flex:1;"><div style="font-size:12px;font-weight:600;color:var(--text900);">' + 
         (attachedTruck?attachedTruck.name:'Attach Truck') + '</div>';
       if(attachedTruck) truckHTML += '<div style="font-size:10px;color:var(--text400);">'+attachedTruck.plate+'</div>';
-      truckHTML += '</div>' + iconHTML(attachedTruck?'close':'add',16) + '</div>';
+      truckHTML += '</div>' + iconHTML(truckIcon,16) + '</div>';
       const truckRow = el(truckHTML);
       truckRow.style.cursor = 'pointer';
       truckRow.onclick = ()=> {
@@ -1842,11 +1843,12 @@ function renderInfoPanel(){
       sec.appendChild(truckRow);
       
       // Trailer
+      let trailerIcon = attachedTrailer ? 'close' : 'add';
       let trailerHTML = '<div class="attach-row">' + iconHTML('rv_hookup',16) + 
         '<div style="flex:1;"><div style="font-size:12px;font-weight:600;color:var(--text900);">' + 
         (attachedTrailer?attachedTrailer.name:'Attach Trailer') + '</div>';
       if(attachedTrailer) trailerHTML += '<div style="font-size:10px;color:var(--text400);">'+attachedTrailer.plate+'</div>';
-      trailerHTML += '</div>' + iconHTML(attachedTrailer?'close':'add',16) + '</div>';
+      trailerHTML += '</div>' + iconHTML(trailerIcon,16) + '</div>';
       const trailerRow = el(trailerHTML);
       trailerRow.style.cursor = 'pointer';
       trailerRow.onclick = ()=> {
@@ -1861,10 +1863,11 @@ function renderInfoPanel(){
       sec.appendChild(trailerRow);
       
       // Dispatcher
+      let dispatchIcon = attachedDispatcher ? 'close' : 'add';
       let dispatchHTML = '<div class="attach-row">' + iconHTML('support_agent',16) + 
         '<div style="flex:1;"><div style="font-size:12px;font-weight:600;color:var(--text900);">' + 
         (attachedDispatcher?attachedDispatcher.name:'Assign Dispatcher') + '</div></div>' + 
-        iconHTML(attachedDispatcher?'close':'add',16) + '</div>';
+        iconHTML(dispatchIcon,16) + '</div>';
       const dispatchRow = el(dispatchHTML);
       dispatchRow.style.cursor = 'pointer';
       dispatchRow.onclick = ()=> {
