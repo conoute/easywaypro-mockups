@@ -81,7 +81,7 @@ button{font-family:inherit;cursor:pointer;}
 .searchbox input{border:none; background:none; outline:none; font-size:13px; width:100%; color:var(--text-900);}
 .searchbox .material-symbols-outlined{color:var(--text-400); font-size:18px;}
 .searchbox .clear-x{display:none; color:var(--text-400); cursor:pointer;}
-.omni-results{position:absolute; top:calc(100% + 8px); left:0; width:340px; background:#fff; border:1px solid var(--bg-100); border-radius:12px; box-shadow:0 16px 40px rgba(51,55,97,.15); z-index:60; max-height:360px; overflow-y:auto; padding:8px;}
+.omni-results{position:absolute; top:calc(100% + 8px); left:0; width:340px; background:#fff; border:1px solid var(--bg-100); border-radius:12px; box-shadow:0 16px 40px rgba(51,55,97,.15); z-index:500; max-height:360px; overflow-y:auto; padding:8px;}
 .omni-group-label{font-size:10.5px; font-weight:700; color:var(--text-400); letter-spacing:.03em; padding:8px 10px 4px;}
 .omni-row{display:flex; align-items:center; gap:10px; padding:8px 10px; border-radius:8px; cursor:pointer; font-size:13px;}
 .omni-row:hover{background:var(--bg-50);}
@@ -89,7 +89,7 @@ button{font-family:inherit;cursor:pointer;}
 .omni-row .omni-sub{color:var(--text-400); font-size:11.5px; margin-left:auto;}
 .omni-empty{padding:20px; text-align:center; color:var(--text-400); font-size:12.5px;}
 
-.notif-dropdown{position:absolute; top:calc(100% + 14px); right:-10px; width:340px; background:#fff; border:1px solid var(--bg-100); border-radius:12px; box-shadow:0 16px 40px rgba(51,55,97,.18); z-index:60; max-height:420px; overflow-y:auto; cursor:default;}
+.notif-dropdown{position:absolute; top:calc(100% + 14px); right:-10px; width:340px; background:#fff; border:1px solid var(--bg-100); border-radius:12px; box-shadow:0 16px 40px rgba(51,55,97,.18); z-index:500; max-height:420px; overflow-y:auto; cursor:default;}
 .notif-head{padding:14px 16px; font-size:13px; font-weight:700; border-bottom:1px solid var(--bg-100); color:var(--text-900);}
 .notif-item{padding:12px 16px; border-bottom:1px solid var(--bg-100); display:flex; gap:10px; cursor:pointer;}
 .notif-item:hover{background:var(--bg-50);}
@@ -632,6 +632,19 @@ button{font-family:inherit;cursor:pointer;}
 
 <script>
 /* ============================================================
+   SAFE SORTABLE — if the CDN failed to load, degrade gracefully
+   instead of throwing and halting the rest of the script.
+   ============================================================ */
+function safeSortable(el, opts){
+  if(typeof Sortable === 'undefined'){
+    console.warn('SortableJS did not load — drag & drop is disabled, everything else still works.');
+    return null;
+  }
+  try{ return new Sortable(el, opts); }
+  catch(err){ console.warn('Sortable init failed:', err); return null; }
+}
+
+/* ============================================================
    STATE / DATA
    ============================================================ */
 const RAIL_ENTITIES = [
@@ -942,7 +955,7 @@ function toggleFiltersCustomize(){
     filterFieldOrder.quick.forEach(id=>quickList.appendChild(dragFieldRow(id)));
     filterFieldOrder.more.forEach(id=>moreList.appendChild(dragFieldRow(id)));
     [quickList, moreList].forEach(listEl=>{
-      new Sortable(listEl, {
+      safeSortable(listEl, {
         group:'filterFieldsCustomize', animation:150, forceFallback:true, fallbackOnBody:true, handle:'.drag-handle',
         onEnd:function(){
           filterFieldOrder.quick = [...quickList.children].map(c=>c.dataset.fieldId);
@@ -1083,7 +1096,7 @@ function renderGantt(){
       visibleLoadsFor(drv.id).forEach(l=>gRow.appendChild(makeLoadBar(l)));
       rows.appendChild(gRow);
 
-      new Sortable(gRow, {
+      safeSortable(gRow, {
         group:'planner', animation:150, forceFallback:true, fallbackOnBody:true,
         draggable:'.load-bar',
         onAdd: function(evt){
@@ -1157,7 +1170,7 @@ function renderTray(){
   });
   wrap.scrollLeft = savedScrollLeft;
 }
-new Sortable(document.getElementById('trayCards'), {
+safeSortable(document.getElementById('trayCards'), {
   group:'planner', animation:150, forceFallback:true, fallbackOnBody:true, sort:false,
   draggable:'.unassigned-card',
   onAdd: function(evt){ evt.item.remove(); } // dropping something INTO the tray isn't supported yet — no-op guard
@@ -1222,13 +1235,31 @@ function updatePeriodLabel(){
   }
 }
 document.getElementById('plannerSearch').addEventListener('input',(e)=>{
-  const q = e.target.value.toLowerCase();
+  const q = e.target.value.trim().toLowerCase();
+  let matchCount = 0;
   document.querySelectorAll('.load-bar').forEach(bar=>{
     const l = loads.find(x=>x.id===bar.dataset.loadId);
     const drv = l ? drivers.find(d=>d.id===l.driverId) : null;
     const hay = l ? (l.route+' '+l.broker+' '+(drv?drv.name+' '+drv.dispatcher:'')).toLowerCase() : '';
-    bar.style.outline = (q && hay.includes(q)) ? '2px solid var(--info)' : '';
+    const isMatch = !q || hay.includes(q);
+    if(q && isMatch) matchCount++;
+    bar.style.opacity = (!q || isMatch) ? '1' : '.18';
+    bar.style.outline = (q && isMatch) ? '2px solid var(--info)' : '';
+    bar.style.zIndex = (q && isMatch) ? '8' : '6';
   });
+  document.querySelectorAll('.unassigned-card').forEach(card=>{
+    const u = unassigned.find(x=>x.id===card.dataset.loadId);
+    const hay = u ? (u.route+' '+u.broker).toLowerCase() : '';
+    card.style.opacity = (!q || hay.includes(q)) ? '1' : '.25';
+  });
+  let hint = document.getElementById('searchMatchHint');
+  if(!hint){
+    hint = document.createElement('span');
+    hint.id = 'searchMatchHint';
+    hint.style.cssText = 'font-size:11.5px; color:var(--text-400); white-space:nowrap;';
+    document.querySelector('.tb-search').insertAdjacentElement('afterend', hint);
+  }
+  hint.textContent = q ? `${matchCount} match${matchCount===1?'':'es'}` : '';
 });
 
 /* ============================================================
