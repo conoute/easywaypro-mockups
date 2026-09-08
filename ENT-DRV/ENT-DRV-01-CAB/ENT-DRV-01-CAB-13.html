@@ -1491,10 +1491,24 @@ function renderCabinet(){
   return wrap;
 }
 
+// ---- Activity Log (audit trail for driver actions)
+let ACTIVITY_LOG = [
+  {time: 'Sep 6, 2:45 PM', action: 'Profile created', details: 'Driver profile created in system', type:'create'},
+  {time: 'Sep 6, 3:10 PM', action: 'Status changed', details: 'Changed from Application to Onboarding', type:'status'},
+  {time: 'Sep 6, 4:30 PM', action: 'Documents uploaded', details: 'CDL and insurance files added', type:'upload'},
+  {time: 'Sep 5, 11:20 AM', action: 'Screening requested', details: 'MVR and Background Check ordered', type:'screening'},
+];
+
+function logActivity(action, details, type='action'){
+  const now = new Date();
+  const time = now.toLocaleString('en-US', {month:'short', day:'numeric', hour:'numeric', minute:'2-digit', hour12:true});
+  ACTIVITY_LOG.unshift({time, action, details, type});
+}
+
 // ---- Attachments data (simulate fleet management)
-let attachedTruck = null;  // {id, name, plate}
-let attachedTrailer = null;  // {id, name, plate}
-let attachedDispatcher = null;  // {id, name}
+let attachedTruck = null;
+let attachedTrailer = null;
+let attachedDispatcher = null;
 
 const AVAILABLE_TRUCKS = [
   {id:'T001', name:'Freightliner Cascadia 1', plate:'NY-2024-001'},
@@ -1520,20 +1534,8 @@ const AVAILABLE_DISPATCHERS = [
 // Preset attachments for demo
 attachedTruck = AVAILABLE_TRUCKS[0];
 attachedTrailer = AVAILABLE_TRAILERS[2];
-let ACTIVITY_LOG = [
-  {time: 'Sep 6, 2:45 PM', action: 'Profile created', details: 'Driver profile created in system', type:'create'},
-  {time: 'Sep 6, 3:10 PM', action: 'Status changed', details: 'Changed from Application to Onboarding', type:'status'},
-  {time: 'Sep 6, 4:30 PM', action: 'Documents uploaded', details: 'CDL and insurance files added', type:'upload'},
-  {time: 'Sep 5, 11:20 AM', action: 'Screening requested', details: 'MVR and Background Check ordered', type:'screening'},
-];
 
-function logActivity(action, details, type='action'){
-  const now = new Date();
-  const time = now.toLocaleString('en-US', {month:'short', day:'numeric', hour:'numeric', minute:'2-digit', hour12:true});
-  ACTIVITY_LOG.unshift({time, action, details, type});
-}
-
-// ---- Info panel modules (customizable, reorderable)
+// ---- Info panel data ----
 let INFO_MODULES = [
   {key:'toggles', label:'Status Toggles (On Hold / D&A)', visible:true},
   {key:'attachments', label:'Attachments (Truck / Trailer / Dispatcher)', visible:true},
@@ -1597,14 +1599,14 @@ function openAttachmentPicker(type){
   const title = type==='truck'?'Select Truck':(type==='trailer'?'Select Trailer':'Assign Dispatcher');
   const items = type==='truck'?AVAILABLE_TRUCKS:(type==='trailer'?AVAILABLE_TRAILERS:AVAILABLE_DISPATCHERS);
   
-  const titleDiv = el(`<div style="padding:16px;border-bottom:1px solid var(--border2);"><h3 style="margin:0;font-size:14px;font-weight:700;">${title}</h3></div>`);
+  const titleDiv = el('<div style="padding:16px;border-bottom:1px solid var(--border2);"><h3 style="margin:0;font-size:14px;font-weight:700;">'+title+'</h3></div>');
   modal.appendChild(titleDiv);
   
   const list = el('<div style="max-height:300px;overflow-y:auto;"></div>');
   items.forEach(item=>{
-    let rowHTML = `<div style="padding:12px 16px;border-bottom:1px solid var(--border2);cursor:pointer;transition:background 0.15s;" class="picker-row">
-      <div style="font-size:12px;font-weight:600;color:var(--text900);">${item.name}</div>`;
-    if(item.plate) rowHTML += `<div style="font-size:10px;color:var(--text400);margin-top:2px;">${item.plate}</div>`;
+    let rowHTML = '<div style="padding:12px 16px;border-bottom:1px solid var(--border2);cursor:pointer;transition:background 0.15s;" class="picker-row">';
+    rowHTML += '<div style="font-size:12px;font-weight:600;color:var(--text900);">'+item.name+'</div>';
+    if(item.plate) rowHTML += '<div style="font-size:10px;color:var(--text400);margin-top:2px;">'+item.plate+'</div>';
     rowHTML += '</div>';
     const row = el(rowHTML);
     row.onmouseenter = ()=> row.style.background = 'var(--bg50)';
@@ -1612,13 +1614,13 @@ function openAttachmentPicker(type){
     row.onclick = ()=>{
       if(type==='truck'){
         attachedTruck = item;
-        logActivity('Truck attached', `Assigned ${item.name} (${item.plate})`, 'action');
+        logActivity('Truck attached', 'Assigned '+item.name+' ('+item.plate+')', 'action');
       } else if(type==='trailer'){
         attachedTrailer = item;
-        logActivity('Trailer attached', `Assigned ${item.name} (${item.plate})`, 'action');
+        logActivity('Trailer attached', 'Assigned '+item.name+' ('+item.plate+')', 'action');
       } else {
         attachedDispatcher = item;
-        logActivity('Dispatcher assigned', `Assigned ${item.name}`, 'action');
+        logActivity('Dispatcher assigned', 'Assigned '+item.name, 'action');
       }
       closeModal();
       render();
@@ -1638,6 +1640,31 @@ function openAttachmentPicker(type){
   document.body.appendChild(modal);
   window._currentModal.backdrop.onclick = closeModal;
 }
+
+function renderActivityTab(){
+  const con = el('<div class="doc-panel"></div>');
+  con.appendChild(el('<div style="padding:16px;border-bottom:1px solid var(--border2);"><h3 style="margin:0;font-size:14px;font-weight:700;">Activity Timeline</h3><p style="margin:6px 0 0;font-size:12px;color:var(--text400);">All actions and changes to this driver profile</p></div>'));
+  const list = el('<div style="padding:16px;"></div>');
+  if(ACTIVITY_LOG.length === 0){
+    list.appendChild(el('<div style="color:var(--text400);font-size:13px;">No activity yet</div>'));
+  } else {
+    ACTIVITY_LOG.forEach(entry=>{
+      let badgeColor = '--text400';
+      if(entry.type==='avatar') badgeColor = '--accent';
+      else if(entry.type==='status') badgeColor = '--warning';
+      else if(entry.type==='screening') badgeColor = '--info';
+      else if(entry.type==='create') badgeColor = '--accent';
+      const badge = el('<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var('+badgeColor+');margin-right:10px;flex-shrink:0;"></span>');
+      const item = el('<div style="display:flex;gap:0;margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid var(--border2);"><div style="flex:1;"><div style="font-size:12px;font-weight:700;color:var(--text900);">'+entry.action+'</div><div style="font-size:11.5px;color:var(--text600);margin-top:2px;">'+entry.details+'</div><div style="font-size:10px;color:var(--text400);margin-top:4px;">'+entry.time+'</div></div></div>');
+      item.insertBefore(badge, item.firstChild);
+      list.appendChild(item);
+    });
+  }
+  con.appendChild(list);
+  return con;
+}
+
+function openPhotoEditor(srcDataUrl, params){
   const FRAME = 280;
   const scrim = el('<div class="modal-scrim open" style="z-index:300;"></div>');
   const modal = el(`<div class="modal" style="width:340px;">
@@ -1827,61 +1854,30 @@ function renderInfoPanel(){
       
       // Truck
       let truckIcon = attachedTruck ? 'close' : 'add';
-      let truckHTML = '<div class="attach-row">' + iconHTML('local_shipping',16) + 
-        '<div style="flex:1;"><div style="font-size:12px;font-weight:600;color:var(--text900);">' + 
-        (attachedTruck?attachedTruck.name:'Attach Truck') + '</div>';
+      let truckHTML = '<div class="attach-row">'+iconHTML('local_shipping',16)+'<div style="flex:1;"><div style="font-size:12px;font-weight:600;color:var(--text900);">'+(attachedTruck?attachedTruck.name:'Attach Truck')+'</div>';
       if(attachedTruck) truckHTML += '<div style="font-size:10px;color:var(--text400);">'+attachedTruck.plate+'</div>';
-      truckHTML += '</div>' + iconHTML(truckIcon,16) + '</div>';
+      truckHTML += '</div>'+iconHTML(truckIcon,16)+'</div>';
       const truckRow = el(truckHTML);
       truckRow.style.cursor = 'pointer';
-      truckRow.onclick = ()=> {
-        if(attachedTruck) {
-          attachedTruck = null;
-          logActivity('Truck detached', 'Removed truck assignment', 'action');
-        } else {
-          openAttachmentPicker('truck');
-        }
-        render();
-      };
+      truckRow.onclick = ()=>{ if(attachedTruck){ attachedTruck=null; logActivity('Truck detached','Removed truck assignment','action'); } else { openAttachmentPicker('truck'); } render(); };
       sec.appendChild(truckRow);
       
       // Trailer
       let trailerIcon = attachedTrailer ? 'close' : 'add';
-      let trailerHTML = '<div class="attach-row">' + iconHTML('rv_hookup',16) + 
-        '<div style="flex:1;"><div style="font-size:12px;font-weight:600;color:var(--text900);">' + 
-        (attachedTrailer?attachedTrailer.name:'Attach Trailer') + '</div>';
+      let trailerHTML = '<div class="attach-row">'+iconHTML('rv_hookup',16)+'<div style="flex:1;"><div style="font-size:12px;font-weight:600;color:var(--text900);">'+(attachedTrailer?attachedTrailer.name:'Attach Trailer')+'</div>';
       if(attachedTrailer) trailerHTML += '<div style="font-size:10px;color:var(--text400);">'+attachedTrailer.plate+'</div>';
-      trailerHTML += '</div>' + iconHTML(trailerIcon,16) + '</div>';
+      trailerHTML += '</div>'+iconHTML(trailerIcon,16)+'</div>';
       const trailerRow = el(trailerHTML);
       trailerRow.style.cursor = 'pointer';
-      trailerRow.onclick = ()=> {
-        if(attachedTrailer) {
-          attachedTrailer = null;
-          logActivity('Trailer detached', 'Removed trailer assignment', 'action');
-        } else {
-          openAttachmentPicker('trailer');
-        }
-        render();
-      };
+      trailerRow.onclick = ()=>{ if(attachedTrailer){ attachedTrailer=null; logActivity('Trailer detached','Removed trailer assignment','action'); } else { openAttachmentPicker('trailer'); } render(); };
       sec.appendChild(trailerRow);
       
       // Dispatcher
       let dispatchIcon = attachedDispatcher ? 'close' : 'add';
-      let dispatchHTML = '<div class="attach-row">' + iconHTML('support_agent',16) + 
-        '<div style="flex:1;"><div style="font-size:12px;font-weight:600;color:var(--text900);">' + 
-        (attachedDispatcher?attachedDispatcher.name:'Assign Dispatcher') + '</div></div>' + 
-        iconHTML(dispatchIcon,16) + '</div>';
+      let dispatchHTML = '<div class="attach-row">'+iconHTML('support_agent',16)+'<div style="flex:1;"><div style="font-size:12px;font-weight:600;color:var(--text900);">'+(attachedDispatcher?attachedDispatcher.name:'Assign Dispatcher')+'</div></div>'+iconHTML(dispatchIcon,16)+'</div>';
       const dispatchRow = el(dispatchHTML);
       dispatchRow.style.cursor = 'pointer';
-      dispatchRow.onclick = ()=> {
-        if(attachedDispatcher) {
-          attachedDispatcher = null;
-          logActivity('Dispatcher unassigned', 'Removed dispatcher assignment', 'action');
-        } else {
-          openAttachmentPicker('dispatcher');
-        }
-        render();
-      };
+      dispatchRow.onclick = ()=>{ if(attachedDispatcher){ attachedDispatcher=null; logActivity('Dispatcher unassigned','Removed dispatcher assignment','action'); } else { openAttachmentPicker('dispatcher'); } render(); };
       sec.appendChild(dispatchRow);
       
       p.appendChild(sec);
@@ -2064,7 +2060,6 @@ function modalCustomizeInfoPanel(){
           VISIBLE_FIELD_KEYS.push(key);
           form.remove();
           renderPDFields();
-          logActivity('Custom field added', `New field "${name}" created`, 'field');
           showToast('Custom field added');
         };
       };
@@ -2102,35 +2097,6 @@ function modalCustomizeInfoPanel(){
   actions.appendChild(doneBtn);
   modal.appendChild(actions);
   return m;
-}
-
-function renderActivityTab(){
-  const con = el('<div class="doc-panel"></div>');
-  con.appendChild(el('<div style="padding:16px;border-bottom:1px solid var(--border2);"><h3 style="margin:0;font-size:14px;font-weight:700;">Activity Timeline</h3><p style="margin:6px 0 0;font-size:12px;color:var(--text400);">All actions and changes to this driver profile</p></div>'));
-  const list = el('<div style="padding:16px;"></div>');
-  if(ACTIVITY_LOG.length === 0){
-    list.appendChild(el('<div style="color:var(--text400);font-size:13px;">No activity yet</div>'));
-  } else {
-    ACTIVITY_LOG.forEach(entry=>{
-      let badgeColor = '--text400';
-      if(entry.type==='avatar') badgeColor = '--accent';
-      else if(entry.type==='status') badgeColor = '--warning';
-      else if(entry.type==='screening') badgeColor = '--info';
-      else if(entry.type==='create') badgeColor = '--accent';
-      const badge = el(`<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(${badgeColor});margin-right:10px;flex-shrink:0;"></span>`);
-      const item = el(`<div style="display:flex;gap:0;margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid var(--border2);">
-        <div style="flex:1;">
-          <div style="font-size:12px;font-weight:700;color:var(--text900);">${entry.action}</div>
-          <div style="font-size:11.5px;color:var(--text600);margin-top:2px;">${entry.details}</div>
-          <div style="font-size:10px;color:var(--text400);margin-top:4px;">${entry.time}</div>
-        </div>
-      </div>`);
-      item.insertBefore(badge, item.firstChild);
-      list.appendChild(item);
-    });
-  }
-  con.appendChild(list);
-  return con;
 }
 
 function renderCabinetContent(){
