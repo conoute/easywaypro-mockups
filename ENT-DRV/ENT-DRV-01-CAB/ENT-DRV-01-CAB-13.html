@@ -190,16 +190,6 @@
   .pc-head b{color:var(--text900);font-size:12px;}
   .pc-text{font-size:12.5px;color:var(--text900);margin-top:3px;line-height:1.45;}
   .pcomment-input{border:1px solid var(--border2);border-radius:9px;padding:9px 12px;font-family:inherit;font-size:12.5px;color:var(--text900);margin-top:10px;outline:none;}
-  .pdfield-row{display:flex;align-items:center;gap:8px;padding:6px 8px;background:var(--bg50);border-radius:6px;margin-bottom:4px;}
-  .pdfield-row .drag-handle{color:var(--text400);cursor:grab;flex-shrink:0;}
-  .pdfield-checkbox{width:18px;height:18px;border-radius:4px;border:1.5px solid var(--accent);background:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;color:var(--accent);font-size:12px;font-weight:700;transition:all .12s ease;}
-  .pdfield-checkbox::before{content:'✓';}
-  .pdfield-checkbox.unchecked{border-color:var(--border2);background:var(--bg50);color:transparent;box-shadow:inset 0 0 0 1px var(--border2);}
-  .pdfield-checkbox.unchecked::before{display:none;}
-  .pdfield-checkbox:hover{background:rgba(72,200,118,.06);}
-  .pdfield-checkbox.unchecked:hover{background:var(--border-subtle,rgba(200,200,210,.08));}
-  .pdfield-label{font-size:12px;color:var(--text900);flex:1;}
-  .pdfield-group{font-size:10px;color:var(--text400);}
   .pcomment-input:focus{border-color:var(--info);}
   .panel-empty{padding:24px 10px;text-align:center;font-size:12.5px;color:var(--text400);line-height:1.6;}
   .panel-empty .material-symbols-outlined{vertical-align:middle;}
@@ -1853,61 +1843,56 @@ function modalCustomizeInfoPanel(){
       
       function renderPDFields(){
         pdList.innerHTML = '';
-        // First, render all checked fields (bifate) — sortable
+        // Bifate sus - sortable cu drag handle
         VISIBLE_FIELD_KEYS.forEach(k=>{
           const f = DRIVER_FIELD_CATALOG.find(x=>x.key===k);
           if(!f) return;
-          const row = el(`<div class="pdfield-row pdfield-checked" data-key="${f.key}">
-            <span class="drag-handle">${iconHTML('drag_indicator',16)}</span>
-            <span class="pdfield-checkbox">${iconHTML('check',13)}</span>
-            <span class="pdfield-label">${f.label}</span>
-            <span class="pdfield-group">${f.group}</span>
+          const row = el(`<div class="colpanel-row" data-key="${f.key}">
+            <span class="drag-handle">${iconHTML('drag_indicator',18)}</span>
+            <input type="checkbox" checked/>
+            <span class="name" style="flex:1;">${f.label}</span>
+            <span style="font-size:10px;color:var(--text400);">${f.group}</span>
           </div>`);
-          const chk = row.querySelector('.pdfield-checkbox');
-          chk.onclick = (e)=>{
-            e.stopPropagation();
-            VISIBLE_FIELD_KEYS = VISIBLE_FIELD_KEYS.filter(x=>x!==f.key);
-            if(f.group==='Custom') DRIVER_FIELD_CATALOG = DRIVER_FIELD_CATALOG.filter(x=>x.key!==f.key);
+          row.querySelector('input').onchange = ()=>{
+            VISIBLE_FIELD_KEYS = VISIBLE_FIELD_KEYS.filter(x=>x!==k);
+            const fb = DRIVER_FIELD_CATALOG.find(x=>x.key===k);
+            if(fb && fb.group==='Custom') DRIVER_FIELD_CATALOG = DRIVER_FIELD_CATALOG.filter(x=>x.key!==k);
             renderPDFields();
           };
           pdList.appendChild(row);
         });
-        // Then render all unchecked fields (nebifate) — non-sortable
+        // Nebifate jos - non-sortable, faded
         DRIVER_FIELD_CATALOG.forEach(f=>{
-          if(VISIBLE_FIELD_KEYS.includes(f.key)) return; // sari peste bifate
-          const row = el(`<div class="pdfield-row pdfield-unchecked" data-key="${f.key}">
-            <span class="drag-handle" style="visibility:hidden;">${iconHTML('drag_indicator',16)}</span>
-            <span class="pdfield-checkbox unchecked"></span>
-            <span class="pdfield-label">${f.label}</span>
-            <span class="pdfield-group">${f.group}</span>
+          if(VISIBLE_FIELD_KEYS.includes(f.key)) return;
+          const row = el(`<div class="colpanel-row" style="opacity:0.5;" data-key="${f.key}">
+            <span class="drag-handle" style="visibility:hidden;">${iconHTML('drag_indicator',18)}</span>
+            <input type="checkbox"/>
+            <span class="name" style="flex:1;">${f.label}</span>
+            <span style="font-size:10px;color:var(--text400);">${f.group}</span>
           </div>`);
-          const chk = row.querySelector('.pdfield-checkbox');
-          chk.onclick = (e)=>{
-            e.stopPropagation();
-            if(!VISIBLE_FIELD_KEYS.includes(f.key)) VISIBLE_FIELD_KEYS.push(f.key);
+          row.querySelector('input').onchange = ()=>{
+            VISIBLE_FIELD_KEYS.push(f.key);
             renderPDFields();
           };
           pdList.appendChild(row);
         });
-        // Activate SortableJS only on checked rows
-        const checkedRows = pdList.querySelectorAll('.pdfield-checked');
-        if(checkedRows.length > 0){
+        // Sortable pe bifate
+        if(VISIBLE_FIELD_KEYS.length > 0){
           safeSortable(pdList, {
-            draggable: '.pdfield-checked',
+            draggable: '.colpanel-row:not([style*="opacity"])',
             onEnd: (evt)=>{
               try{
-                const [moved] = VISIBLE_FIELD_KEYS.splice(evt.oldIndex, 1);
+                const moved = VISIBLE_FIELD_KEYS.splice(evt.oldIndex, 1)[0];
                 VISIBLE_FIELD_KEYS.splice(evt.newIndex, 0, moved);
                 renderPDFields();
-              }catch(err){ console.error('Field reorder failed:', err); renderPDFields(); }
+              }catch(err){ console.error('Reorder failed:', err); renderPDFields(); }
             }
           });
         }
       }
       
       addFieldBtn.onclick = ()=>{
-        // Slide down a form right inside the subsection, don't open a separate modal
-        if(pdSubsection.querySelector('.pdc-custom-form')) return; // deja deschis
+        if(pdSubsection.querySelector('.pdc-custom-form')) return;
         const form = el(`<div class="pdc-custom-form" style="background:#fff;border-radius:8px;padding:10px;margin-top:8px;border:1px solid var(--border2);">
           <div style="font-size:11px;font-weight:700;color:var(--text400);margin-bottom:8px;">CREATE CUSTOM FIELD</div>
           <div style="display:flex;flex-direction:column;gap:6px;">
@@ -1926,15 +1911,13 @@ function modalCustomizeInfoPanel(){
         </div>`);
         pdSubsection.insertBefore(form, addFieldBtn);
         const nameInput = form.querySelector('.pdc-name');
-        const typeSelect = form.querySelector('.pdc-type');
         nameInput.focus();
         form.querySelector('.pdc-cancel').onclick = ()=>{ form.remove(); };
         form.querySelector('.pdc-add').onclick = ()=>{
           const name = nameInput.value.trim();
           if(!name){ showToast('Field name is required'); return; }
           const key = 'c'+Math.random().toString(36).slice(2,7);
-          const fieldType = typeSelect.value;
-          DRIVER_FIELD_CATALOG.push({key, label:name, value:'—', icon:'sell', group:'Custom', fieldType});
+          DRIVER_FIELD_CATALOG.push({key, label:name, value:'—', icon:'sell', group:'Custom'});
           VISIBLE_FIELD_KEYS.push(key);
           form.remove();
           renderPDFields();
