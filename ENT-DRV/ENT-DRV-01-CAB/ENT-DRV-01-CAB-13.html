@@ -1532,6 +1532,9 @@ function logActivity(action, details, type='action'){
   const time = now.toLocaleString('en-US', {month:'short', day:'numeric', hour:'numeric', minute:'2-digit', hour12:true});
   ACTIVITY_LOG.unshift({time, action, details, type});
 }
+
+// ---- Info panel modules (customizable, reorderable)
+let INFO_MODULES = [
   {key:'toggles', label:'Status Toggles (On Hold / D&A)', visible:true},
   {key:'attachments', label:'Attachments (Truck / Trailer / Dispatcher)', visible:true},
   {key:'personalData', label:'Personal Data', visible:true},
