@@ -1520,6 +1520,14 @@ let attachedTruck = null;
 let attachedTrailer = null;
 let attachedDispatcher = null;
 
+// Dispatcher access is a matrix, not a single link. Exactly ONE dispatcher
+// owns the driver (radio) — that is who administers them and who the driver
+// counts toward in statistics. Any number of others can be granted read or
+// read+write access to that driver's loads, so a team can cover for each
+// other without muddying ownership.
+// Shape: { [dispatcherId]: {view:bool, edit:bool} }
+let dispatcherAccess = {};
+
 // A truck/trailer is an EXCLUSIVE resource — it can only be attached to one
 // driver at a time, so attaching one that's already taken detaches it from
 // the other driver. `assignedTo` is that current link (null = free).
@@ -1734,8 +1742,202 @@ function openEntityPicker(cfg){
   return m;
 }
 
+// ============ DISPATCHER ACCESS (ENT-DRV ← ENT-TM.dispatcher) ============
+// Not a plain picker: ownership and access are two different things.
+//   · Radio  = the ONE dispatcher who administers this driver and under whom
+//              the driver appears in statistics/reporting.
+//   · Can view / Can edit = shared access to this driver's loads, any number
+//              of dispatchers, so the team can cover each other.
+// Rules enforced below:
+//   · The owner always keeps view+edit — those boxes are locked, not merely
+//     pre-ticked, because ownership without access is a meaningless state.
+//   · Edit implies view: ticking Edit ticks View; unticking View unticks Edit.
+//   · The "All dispatchers" row is a live master toggle per column.
+// ========================================================================
+let dispatcherPickerState = { query:'', ownerId:null, access:null };
+
+function modalDispatcherAccess(){
+  // Seed working copy from committed state on first open
+  if(dispatcherPickerState.access === null){
+    dispatcherPickerState.ownerId = attachedDispatcher ? attachedDispatcher.id : null;
+    dispatcherPickerState.access = {};
+    AVAILABLE_DISPATCHERS.forEach(d=>{
+      const a = dispatcherAccess[d.id] || {};
+      dispatcherPickerState.access[d.id] = { view: !!a.view, edit: !!a.edit };
+    });
+  }
+  const S = dispatcherPickerState;
+
+  const m = modalShell('<h2>Dispatcher Access</h2>'
+    + '<p class="mdesc">One dispatcher administers this driver and carries them in statistics. '
+    + 'Others can be given access to the driver\'s loads without taking over ownership.</p>');
+  const modal = m.querySelector('.modal');
+
+  // ---- search
+  const search = el('<div class="search" style="width:100%;margin-bottom:10px;">'+iconHTML('search',15,'color:var(--text400);')+'<input type="text" id="dispSearch" placeholder="Search dispatchers by name..."/></div>');
+  const searchInput = search.querySelector('input');
+  searchInput.value = S.query;
+  searchInput.oninput = (e)=>{ S.query = e.target.value; renderRows(); };
+  const clearBtn = el('<span class="search-clear-btn" style="display:none;">'+iconHTML('close',15)+'</span>');
+  clearBtn.onclick = ()=>{ S.query=''; searchInput.value=''; renderRows(); searchInput.focus(); };
+  search.appendChild(clearBtn);
+  modal.appendChild(search);
+
+  // ---- column headers
+  modal.appendChild(el('<div style="display:flex;align-items:flex-end;gap:10px;padding:0 10px 6px;">'
+    + '<div style="flex:1;font-size:10px;font-weight:700;color:var(--text400);letter-spacing:.03em;">ADMINISTERS</div>'
+    + '<div style="width:62px;text-align:center;font-size:10px;font-weight:700;color:var(--text400);letter-spacing:.03em;">CAN VIEW</div>'
+    + '<div style="width:62px;text-align:center;font-size:10px;font-weight:700;color:var(--text400);letter-spacing:.03em;">CAN EDIT</div>'
+    + '</div>'));
+
+  const listBox = el('<div style="border:1px solid var(--border2);border-radius:8px;overflow:hidden;"></div>');
+  const allRow = el('<div></div>');
+  const rows = el('<div style="max-height:260px;overflow-y:auto;"></div>');
+  listBox.appendChild(allRow);
+  listBox.appendChild(rows);
+  modal.appendChild(listBox);
+
+  const note = el('<p class="mdesc" style="margin:10px 0 0;"></p>');
+  modal.appendChild(note);
+
+  function matches(d){
+    const q = S.query.trim().toLowerCase();
+    return !q || d.name.toLowerCase().includes(q);
+  }
+  function isOwner(d){ return S.ownerId === d.id; }
+
+  // Edit implies view — keep the pair coherent no matter which box was clicked
+  function setView(d, on){
+    if(isOwner(d)) return;
+    S.access[d.id].view = on;
+    if(!on) S.access[d.id].edit = false;
+  }
+  function setEdit(d, on){
+    if(isOwner(d)) return;
+    S.access[d.id].edit = on;
+    if(on) S.access[d.id].view = true;
+  }
+  // Effective values include the owner's locked-on access
+  function effView(d){ return isOwner(d) || S.access[d.id].view; }
+  function effEdit(d){ return isOwner(d) || S.access[d.id].edit; }
+
+  function cell(checked, locked, onChange){
+    const wrapEl = el('<div style="width:62px;display:flex;justify-content:center;"></div>');
+    const cb = el('<input type="checkbox"'+(checked?' checked':'')+(locked?' disabled':'')+'>');
+    if(locked){
+      cb.style.opacity = '.55';
+      cb.style.cursor = 'not-allowed';
+    } else {
+      cb.onchange = (e)=>{ onChange(e.target.checked); renderRows(); };
+    }
+    wrapEl.appendChild(cb);
+    if(locked) attachTooltip(wrapEl, 'The administering dispatcher always has full access');
+    return wrapEl;
+  }
+
+  function renderRows(){
+    clearBtn.style.display = S.query ? '' : 'none';
+    const visible = AVAILABLE_DISPATCHERS.filter(matches);
+
+    // ---- "All dispatchers" master row
+    allRow.innerHTML = '';
+    const grantable = AVAILABLE_DISPATCHERS.filter(d=>!isOwner(d));
+    const allView = grantable.length>0 && grantable.every(d=>S.access[d.id].view);
+    const allEdit = grantable.length>0 && grantable.every(d=>S.access[d.id].edit);
+    const ar = el('<div style="display:flex;align-items:center;gap:10px;padding:10px;background:var(--bg50);border-bottom:1px solid var(--border2);"></div>');
+    ar.appendChild(el('<div style="flex:1;min-width:0;">'
+      + '<div style="font-size:12px;font-weight:700;color:var(--text900);">All dispatchers</div>'
+      + '<div style="font-size:10px;color:var(--text400);margin-top:2px;">Applies to everyone except the administering dispatcher</div>'
+      + '</div>'));
+    ar.appendChild(cell(allView, false, (on)=>{ grantable.forEach(d=>setView(d,on)); }));
+    ar.appendChild(cell(allEdit, false, (on)=>{ grantable.forEach(d=>setEdit(d,on)); }));
+    allRow.appendChild(ar);
+
+    // ---- per-dispatcher rows
+    rows.innerHTML = '';
+    if(visible.length === 0){
+      rows.appendChild(el('<div style="padding:26px 16px;text-align:center;color:var(--text400);font-size:12px;">'
+        + iconHTML('search_off',22,'display:block;margin:0 auto 8px;opacity:.6;')
+        + 'No dispatchers match "'+S.query+'"</div>'));
+    }
+    visible.forEach(d=>{
+      const owner = isOwner(d);
+      const r = el('<div class="colpanel-row" style="align-items:center;gap:10px;'+(owner?'background:var(--bg50);':'')+'"></div>');
+
+      const radio = el('<input type="radio" name="dispOwner"'+(owner?' checked':'')+' style="flex-shrink:0;cursor:pointer;">');
+      radio.onchange = ()=>{ S.ownerId = d.id; renderRows(); };
+      r.appendChild(radio);
+
+      const nameWrap = el('<div style="flex:1;min-width:0;cursor:pointer;"></div>');
+      nameWrap.appendChild(el('<div style="font-size:12px;font-weight:600;color:var(--text900);">'+d.name
+        + (owner?' <span style="display:inline-flex;align-items:center;gap:3px;margin-left:4px;padding:1px 6px;border-radius:20px;background:#EAF8EF;color:#2c7a4b;font-size:9.5px;font-weight:700;vertical-align:1px;">ADMIN</span>':'')
+        + '</div>'));
+      if(owner) nameWrap.appendChild(el('<div style="font-size:10px;color:var(--text400);margin-top:2px;">Driver counts toward this dispatcher in statistics</div>'));
+      nameWrap.onclick = ()=>{ S.ownerId = d.id; renderRows(); };
+      r.appendChild(nameWrap);
+
+      r.appendChild(cell(effView(d), owner, (on)=>setView(d,on)));
+      r.appendChild(cell(effEdit(d), owner, (on)=>setEdit(d,on)));
+      rows.appendChild(r);
+    });
+
+    // ---- live summary of what will be saved
+    const viewers = AVAILABLE_DISPATCHERS.filter(d=>!isOwner(d) && S.access[d.id].view && !S.access[d.id].edit).length;
+    const editors = AVAILABLE_DISPATCHERS.filter(d=>!isOwner(d) && S.access[d.id].edit).length;
+    const ownerName = S.ownerId ? AVAILABLE_DISPATCHERS.find(x=>x.id===S.ownerId).name : null;
+    note.innerHTML = ownerName
+      ? '<b>'+ownerName+'</b> administers this driver. '
+        + (editors||viewers
+            ? 'Shared access: '+editors+' can edit, '+viewers+' view-only.'
+            : 'No other dispatcher has access.')
+      : 'Select the dispatcher who will administer this driver.';
+  }
+  renderRows();
+
+  const actions = el('<div class="actions"></div>');
+  const cancelBtn = el('<button class="btn">Cancel</button>');
+  cancelBtn.onclick = ()=>{ dispatcherPickerState = {query:'', ownerId:null, access:null}; closeModal(); };
+  const saveBtn = el('<button class="btn primary">Save access</button>');
+  saveBtn.onclick = ()=>{
+    if(!S.ownerId){ showToast('Select the administering dispatcher first'); return; }
+    const owner = AVAILABLE_DISPATCHERS.find(d=>d.id===S.ownerId);
+    const prevOwner = attachedDispatcher;
+
+    attachedDispatcher = owner;
+    dispatcherAccess = {};
+    AVAILABLE_DISPATCHERS.forEach(d=>{
+      dispatcherAccess[d.id] = d.id===S.ownerId
+        ? {view:true, edit:true}
+        : {view:S.access[d.id].view, edit:S.access[d.id].edit};
+    });
+
+    if(!prevOwner || prevOwner.id !== owner.id){
+      logActivity('Dispatcher assigned',
+        (prevOwner ? 'Administration moved from '+prevOwner.name+' to '+owner.name : 'Assigned '+owner.name),
+        'action');
+    }
+    const shared = AVAILABLE_DISPATCHERS.filter(d=>d.id!==S.ownerId && (dispatcherAccess[d.id].view||dispatcherAccess[d.id].edit)).length;
+    logActivity('Dispatcher access updated',
+      shared ? shared+' other dispatcher'+(shared!==1?'s':'')+' granted access' : 'Shared access cleared', 'action');
+
+    dispatcherPickerState = {query:'', ownerId:null, access:null};
+    closeModal();
+    showToast('Dispatcher access saved');
+    render();
+  };
+  actions.appendChild(cancelBtn);
+  actions.appendChild(saveBtn);
+  modal.appendChild(actions);
+
+  setTimeout(()=>{ const s = document.getElementById('dispSearch'); if(s){ s.focus(); s.setSelectionRange(s.value.length, s.value.length); } }, 0);
+  return m;
+}
+
 // Thin wrapper: attachments (truck / trailer / dispatcher) on the driver panel
 function openAttachmentPicker(type){
+  // Dispatchers aren't a single-select attachment — see modalDispatcherAccess
+  if(type === 'dispatcher') return modalDispatcherAccess();
+
   const CFG = {
     truck: {
       title:'Select Truck', subtitle:'Attach a truck to this driver. Search by unit name, plate, VIN or the driver currently holding it.',
@@ -1748,12 +1950,6 @@ function openAttachmentPicker(type){
       items:AVAILABLE_TRAILERS, current:attachedTrailer, icon:'rv_hookup', exclusive:true,
       searchPlaceholder:'Search by unit, plate, VIN or driver...',
       commit:(item)=>{ attachedTrailer = item; logActivity('Trailer attached','Assigned '+item.name+' ('+item.plate+')','action'); }
-    },
-    dispatcher: {
-      title:'Assign Dispatcher', subtitle:'Assign a dispatcher to this driver. Search by name.',
-      items:AVAILABLE_DISPATCHERS, current:attachedDispatcher, icon:'support_agent', exclusive:false,
-      searchPlaceholder:'Search dispatchers by name...',
-      commit:(item)=>{ attachedDispatcher = item; logActivity('Dispatcher assigned','Assigned '+item.name,'action'); }
     }
   }[type];
 
@@ -2089,12 +2285,25 @@ function renderInfoPanel(){
       trailerRow.onclick = ()=>{ if(attachedTrailer){ attachedTrailer=null; logActivity('Trailer detached','Removed trailer assignment','action'); render(); } else { openModal('attachPicker','trailer'); } };
       sec.appendChild(trailerRow);
       
-      // Dispatcher
-      let dispatchIcon = attachedDispatcher ? 'close' : 'add';
-      let dispatchHTML = '<div class="attach-row">'+iconHTML('support_agent',16)+'<div style="flex:1;"><div style="font-size:12px;font-weight:600;color:var(--text900);">'+(attachedDispatcher?attachedDispatcher.name:'Assign Dispatcher')+'</div></div>'+iconHTML(dispatchIcon,16)+'</div>';
+      // Dispatcher — ownership + shared access, so the row summarises both and
+      // always opens the matrix (clicking it must never silently drop the
+      // administering dispatcher: that's a real decision, made in the modal).
+      const sharedCount = Object.keys(dispatcherAccess).filter(id=>
+        (!attachedDispatcher || id !== attachedDispatcher.id) &&
+        (dispatcherAccess[id].view || dispatcherAccess[id].edit)).length;
+      let dispatchHTML = '<div class="attach-row">'+iconHTML('support_agent',16)
+        + '<div style="flex:1;min-width:0;">'
+        + '<div style="font-size:12px;font-weight:600;color:var(--text900);">'
+        + (attachedDispatcher ? attachedDispatcher.name : 'Assign Dispatcher') + '</div>'
+        + (attachedDispatcher
+            ? '<div style="font-size:10px;color:var(--text400);margin-top:2px;">Administers · '
+              + (sharedCount ? '+'+sharedCount+' with access' : 'no shared access') + '</div>'
+            : '')
+        + '</div>'
+        + iconHTML(attachedDispatcher ? 'chevron_right' : 'add',16) + '</div>';
       const dispatchRow = el(dispatchHTML);
       dispatchRow.style.cursor = 'pointer';
-      dispatchRow.onclick = ()=>{ if(attachedDispatcher){ attachedDispatcher=null; logActivity('Dispatcher unassigned','Removed dispatcher assignment','action'); render(); } else { openModal('attachPicker','dispatcher'); } };
+      dispatchRow.onclick = ()=> openModal('attachPicker','dispatcher');
       sec.appendChild(dispatchRow);
       
       p.appendChild(sec);
