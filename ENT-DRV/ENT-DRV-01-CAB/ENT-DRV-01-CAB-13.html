@@ -1497,7 +1497,6 @@ function renderTopbar(){
 // within scope, per Reusable Patterns §10). ============
 function renderCabinet(){
   const wrap = el('<div class="cabinet"></div>');
-  wrap.appendChild(renderInfoPanel());
   wrap.appendChild(renderCabinetContent());
   return wrap;
 }
