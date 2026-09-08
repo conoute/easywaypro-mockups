@@ -188,6 +188,10 @@
   .switch .knob{position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:#fff;transition:left .15s;}
   .switch.on .knob{left:18px;}
   .cab-pill{display:inline-block;padding:4px 10px;border-radius:6px;font-size:11px;font-weight:700;letter-spacing:.3px;background:var(--warning-bg);color:var(--warning-t);}
+  .cab-pill.onhold{background:var(--neutral-bg);color:var(--neutral-t,#666989);}
+  .cab-toggle-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:7px 0;}
+  .cab-toggle-row .tlabel{font-size:12.5px;font-weight:600;color:var(--text900);}
+  .cab-toggle-row .tsub{font-size:10.5px;color:var(--text400);margin-top:1px;}
   .cab-contact-row{display:flex;align-items:center;gap:8px;font-size:12.5px;padding:6px 0;}
   .cab-contact-row .material-symbols-outlined{color:var(--text400);flex-shrink:0;}
   .cab-contact-row .k{color:var(--text400);}
@@ -1478,10 +1482,13 @@ function renderCabinet(){
 
 // ---- Info panel data ----
 let INFO_MODULES = [
+  {key:'toggles', label:'Status Toggles (On Hold / D&A)', visible:true},
   {key:'attachments', label:'Attachments (Truck / Trailer / Dispatcher)', visible:true},
   {key:'personalData', label:'Personal Data', visible:true},
   {key:'comments', label:'Comments', visible:true},
 ];
+let onHold = false;
+let daConsortium = false;
 // ---- Driver field catalog — mirrors the driver's Edit menu 1:1. The panel
 // shows a chosen subset; "+ Add field" picks from whatever ELSE exists in
 // the edit form (grouped, searchable), so any field added to the driver's
@@ -1772,7 +1779,7 @@ function renderInfoPanel(){
   });
   photoCard.appendChild(overlay);
   ident.appendChild(photoCard);
-  ident.appendChild(el('<div class="cab-pill">CANDIDATE — ONBOARDING</div>'));
+  ident.appendChild(el(`<div class="cab-pill${onHold?' onhold':''}">${onHold?'CANDIDATE — ON HOLD':'CANDIDATE — ONBOARDING'}</div>`));
   p.appendChild(ident);
 
   // Customizable modules, in user-defined order
@@ -1781,6 +1788,22 @@ function renderInfoPanel(){
     p.appendChild(el(`<div class="panel-empty">All panel modules are hidden.<br>Use the ${iconHTML('tune',14)} icon above to bring them back.</div>`));
   }
   visibleModules.forEach(mod=>{
+    if(mod.key==='toggles'){
+      const sec = el('<div class="panel-section"></div>');
+      function toggleRow(label, sub, get, set){
+        const row = el(`<div class="cab-toggle-row">
+          <div><div class="tlabel">${label}</div><div class="tsub">${sub}</div></div>
+          <div class="switch ${get()?'on':''}"><div class="knob"></div></div>
+        </div>`);
+        row.querySelector('.switch').onclick = ()=>{ set(!get()); render(); };
+        return row;
+      }
+      sec.appendChild(toggleRow('On Hold', 'Pause this candidate\u2019s onboarding',
+        ()=>onHold, v=>{ onHold=v; showToast(v?'Candidate put on hold':'Candidate resumed'); }));
+      sec.appendChild(toggleRow('Drug & Alcohol', 'Enrolled in the D&A Consortium pool',
+        ()=>daConsortium, v=>{ daConsortium=v; showToast(v?'Enrolled in D&A Consortium':'Removed from D&A Consortium'); }));
+      p.appendChild(sec);
+    }
     if(mod.key==='attachments'){
       const sec = el('<div class="panel-section"></div>');
       sec.appendChild(el('<div class="profile-section-title">ATTACHMENTS</div>'));
