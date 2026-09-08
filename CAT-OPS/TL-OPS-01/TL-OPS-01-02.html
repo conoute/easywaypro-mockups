@@ -284,9 +284,7 @@ button{font-family:inherit;cursor:pointer;}
 }
 .apply-filters-btn:hover{background:var(--accent-dark);}
 .filters-modal.customize-mode{outline:2px dashed var(--accent); outline-offset:-2px;}
-.chip-row{display:flex; flex-wrap:wrap; gap:6px;}
-.filter-chip{font-size:11.5px; padding:5px 10px; border-radius:16px; background:var(--bg-50); border:1px solid var(--bg-100); color:var(--text-900); display:flex; align-items:center; gap:5px;}
-.filter-chip input{margin:0; accent-color:var(--accent);}
+
 .customize-toggle-row{display:flex; align-items:center; justify-content:space-between; padding:10px 0; border-bottom:1px solid var(--bg-100);}
 .customize-toggle-row .item-lbl{display:flex; align-items:center; gap:8px; font-size:13px;}
 .switch{width:36px;height:20px;border-radius:11px; background:var(--bg-100); position:relative; flex-shrink:0;}
@@ -702,7 +700,7 @@ const DAY_LABELS_WEEK = ['MON','TUE','WED','THU','FRI','SAT','SUN'];
 const DAY_NUMS = [11,12,13,14,15,16,17];
 const HOUR_LABELS_DAY = ['6 AM','9 AM','12 PM','3 PM','6 PM','9 PM'];
 
-let activeFilters = {dispatcher:'', statuses:new Set(STATUS_LIST), driver:'', range:'This week'};
+let activeFilters = {dispatcher:'', status:'', driver:'', range:'This week'};
 
 /* ============================================================
    RAIL
@@ -905,7 +903,7 @@ document.getElementById('exportBtn').addEventListener('click',()=>showToast('Exp
 const FIELD_LABELS = {dispatcher:'Dispatcher', status:'Status', driver:'Driver', range:'Date range', equipment:'Equipment type'};
 const FIELD_HTML = {
   dispatcher: `<div class="filter-field"><label>Dispatcher</label><select id="fltDispatcher"><option value="">All dispatchers</option><option>Marcus Webb</option><option>Angela Torres</option><option>Viktor Denyshchuk</option></select></div>`,
-  status: `<div class="filter-field"><label>Status</label><div class="chip-row" id="statusChips"></div></div>`,
+  status: `<div class="filter-field"><label>Status</label><select id="fltStatus"><option value="">All statuses</option>${STATUS_LIST.map(s=>`<option value="${s}">${s.charAt(0)+s.slice(1).toLowerCase()}</option>`).join('')}</select></div>`,
   driver: `<div class="filter-field"><label>Driver</label><input type="text" id="fltDriver" placeholder="Search driver name..."></div>`,
   range: `<div class="filter-field"><label>Date range</label><select id="fltRange"><option>This week</option><option>Next week</option><option>Custom range...</option></select></div>`,
   equipment: `<div class="filter-field"><label>Equipment type</label><select><option value="">Any</option><option>Dry Van</option><option>Reefer</option><option>Flatbed</option></select></div>`
@@ -917,7 +915,6 @@ let moreFiltersExpanded = false;
 function renderNormalFilterFields(){
   document.getElementById('quickFieldsWrap').innerHTML = filterFieldOrder.quick.map(id=>FIELD_HTML[id]).join('');
   document.getElementById('moreFieldsWrap').innerHTML = filterFieldOrder.more.map(id=>FIELD_HTML[id]).join('');
-  if(filterFieldOrder.quick.includes('status') || filterFieldOrder.more.includes('status')) renderStatusChips();
 }
 function toggleMoreFilters(){
   moreFiltersExpanded = !moreFiltersExpanded;
@@ -964,30 +961,19 @@ function dragFieldRow(id){
   return el;
 }
 
-function renderStatusChips(){
-  const wrap = document.getElementById('statusChips');
-  if(!wrap) return;
-  wrap.innerHTML='';
-  STATUS_LIST.forEach(s=>{
-    const lbl = document.createElement('label');
-    lbl.className='filter-chip';
-    const checked = activeFilters.statuses.has(s);
-    lbl.innerHTML = `<input type="checkbox" ${checked?'checked':''} onchange="toggleStatusChip('${s}',this.checked)"><span>${s}</span>`;
-    wrap.appendChild(lbl);
-  });
-}
-function toggleStatusChip(s,checked){ if(checked) activeFilters.statuses.add(s); else activeFilters.statuses.delete(s); }
+
 function clearFilters(){
-  activeFilters = {dispatcher:'', statuses:new Set(STATUS_LIST), driver:'', range:'This week'};
+  activeFilters = {dispatcher:'', status:'', driver:'', range:'This week'};
   const dEl = document.getElementById('fltDispatcher'); if(dEl) dEl.value='';
+  const sEl = document.getElementById('fltStatus'); if(sEl) sEl.value='';
   const drEl = document.getElementById('fltDriver'); if(drEl) drEl.value='';
-  renderStatusChips();
   updateFilterCount();
   renderGantt();
 }
 function applyFilters(){
   if(filtersCustomizeMode){ toggleFiltersCustomize(); return; }
   const dEl = document.getElementById('fltDispatcher'); if(dEl) activeFilters.dispatcher = dEl.value;
+  const sEl = document.getElementById('fltStatus'); if(sEl) activeFilters.status = sEl.value;
   const drEl = document.getElementById('fltDriver'); if(drEl) activeFilters.driver = drEl.value.toLowerCase();
   updateFilterCount();
   closeFlyout('filtersScrim');
@@ -998,7 +984,7 @@ function updateFilterCount(){
   let n=0;
   if(activeFilters.dispatcher) n++;
   if(activeFilters.driver) n++;
-  if(activeFilters.statuses.size < STATUS_LIST.length) n++;
+  if(activeFilters.status) n++;
   document.getElementById('filterCount').textContent = n;
   document.getElementById('filterCount').style.display = n>0 ? 'inline-block':'none';
 }
@@ -1016,7 +1002,7 @@ function visibleDrivers(){
   });
 }
 function visibleLoadsFor(driverId){
-  return loads.filter(l=> l.driverId===driverId && activeFilters.statuses.has(l.status));
+  return loads.filter(l=> l.driverId===driverId && (!activeFilters.status || l.status===activeFilters.status));
 }
 
 function renderGanttHead(){
