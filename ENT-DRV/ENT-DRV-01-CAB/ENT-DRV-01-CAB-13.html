@@ -735,6 +735,11 @@
   .modal-content{background:white;border-radius:12px;box-shadow:0 20px 64px rgba(51,55,97,0.3);max-height:80vh;overflow-y:auto;}
   .modal-content .actions{padding:16px;border-top:1px solid var(--border2);display:flex;gap:8px;}
   .modal-content .actions .btn{flex:1;}
+  
+  /* ---- Profile Tab Layout ---- */
+  .profile-wrap{display:flex;gap:12px;flex:1;overflow:hidden;}
+  .profile-left{width:44px;border-right:1px solid var(--border2);overflow-y:auto;flex-shrink:0;}
+  .profile-right{flex:1;overflow-y:auto;padding:0;}
 </style>
 </head>
 <body>
@@ -2130,118 +2135,97 @@ function renderCabinetContent(){
 // the redesign). No invented "progress %" on binary screening items. AI
 // purple used ONLY for the AI Fit Score gauge / AI Insights card. ============
 function renderProfileTab(){
-  // Identity now lives in the permanent left info panel — this tab keeps
-  // only the dashboard (to be redesigned as "Dashboard" in the next step).
   const wrap = el('<div class="profile-wrap"></div>');
-
-  // ---- Right: dashboard ----
-  const right = el('<div class="profile-right"></div>');
-  const dq = computeDQState();
-
-  // Compliance attention banner — screening-scoped only (documents have
-  // their own tab and their own signals there).
-  const needsAction = dq.expired.length + dq.soon.length + dq.missing.length;
-  if(needsAction > 0){
-    const banner2 = el(`<div class="attention-banner">
-      ${iconHTML('warning',18)}
-      <div class="ab-text"><b>${needsAction} screening item${needsAction!==1?'s':''} need${needsAction===1?'s':''} attention</b> —
-        ${[...dq.expired.map(s=>`${s.item.short||s.item.req} expired`),
-           ...dq.soon.map(s=>`${s.item.short||s.item.req} expiring soon`),
-           ...dq.missing.map(s=>`${s.item.short||s.item.req} missing`)].join(' · ')}</div>
-    </div>`);
-    right.appendChild(banner2);
+  
+  // ---- LEFT: Info Panel (collapsible) ----
+  const left = el('<div class="profile-left"></div>');
+  const infoPanelCollapsed = state.infoPanelCollapsed || false;
+  
+  const leftHeader = el('<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;border-bottom:1px solid var(--border2);">'+
+    '<div style="font-size:10px;color:var(--text400);font-weight:700;">PROFILE</div>'+
+    '<span style="cursor:pointer;transform:rotate('+(infoPanelCollapsed?0:180)+'deg);transition:transform 0.2s;" class="left-chevron">'+iconHTML('expand_more',16)+'</span>'+
+  '</div>');
+  leftHeader.querySelector('.left-chevron').onclick = ()=>{ state.infoPanelCollapsed = !state.infoPanelCollapsed; render(); };
+  left.appendChild(leftHeader);
+  
+  if(!infoPanelCollapsed){
+    left.appendChild(renderInfoPanel());
   }
-
-  // KPI row — screening + stage only, no document metrics (Documents tab
-  // owns those)
-  const kpiRow = el('<div class="kpi-row"></div>');
-  [
-    [`${dq.complete} / ${dq.total}`,'Screening Checks Resolved', dq.complete===dq.total?'ok':'warn'],
-    [String(needsAction),'Items Needing Action', (dq.expired.length>0?'danger':(needsAction>0?'warn':'ok'))],
-    ['3','Days in Current Stage','neutral'],
-  ].forEach(([val,label,accent])=>{
-    kpiRow.appendChild(el(`<div class="kpi-cell accent-${accent}"><div class="kpi-val">${val}</div><div class="kpi-label">${label}</div></div>`));
+  wrap.appendChild(left);
+  
+  // ---- RIGHT: Dashboard ----
+  const right = el('<div class="profile-right"></div>');
+  
+  // Screening alert banner
+  right.appendChild(el('<div style="background:#FFF4E6;border-left:4px solid var(--warning);padding:12px 16px;margin:16px;border-radius:8px;display:flex;align-items:flex-start;gap:10px;">'+
+    '<span style="color:var(--warning);flex-shrink:0;">'+iconHTML('warning',18)+'</span>'+
+    '<div style="flex:1;"><div style="font-size:12px;font-weight:700;color:var(--text900);">2 screening items need attention</div>'+
+    '<div style="font-size:11px;color:var(--text600);margin-top:2px;">MVR expired · Clearinghouse missing</div></div>'+
+  '</div>'));
+  
+  // KPI Cards row
+  const kpiRow = el('<div style="display:flex;gap:12px;padding:0 16px;margin:12px 0;"></div>');
+  const kpis = [
+    {num:'4 / 6', label:'Screening Checks Resolved', color:'var(--accent)'},
+    {num:'2', label:'Items Needing Action', color:'var(--warning)'},
+    {num:'3', label:'Days in Current Stage', color:'var(--info)'},
+  ];
+  kpis.forEach(k=>{
+    const card = el('<div style="flex:1;background:white;border:1px solid var(--border2);border-radius:10px;padding:14px;text-align:center;border-top:3px solid '+k.color+';">'+
+      '<div style="font-size:18px;font-weight:700;color:'+k.color+';">'+k.num+'</div>'+
+      '<div style="font-size:11px;color:var(--text400);margin-top:4px;">'+k.label+'</div>'+
+    '</div>');
+    kpiRow.appendChild(card);
   });
   right.appendChild(kpiRow);
-
-  // AI Fit Score gauge + AI Insights
-  const scoreRow = el('<div class="score-row"></div>');
-  const gaugeCard = el('<div class="profile-card gauge-card"></div>');
-  gaugeCard.appendChild(el(`<div class="profile-card-title ai-title">${iconHTML('auto_awesome',14)} AI FIT SCORE</div>`));
-  gaugeCard.appendChild(el(`<div class="gauge-wrap">
-    <svg viewBox="0 0 140 80" class="gauge-svg">
-      <path d="M10,80 A60,60 0 0 1 130,80" fill="none" stroke="#e2dbfb" stroke-width="10" stroke-linecap="round"/>
-      <path d="M10,80 A60,60 0 0 1 130,80" fill="none" stroke="var(--purple)" stroke-width="10" stroke-linecap="round" stroke-dasharray="154.6 188.5"/>
-    </svg>
-    <div class="gauge-num">82</div>
-  </div>`));
-  scoreRow.appendChild(gaugeCard);
-
-  const insightsCard = el('<div class="profile-card accent-purple"></div>');
-  insightsCard.appendChild(el(`<div class="profile-card-head-row"><span class="profile-card-title">AI INSIGHTS</span><span class="rec-tag">Recommended</span></div>`));
-  const firstProblem = dq.expired[0] || dq.missing[0] || dq.soon[0];
-  const nextAction = firstProblem
-    ? (firstProblem.status==='expired' ? `Regenerate expired ${firstProblem.item.short||firstProblem.item.req}`
-      : firstProblem.status==='missing' ? `Obtain missing ${firstProblem.item.short||firstProblem.item.req}`
-      : `Renew ${firstProblem.item.short||firstProblem.item.req} before expiry`)
-    : 'DQ file complete — ready for hiring review';
-  [
-    ['description','Clean MVR history','No violations found in preliminary check'],
-    ['headset_mic','Experience above average','5+ years vs. 3.2 fleet average for this role'],
-    ['auto_awesome', nextAction, firstProblem ? `Top-priority DQ gap, ranked by compliance risk` : 'All FMCSA §391.51 items on file and current'],
-  ].forEach(([icon,title,desc])=>{
-    insightsCard.appendChild(el(`<div class="insight-row"><div class="insight-icon">${iconHTML(icon,16)}</div><div><div class="insight-title">${title}</div><div class="insight-desc">${desc}</div></div></div>`));
+  
+  // AI FIT SCORE section
+  const aiSection = el('<div style="margin:20px 16px;"></div>');
+  aiSection.appendChild(el('<div style="display:flex;align-items:center;gap:6px;margin-bottom:12px;"><span style="color:var(--ai);">'+iconHTML('auto_awesome',14)+'</span><div style="font-size:12px;font-weight:700;color:var(--ai);">AI FIT SCORE</div></div>'));
+  
+  const scoreCard = el('<div style="background:white;border:1px solid var(--border2);border-radius:10px;padding:20px;text-align:center;">'+
+    '<div style="width:120px;height:120px;margin:0 auto;position:relative;display:flex;align-items:center;justify-content:center;">'+
+      '<svg width="120" height="120" style="position:absolute;transform:rotate(-90deg);"><circle cx="60" cy="60" r="55" fill="none" stroke="var(--border2)" stroke-width="8"/><circle cx="60" cy="60" r="55" fill="none" stroke="var(--ai)" stroke-width="8" stroke-dasharray="172.79" stroke-dashoffset="43.2" stroke-linecap="round"/></svg>'+
+      '<div style="font-size:28px;font-weight:700;color:var(--text900);">82</div>'+
+    '</div>'+
+  '</div>');
+  aiSection.appendChild(scoreCard);
+  right.appendChild(aiSection);
+  
+  // AI INSIGHTS section
+  const insightSection = el('<div style="margin:20px 16px;"></div>');
+  insightSection.appendChild(el('<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">'+
+    '<div style="font-size:12px;font-weight:700;color:var(--text900);">AI INSIGHTS</div>'+
+    '<div style="font-size:11px;color:var(--accent);font-weight:700;">Recommended</div>'+
+  '</div>'));
+  
+  const insights = [
+    {icon:'description',title:'Clean MVR history',sub:'No violations found in preliminary check'},
+    {icon:'trending_up',title:'Experience above average',sub:'5+ years vs. 3.2 fleet average for this role'},
+    {icon:'auto_awesome',title:'Regenerate expired MVR',sub:'Top-priority DQ gap, ranked by compliance risk'},
+  ];
+  insights.forEach(ins=>{
+    const card = el('<div style="background:white;border:1px solid var(--border2);border-radius:8px;padding:12px;margin-bottom:8px;display:flex;gap:10px;">'+
+      '<span style="color:var(--ai);flex-shrink:0;">'+iconHTML(ins.icon,18)+'</span>'+
+      '<div style="flex:1;"><div style="font-size:12px;font-weight:600;color:var(--text900);">'+ins.title+'</div>'+
+      '<div style="font-size:11px;color:var(--text400);margin-top:2px;">'+ins.sub+'</div></div>'+
+    '</div>');
+    insightSection.appendChild(card);
   });
-  scoreRow.appendChild(insightsCard);
-  right.appendChild(scoreRow);
-
-  // Comparison card — same AI Fit Score (82), not an unrelated invented number
-  const compCard = el('<div class="profile-card"></div>');
-  compCard.appendChild(el('<div class="profile-card-title">AI FIT SCORE — VS. CANDIDATE POOL</div>'));
-  compCard.appendChild(el(`<div class="compare-bar"><div class="cb-label">Maksim Gerasimov — 82</div><div class="cb-track"><div class="cb-fill" style="width:82%;background:var(--accent);"></div></div></div>`));
-  compCard.appendChild(el(`<div class="compare-bar"><div class="cb-label">Other candidates (avg) — 58</div><div class="cb-track"><div class="cb-fill" style="width:58%;background:var(--neutral300);"></div></div></div>`));
-  right.appendChild(compCard);
-
-  // Screening — the "do screening" role of this page: 6 external checks,
-  // each problem item with its natural action (Generate/Regenerate/Renewal).
-  const screenSection = el('<div class="screening-section"></div>');
-  screenSection.appendChild(el('<div class="profile-card-title">SCREENING</div>'));
-  const dqGrid = el('<div class="dq-grid dq-grid-3"></div>');
-  dq.states.forEach(st=>{
-    const item = st.item;
-    const needsAttention = st.status==='expired' || st.status==='missing';
-    const card = el(`<div class="funnel-card${needsAttention?' active':''}${st.status==='soon'?' soon':''}">
-      <span class="status-pill ${st.cls}">${st.label}</span>
-      <div class="funnel-label" title="${item.req}">${item.short||item.req}</div>
-    </div>`);
-    if(item.canGenerate && (st.status==='expired' || st.status==='missing')){
-      const genLink = el(`<div class="funnel-gen-link">${st.doc?'Regenerate':'Generate'} →</div>`);
-      genLink.onclick = ()=> generateSystemDoc(item.alias, item.expDays);
-      card.appendChild(genLink);
-    } else if(st.status==='soon'){
-      const renLink = el(`<div class="funnel-gen-link">Request renewal →</div>`);
-      renLink.onclick = ()=> showToast(`Renewal request sent to driver — "${item.req}" expires ${st.doc?.exp||''}`);
-      card.appendChild(renLink);
-    }
-    dqGrid.appendChild(card);
-  });
-  screenSection.appendChild(dqGrid);
-  right.appendChild(screenSection);
-
-  // Recent Activity — the "see summaries" role; documents have their own tab,
-  // so no document-summary card here.
-  const actCard = el('<div class="profile-card accent-blue"></div>');
-  actCard.appendChild(el(`<div class="profile-card-head-row"><span class="profile-card-title">RECENT ACTIVITY</span><span class="profile-card-link" data-a="seeall">See all</span></div>`));
-  actCard.querySelector('[data-a="seeall"]').onclick = ()=> showToast('Full activity log — not wired in this mock');
-  [
-    ['Sep 6, 4:12 PM','Document requested — CDL front/back'],
-    ['Sep 6, 11:03 AM','Status changed to Onboarding'],
-    ['Sep 5, 2:47 PM','MVR pull scheduled for Sep 8'],
-  ].forEach(([date,text])=>{
-    actCard.appendChild(el(`<div class="activity-item"><div class="v">${text}</div><div class="k">${date}</div></div>`));
-  });
-  right.appendChild(actCard);
-
+  right.appendChild(insightSection);
+  
+  // Comparison chart (placeholder)
+  right.appendChild(el('<div style="margin:20px 16px;background:white;border:1px solid var(--border2);border-radius:10px;padding:16px;">'+
+    '<div style="font-size:12px;font-weight:700;color:var(--text900);margin-bottom:12px;">AI FIT SCORE — VS. CANDIDATE POOL</div>'+
+    '<div style="height:120px;display:flex;align-items:flex-end;justify-content:space-around;gap:8px;padding:16px 0;">'+
+      '<div style="width:20px;height:40px;background:var(--ai);border-radius:2px;"></div>'+
+      '<div style="width:20px;height:30px;background:var(--border2);border-radius:2px;"></div>'+
+      '<div style="width:20px;height:50px;background:var(--border2);border-radius:2px;"></div>'+
+      '<div style="width:20px;height:35px;background:var(--border2);border-radius:2px;"></div>'+
+    '</div>'+
+    '<div style="font-size:10px;color:var(--text400);text-align:center;">You vs. Pool Distribution</div>'+
+  '</div>'));
+  
   wrap.appendChild(right);
   return wrap;
 }
