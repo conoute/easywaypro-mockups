@@ -104,6 +104,20 @@
   .panel-icon-btn{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--text400);cursor:pointer;}
   .panel-icon-btn:hover{background:var(--bg50);color:var(--text900);}
   .panel-ident{display:flex;flex-direction:column;align-items:center;text-align:center;padding-bottom:16px;border-bottom:1px solid var(--border2);}
+  .photo-card{position:relative;width:100%;aspect-ratio:1/1.02;border-radius:20px;background:linear-gradient(160deg,#eef2f6 0%,#e6ecf1 55%,#e2f3e9 100%);overflow:hidden;}
+  .photo-card-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:top center;}
+  .photo-card-placeholder{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--neutral200);}
+  .photo-upload-btn{position:absolute;top:10px;right:10px;width:28px;height:28px;border-radius:50%;background:rgba(255,255,255,.92);border:1px solid var(--border2);color:var(--text400);display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 1px 4px rgba(51,55,97,.12);transition:all .12s ease;z-index:2;}
+  .photo-upload-btn:hover{color:var(--accent-dark,#1e8e5a);border-color:var(--accent);}
+  .photo-remove-btn{position:absolute;top:10px;left:10px;width:24px;height:24px;border-radius:50%;background:rgba(255,255,255,.92);border:1px solid var(--border2);color:var(--text400);display:none;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 1px 4px rgba(51,55,97,.12);z-index:2;}
+  .photo-card:hover .photo-remove-btn{display:flex;}
+  .photo-remove-btn:hover{color:var(--danger);border-color:var(--danger);}
+  .photo-name-card{position:absolute;left:10px;right:10px;bottom:10px;background:#fff;border-radius:14px;padding:10px 12px;display:flex;align-items:center;gap:10px;box-shadow:0 4px 16px rgba(51,55,97,.14);}
+  .pnc-text{flex:1;min-width:0;}
+  .pnc-name{font-weight:700;font-size:14.5px;color:var(--text900);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .pnc-meta{font-size:11.5px;color:var(--text400);margin-top:1px;}
+  .pnc-call{width:38px;height:38px;border-radius:50%;background:var(--text900);color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:background .12s ease;}
+  .pnc-call:hover{background:var(--accent-dark,#1e8e5a);}
   .panel-avatar-wrap{position:relative;width:76px;height:76px;}
   .panel-avatar{width:76px;height:76px;border-radius:50%;background:#dbeafe;color:#3b82c4;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:20px;}
   .panel-avatar.generic{background:var(--neutral-bg);color:var(--neutral300);}
@@ -1628,30 +1642,41 @@ function renderInfoPanel(){
   topIcons.appendChild(leftGroup); topIcons.appendChild(kebabBtn);
   p.appendChild(topIcons);
 
-  // Identity header — fixed, not customizable (structural)
+  // Identity header — fixed, not customizable (structural). Photo-card
+  // style: large rounded photo with a floating name card + round call
+  // button (brand-neutral gradient behind the photo, never purple — AI only).
   const ident = el('<div class="panel-ident"></div>');
-  const avatarWrap = el('<div class="panel-avatar-wrap"></div>');
+  const photoCard = el('<div class="photo-card"></div>');
   const fileInput = avatarUploadInput();
-  avatarWrap.appendChild(fileInput);
+  photoCard.appendChild(fileInput);
   if(driverPhoto){
-    avatarWrap.appendChild(el(`<img class="panel-avatar-img" src="${driverPhoto}">`));
-    const removeBtn = el(`<span class="avatar-remove-btn">${iconHTML('close',13)}</span>`);
+    photoCard.appendChild(el(`<img class="photo-card-img" src="${driverPhoto}">`));
+    const removeBtn = el(`<span class="photo-remove-btn">${iconHTML('close',14)}</span>`);
     attachTooltip(removeBtn, 'Remove photo');
     removeBtn.onclick = (e)=>{ e.stopPropagation(); driverPhoto = null; render(); showToast('Profile photo removed'); };
-    avatarWrap.appendChild(removeBtn);
+    photoCard.appendChild(removeBtn);
   } else {
-    // Generic placeholder when no photo is uploaded
-    avatarWrap.appendChild(el(`<div class="panel-avatar generic">${iconHTML('person',34)}</div>`));
+    photoCard.appendChild(el(`<div class="photo-card-placeholder">${iconHTML('person',64)}</div>`));
   }
-  const uploadBtn = el(`<span class="avatar-upload-btn">${iconHTML('photo_camera',14)}</span>`);
+  const uploadBtn = el(`<span class="photo-upload-btn">${iconHTML('photo_camera',15)}</span>`);
   attachTooltip(uploadBtn, driverPhoto ? 'Change photo' : 'Upload photo');
   uploadBtn.onclick = (e)=>{ e.stopPropagation(); fileInput.click(); };
-  avatarWrap.appendChild(uploadBtn);
-  ident.appendChild(avatarWrap);
-  ident.appendChild(el('<div class="panel-name">MAKSIM GERASIMOV</div>'));
+  photoCard.appendChild(uploadBtn);
+
+  const nameCard = el(`<div class="photo-name-card">
+    <div class="pnc-text">
+      <div class="pnc-name">Maksim Gerasimov</div>
+      <div class="pnc-meta">35 yrs old · Male</div>
+    </div>
+    <span class="pnc-call">${iconHTML('call',18)}</span>
+  </div>`);
+  attachTooltip(nameCard.querySelector('.pnc-call'), 'Call');
+  nameCard.querySelector('.pnc-call').onclick = ()=> showToast('Call — not wired in this mock');
+  photoCard.appendChild(nameCard);
+  ident.appendChild(photoCard);
   ident.appendChild(el('<div class="cab-pill">CANDIDATE — ONBOARDING</div>'));
   const qaRow = el('<div class="qa-row"></div>');
-  [['call','Call'],['forum','Chat'],['mail','Email'],['map','Map']].forEach(([icon,label])=>{
+  [['forum','Chat'],['mail','Email'],['map','Map']].forEach(([icon,label])=>{
     const b = el(`<span class="qa-btn">${iconHTML(icon,17)}</span>`);
     attachTooltip(b, label);
     b.onclick = ()=> showToast(`${label} — not wired in this mock`);
