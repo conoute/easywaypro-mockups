@@ -103,16 +103,16 @@
   .panel-top-icons{display:flex;justify-content:space-between;margin-bottom:4px;}
   .panel-icon-btn{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--text400);cursor:pointer;}
   .panel-icon-btn:hover{background:var(--bg50);color:var(--text900);}
-  .panel-icon-btn.active{background:rgba(72,200,118,.14);color:var(--accent-dark,#1e8e5a);}
-  .panel-section.editing{border:1.5px dashed var(--accent);border-radius:12px;padding:12px;margin-top:14px;border-top:1.5px dashed var(--accent);}
-  .pdE-list{display:flex;flex-direction:column;gap:6px;margin-top:4px;}
-  .pdE-row{display:flex;align-items:center;gap:8px;background:var(--bg50);border-radius:8px;padding:6px 8px;}
-  .pdE-row .drag-handle{color:var(--text400);cursor:grab;display:flex;flex-shrink:0;}
-  .pdE-label{font-size:11.5px;font-weight:600;color:var(--text400);width:82px;flex-shrink:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-  .pdE-row .pd-edit-input{max-width:none;flex:1;background:#fff;}
-  .pdE-row .pd-remove{display:flex;color:var(--text400);cursor:pointer;flex-shrink:0;}
-  .pdE-row .pd-remove:hover{color:var(--danger);}
-  .pd-done-btn{width:100%;margin-top:8px;font-size:12px;padding:8px 12px;border-radius:8px;}
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
   .panel-ident{display:flex;flex-direction:column;align-items:center;text-align:center;padding-bottom:16px;border-bottom:1px solid var(--border2);}
   .photo-card{position:relative;width:100%;aspect-ratio:1/1.02;border-radius:20px;background:linear-gradient(160deg,#eef2f6 0%,#e6ecf1 55%,#e2f3e9 100%);overflow:hidden;}
   .photo-card-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:top center;}
@@ -1529,7 +1529,6 @@ let PANEL_COMMENTS = [
   {author:'Marcus Webb', time:'Sep 4, 10:05 AM', text:'Strong references from previous carrier.'},
 ];
 let ssnRevealed = false;
-let panelEditMode = false;
 
 let driverPhoto = null;          // baked (cropped) data-URL shown everywhere
 let driverPhotoOriginal = null;  // raw upload, kept so the crop can be re-adjusted
@@ -1664,10 +1663,7 @@ function renderInfoPanel(){
   const tuneBtn = el(`<span class="panel-icon-btn">${iconHTML('tune',18)}</span>`);
   attachTooltip(tuneBtn, 'Customize panel');
   tuneBtn.onclick = ()=> openModal('customizeInfoPanel');
-  const editBtn = el(`<span class="panel-icon-btn${panelEditMode?' active':''}">${iconHTML('edit',17)}</span>`);
-  attachTooltip(editBtn, panelEditMode ? 'Finish editing' : 'Edit fields');
-  editBtn.onclick = ()=>{ panelEditMode = !panelEditMode; render(); };
-  leftGroup.appendChild(hideBtn); leftGroup.appendChild(tuneBtn); leftGroup.appendChild(editBtn);
+  leftGroup.appendChild(hideBtn); leftGroup.appendChild(tuneBtn);
   const kebabBtn = el(`<span class="panel-icon-btn">${iconHTML('more_vert',18)}</span>`);
   attachTooltip(kebabBtn, 'Actions');
   kebabBtn.onclick = (e)=>{ e.stopPropagation(); openQuickInfoActionsFlyout(kebabBtn); };
@@ -1748,66 +1744,20 @@ function renderInfoPanel(){
       p.appendChild(sec);
     }
     if(mod.key==='personalData'){
-      const sec = el(`<div class="panel-section${panelEditMode?' editing':''}"></div>`);
+      const sec = el('<div class="panel-section"></div>');
       sec.appendChild(el('<div class="profile-section-title">PERSONAL DATA</div>'));
-      if(!panelEditMode){
-        // Normal display — plain, read-only rows. All editing lives behind
-        // the module-level edit icon at the top (same as the Filters panel's
-        // customize mode), never scattered per-row in the reading view.
-        VISIBLE_FIELD_KEYS.forEach(k=>{
-          const f = DRIVER_FIELD_CATALOG.find(x=>x.key===k);
-          if(!f) return;
-          const shown = f.masked && !ssnRevealed ? '•••-••-'+f.value.slice(-4) : f.value;
-          const row = el(`<div class="cab-contact-row">${iconHTML(f.icon,15)}<span class="k">${f.label}</span><span class="v">${shown}</span>${f.masked?`<span class="ssn-eye">${iconHTML(ssnRevealed?'visibility_off':'visibility',15)}</span>`:''}</div>`);
-          if(f.masked){
-            const eye = row.querySelector('.ssn-eye');
-            eye.onclick = (e)=>{ e.stopPropagation(); ssnRevealed = !ssnRevealed; render(); };
-            attachTooltip(eye, ssnRevealed ? 'Hide SSN' : 'Show SSN');
-          }
-          sec.appendChild(row);
-        });
-      } else {
-        // Edit mode — mirrors ORG-FILTER-01/02 customize mode: dashed accent
-        // outline, drag handle per row, value inputs, per-row remove, and an
-        // Add field modal borrowed from the table's Add Custom Column.
-        const list = el('<div class="pdE-list"></div>');
-        VISIBLE_FIELD_KEYS.forEach(k=>{
-          const f = DRIVER_FIELD_CATALOG.find(x=>x.key===k);
-          if(!f) return;
-          const row = el(`<div class="pdE-row" data-key="${f.key}">
-            <span class="drag-handle">${iconHTML('drag_indicator',16)}</span>
-            <span class="pdE-label">${f.label}</span>
-            <input class="pd-edit-input" value="${f.value.replace(/"/g,'&quot;')}">
-            <span class="pd-remove">${iconHTML('close',14)}</span>
-          </div>`);
-          const input = row.querySelector('input');
-          input.oninput = ()=>{ f.value = input.value; };
-          const rm = row.querySelector('.pd-remove');
-          attachTooltip(rm, 'Remove from panel');
-          rm.onclick = ()=>{
-            VISIBLE_FIELD_KEYS = VISIBLE_FIELD_KEYS.filter(x=>x!==k);
-            if(f.group==='Custom') DRIVER_FIELD_CATALOG = DRIVER_FIELD_CATALOG.filter(x=>x.key!==k);
-            render();
-          };
-          list.appendChild(row);
-        });
-        sec.appendChild(list);
-        safeSortable(list, {
-          onEnd: (evt)=>{
-            try{
-              const [moved] = VISIBLE_FIELD_KEYS.splice(evt.oldIndex, 1);
-              VISIBLE_FIELD_KEYS.splice(evt.newIndex, 0, moved);
-              render();
-            }catch(err){ console.error('Reorder failed:', err); render(); }
-          }
-        });
-        const addBtn = el(`<button class="btn-outline pd-add-btn">${iconHTML('add',15)}Add field</button>`);
-        addBtn.onclick = ()=> openModal('addPanelField');
-        sec.appendChild(addBtn);
-        const doneBtn = el('<button class="btn-dark pd-done-btn">Done</button>');
-        doneBtn.onclick = ()=>{ panelEditMode = false; render(); };
-        sec.appendChild(doneBtn);
-      }
+      VISIBLE_FIELD_KEYS.forEach(k=>{
+        const f = DRIVER_FIELD_CATALOG.find(x=>x.key===k);
+        if(!f) return;
+        const shown = f.masked && !ssnRevealed ? '•••-••-'+f.value.slice(-4) : f.value;
+        const row = el(`<div class="cab-contact-row">${iconHTML(f.icon,15)}<span class="k">${f.label}</span><span class="v">${shown}</span>${f.masked?`<span class="ssn-eye">${iconHTML(ssnRevealed?'visibility_off':'visibility',15)}</span>`:''}</div>`);
+        if(f.masked){
+          const eye = row.querySelector('.ssn-eye');
+          eye.onclick = (e)=>{ e.stopPropagation(); ssnRevealed = !ssnRevealed; render(); };
+          attachTooltip(eye, ssnRevealed ? 'Hide SSN' : 'Show SSN');
+        }
+        sec.appendChild(row);
+      });
       p.appendChild(sec);
     }
     if(mod.key==='comments'){
@@ -1875,13 +1825,73 @@ function modalCustomizeInfoPanel(){
   INFO_MODULES.forEach(mod=>{
     const row = el(`<div class="colpanel-row">
       <span class="drag-handle">${iconHTML('drag_indicator',18)}</span>
-      <input type="checkbox" ${mod.visible?'checked':''}/>
+      <input type="checkbox" ${mod.visible?'checked':''}/> 
       <span class="name">${mod.label}</span>
+      ${mod.key==='personalData'?`<span class="expand-icon">${iconHTML('expand_more',16)}</span>`:''}
     </div>`);
     row.querySelector('input').onchange = (e)=>{ mod.visible = e.target.checked; };
-    list.appendChild(row);
+    
+    if(mod.key==='personalData'){
+      let expandedPD = false;
+      const expandIcon = row.querySelector('.expand-icon');
+      const pdSubsection = el(`<div class="pd-subsection" style="display:none;padding-left:40px;margin-top:8px;">
+        <div class="pdfield-list"></div>
+        <button class="btn-outline" style="width:100%;margin-top:8px;font-size:11px;padding:6px 10px;">${iconHTML('add',14)}Add Custom Field</button>
+      </div>`);
+      const pdList = pdSubsection.querySelector('.pdfield-list');
+      const addFieldBtn = pdSubsection.querySelector('button');
+      
+      function renderPDFields(){
+        pdList.innerHTML = '';
+        DRIVER_FIELD_CATALOG.forEach(f=>{
+          const isVisible = VISIBLE_FIELD_KEYS.includes(f.key);
+          const chk = el(`<div style="display:flex;align-items:center;gap:8px;padding:4px 0;">
+            <input type="checkbox" ${isVisible?'checked':''} data-key="${f.key}"/>
+            <span style="font-size:12px;color:var(--text900);">${f.label}</span>
+            <span style="font-size:10px;color:var(--text400);margin-left:auto;">${f.group}</span>
+          </div>`);
+          const input = chk.querySelector('input');
+          input.onchange = (e)=>{
+            if(e.target.checked && !VISIBLE_FIELD_KEYS.includes(f.key)){
+              VISIBLE_FIELD_KEYS.push(f.key);
+            } else if(!e.target.checked){
+              VISIBLE_FIELD_KEYS = VISIBLE_FIELD_KEYS.filter(k=>k!==f.key);
+              if(f.group==='Custom') DRIVER_FIELD_CATALOG = DRIVER_FIELD_CATALOG.filter(x=>x.key!==f.key);
+            }
+            renderPDFields();
+          };
+          pdList.appendChild(chk);
+        });
+      }
+      
+      addFieldBtn.onclick = ()=>{
+        closeModal();
+        const origClose = window._closeCustom;
+        window._closeCustom = ()=>{
+          if(origClose) origClose();
+          openModal('customizeInfoPanel');
+          setTimeout(()=>{ expandedPD=true; renderPDFields(); }, 0);
+        };
+        openModal('addPanelField');
+      };
+      
+      expandIcon.onclick = (e)=>{
+        e.stopPropagation();
+        expandedPD = !expandedPD;
+        pdSubsection.style.display = expandedPD ? 'block' : 'none';
+        if(expandedPD){ renderPDFields(); }
+        expandIcon.style.transform = expandedPD ? 'rotate(180deg)' : 'rotate(0deg)';
+        expandIcon.style.transition = 'transform 0.2s ease';
+      };
+      
+      list.appendChild(row);
+      list.appendChild(pdSubsection);
+    } else {
+      list.appendChild(row);
+    }
   });
   modal.appendChild(list);
+  
   safeSortable(list, {
     onEnd: (evt)=>{
       try{
