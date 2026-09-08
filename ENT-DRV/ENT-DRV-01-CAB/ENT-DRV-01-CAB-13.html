@@ -90,7 +90,14 @@
 
   /* ---- CABINET LAYOUT — split: left info panel (30%) + right content ---- */
   .cabinet{display:flex;gap:0;flex:1;min-height:0;margin:-20px -24px -24px;}
-  .cab-left{width:30%;min-width:300px;max-width:380px;flex-shrink:0;border-right:1px solid var(--border2);padding:16px 18px 20px;overflow-y:auto;display:flex;flex-direction:column;}
+  .cab-left{width:25%;min-width:280px;max-width:360px;flex-shrink:0;border-right:1px solid var(--border2);padding:16px 18px 20px;overflow-y:auto;display:flex;flex-direction:column;transition:width .18s ease,min-width .18s ease,padding .18s ease;}
+  .cab-left.collapsed{width:44px;min-width:44px;padding:16px 0;overflow:hidden;align-items:center;}
+  .cab-collapsed-btn{display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer;padding:10px 6px;border-radius:10px;width:100%;}
+  .cab-collapsed-btn:hover{background:var(--bg50);}
+  .cab-collapsed-btn:hover .cab-collapsed-chevron{color:var(--text900);}
+  .cab-avatar-sm{width:30px;height:30px;border-radius:50%;background:#dbeafe;color:#3b82c4;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:11px;flex-shrink:0;}
+  .cab-collapsed-chevron{display:flex;color:var(--text400);transition:color .12s ease;}
+  .panel-top-group{display:flex;gap:2px;}
   .cab-full{flex:1;min-width:0;display:flex;flex-direction:column;padding:0;overflow:hidden;}
 
   .panel-top-icons{display:flex;justify-content:space-between;margin-bottom:4px;}
@@ -112,6 +119,28 @@
   .pd-edit-input{border:1px solid var(--info);border-radius:6px;padding:3px 8px;font-family:inherit;font-size:12.5px;color:var(--text900);width:100%;max-width:160px;outline:none;}
   .pd-add-row{display:flex;gap:6px;margin-top:8px;}
   .pd-add-row .pd-edit-input{max-width:none;flex:1;}
+  .pd-row{position:relative;}
+  .pd-row .pd-remove{display:none;color:var(--text400);cursor:pointer;margin-left:4px;flex-shrink:0;}
+  .pd-row:hover .pd-remove{display:flex;}
+  .pd-row .pd-remove:hover{color:var(--danger);}
+  .pd-add-btn{width:100%;margin-top:10px;display:flex;align-items:center;justify-content:center;gap:6px;font-size:12px;padding:8px 12px;}
+  .field-picker{width:260px;padding:8px;}
+  .fp-search{width:100%;border:1px solid var(--border2);border-radius:7px;padding:7px 10px;font-family:inherit;font-size:12px;outline:none;margin-bottom:6px;box-sizing:border-box;}
+  .fp-search:focus{border-color:var(--info);}
+  .fp-list{max-height:260px;overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--neutral200) transparent;}
+  .fp-list::-webkit-scrollbar{width:6px;}
+  .fp-list::-webkit-scrollbar-thumb{background:var(--neutral200);border-radius:3px;}
+  .fp-group{font-size:9.5px;font-weight:700;letter-spacing:.5px;color:var(--text400);padding:8px 8px 3px;}
+  .fp-item{display:flex;align-items:center;gap:8px;width:100%;border:none;background:none;font-family:inherit;font-size:12.5px;color:var(--text900);padding:7px 8px;border-radius:7px;cursor:pointer;text-align:left;}
+  .fp-item:hover{background:var(--bg50);}
+  .fp-item .material-symbols-outlined{color:var(--text400);flex-shrink:0;}
+  .fp-label{flex:1;font-weight:600;}
+  .fp-preview{font-size:10.5px;color:var(--text400);max-width:90px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .fp-empty{font-size:11.5px;color:var(--text400);padding:12px 8px;text-align:center;line-height:1.5;}
+  .fp-custom{display:flex;align-items:center;gap:6px;width:100%;border:none;background:none;font-family:inherit;font-size:12px;font-weight:700;color:var(--accent);padding:8px;border-radius:7px;cursor:pointer;}
+  .fp-custom:hover{background:var(--bg50);}
+  .fp-custom-form{display:flex;flex-direction:column;gap:6px;padding:6px;}
+  .fp-custom-form .pd-edit-input{max-width:none;}
   .ssn-eye{color:var(--text400);cursor:pointer;display:flex;margin-left:6px;flex-shrink:0;}
   .ssn-eye:hover{color:var(--text900);}
   .panel-comments{display:flex;flex-direction:column;}
@@ -1416,13 +1445,31 @@ let INFO_MODULES = [
   {key:'personalData', label:'Personal Data', visible:true},
   {key:'comments', label:'Comments', visible:true},
 ];
-let PERSONAL_FIELDS = [
-  {key:'phone', label:'Phone', value:'+1 (252) 322-5222', icon:'call'},
-  {key:'email', label:'Email', value:'mgerasimov@gmail.com', icon:'mail'},
-  {key:'address', label:'Address', value:'Charlotte, NC 28202', icon:'location_on'},
-  {key:'cdl', label:'CDL Number', value:'NC-8842213', icon:'badge'},
-  {key:'ssn', label:'SSN', value:'514-22-4921', icon:'lock', masked:true},
+// ---- Driver field catalog — mirrors the driver's Edit menu 1:1. The panel
+// shows a chosen subset; "+ Add field" picks from whatever ELSE exists in
+// the edit form (grouped, searchable), so any field added to the driver's
+// edit model later automatically becomes available here. Custom one-off
+// fields are also possible, appended to the catalog under "Custom". ----
+let DRIVER_FIELD_CATALOG = [
+  {key:'phone', label:'Phone', icon:'call', value:'+1 (252) 322-5222', group:'Contact'},
+  {key:'email', label:'Email', icon:'mail', value:'mgerasimov@gmail.com', group:'Contact'},
+  {key:'address', label:'Address', icon:'location_on', value:'Charlotte, NC 28202', group:'Contact'},
+  {key:'emergency', label:'Emergency Contact', icon:'e911_emergency', value:'Elena G. — +1 (252) 310-8841', group:'Contact'},
+  {key:'dob', label:'Date of Birth', icon:'cake', value:'Mar 14, 1991', group:'Identity'},
+  {key:'ssn', label:'SSN', icon:'lock', value:'514-22-4921', masked:true, group:'Identity'},
+  {key:'cdl', label:'CDL Number', icon:'badge', value:'NC-8842213', group:'Licensing'},
+  {key:'cdlClass', label:'CDL Class', icon:'badge', value:'Class A', group:'Licensing'},
+  {key:'cdlExp', label:'CDL Expiration', icon:'event', value:'Jun 30, 2028', group:'Licensing'},
+  {key:'endorsements', label:'Endorsements', icon:'verified', value:'Hazmat, Tanker', group:'Licensing'},
+  {key:'medCardExp', label:'Medical Card Exp.', icon:'medical_services', value:'Oct 3, 2026', group:'Licensing'},
+  {key:'source', label:'Source', icon:'travel_explore', value:'Indeed', group:'Employment'},
+  {key:'position', label:'Position', icon:'work', value:'Company driver', group:'Employment'},
+  {key:'experience', label:'Experience', icon:'timeline', value:'5+ years OTR', group:'Employment'},
+  {key:'recruiter', label:'Recruiter', icon:'headset_mic', value:'Marcus Webb', group:'Employment'},
+  {key:'applied', label:'Applied', icon:'event_available', value:'Sep 3, 2026', group:'Employment'},
+  {key:'available', label:'Available From', icon:'event', value:'Sep 15, 2026', group:'Employment'},
 ];
+let VISIBLE_FIELD_KEYS = ['phone','email','address','cdl','ssn'];
 let PANEL_COMMENTS = [
   {author:'Angela Torres', time:'Sep 5, 3:20 PM', text:'Called candidate — available to start Sep 15.'},
   {author:'Marcus Webb', time:'Sep 4, 10:05 AM', text:'Strong references from previous carrier.'},
@@ -1442,18 +1489,119 @@ function makeEditable(span, getVal, setVal){
   };
 }
 
-function renderInfoPanel(){
-  const p = el('<div class="cab-left"></div>');
+// Collapse/expand — per Reusable Patterns §2 (rail lesson): the toggle
+// manipulates the class directly on the EXISTING DOM element so the width
+// transition actually animates; a full re-render would create a new element
+// and kill the animation. Content is swapped in place after the class flip.
+function toggleInfoPanel(){
+  state.leftPanelCollapsed = !state.leftPanelCollapsed;
+  const node = document.querySelector('.cab-left');
+  if(!node){ render(); return; }
+  node.classList.toggle('collapsed', state.leftPanelCollapsed);
+  const fresh = renderInfoPanel();
+  node.innerHTML = '';
+  [...fresh.childNodes].forEach(c=> node.appendChild(c));
+}
 
-  // Top corners: customize (tune, left) + actions kebab (right)
+// Field picker — lists everything from the driver's Edit menu that is NOT
+// already shown in the panel, grouped and searchable. Picking one adds it
+// (with its real value). "Create custom field" appends a one-off field to
+// the catalog under "Custom" and shows it immediately.
+function openFieldPickerFlyout(anchor){
+  document.querySelectorAll('.flyout').forEach(m=>m.remove());
+  const menu = el(`<div class="flyout field-picker">
+    <input class="fp-search" placeholder="Search fields…">
+    <div class="fp-list"></div>
+    <hr/>
+    <button class="fp-custom">${iconHTML('add',15)}Create custom field…</button>
+  </div>`);
+  const listEl = menu.querySelector('.fp-list');
+  const searchEl = menu.querySelector('.fp-search');
+
+  function refreshList(){
+    const q = searchEl.value.trim().toLowerCase();
+    listEl.innerHTML = '';
+    const available = DRIVER_FIELD_CATALOG.filter(f=> !VISIBLE_FIELD_KEYS.includes(f.key) && (!q || f.label.toLowerCase().includes(q) || f.group.toLowerCase().includes(q)));
+    if(available.length===0){
+      listEl.appendChild(el('<div class="fp-empty">No matching fields — everything from the edit menu is already shown.</div>'));
+      return;
+    }
+    let lastGroup = null;
+    available.forEach(f=>{
+      if(f.group !== lastGroup){
+        listEl.appendChild(el(`<div class="fp-group">${f.group.toUpperCase()}</div>`));
+        lastGroup = f.group;
+      }
+      const item = el(`<button class="fp-item">${iconHTML(f.icon,15)}<span class="fp-label">${f.label}</span><span class="fp-preview">${f.masked?'•••':f.value}</span></button>`);
+      item.onclick = ()=>{ VISIBLE_FIELD_KEYS.push(f.key); menu.remove(); render(); };
+      listEl.appendChild(item);
+    });
+  }
+  searchEl.oninput = refreshList;
+  refreshList();
+
+  menu.querySelector('.fp-custom').onclick = ()=>{
+    listEl.innerHTML = '';
+    menu.querySelector('.fp-search').style.display='none';
+    menu.querySelector('.fp-custom').style.display='none';
+    const form = el(`<div class="fp-custom-form">
+      <input class="pd-edit-input" id="fpLabel" placeholder="Field name">
+      <input class="pd-edit-input" id="fpValue" placeholder="Value">
+    </div>`);
+    listEl.appendChild(form);
+    const lab = form.querySelector('#fpLabel');
+    const val = form.querySelector('#fpValue');
+    lab.focus();
+    const commit = ()=>{
+      if(lab.value.trim() && val.value.trim()){
+        const key = 'c'+Math.random().toString(36).slice(2,7);
+        DRIVER_FIELD_CATALOG.push({key, label:lab.value.trim(), value:val.value.trim(), icon:'sell', group:'Custom'});
+        VISIBLE_FIELD_KEYS.push(key);
+      }
+      menu.remove(); render();
+    };
+    lab.onkeydown = (ev)=>{ if(ev.key==='Enter') val.focus(); if(ev.key==='Escape'){ menu.remove(); } };
+    val.onkeydown = (ev)=>{ if(ev.key==='Enter') commit(); if(ev.key==='Escape'){ menu.remove(); } };
+  };
+
+  positionFlyout(menu, anchor);
+  searchEl.focus();
+  setTimeout(()=>{
+    document.addEventListener('click', function h(ev){ if(!menu.contains(ev.target) && ev.target!==anchor){ menu.remove(); document.removeEventListener('click',h); } });
+  },0);
+}
+
+function renderInfoPanel(){
+  const p = el(`<div class="cab-left${state.leftPanelCollapsed?' collapsed':''}"></div>`);
+
+  // Collapsed: 44px band — only the small avatar + expand chevron stay
+  // visible; the whole band is the expand button (same as the original
+  // panel design, logged as "collapse like the rail").
+  if(state.leftPanelCollapsed){
+    const btn = el(`<div class="cab-collapsed-btn">
+      <div class="cab-avatar-sm">MG</div>
+      <span class="cab-collapsed-chevron">${iconHTML('chevron_right',18)}</span>
+    </div>`);
+    attachTooltip(btn, 'Show panel');
+    btn.onclick = ()=> toggleInfoPanel();
+    p.appendChild(btn);
+    return p;
+  }
+
+  // Top corners: hide + customize (left) · actions kebab (right)
   const topIcons = el('<div class="panel-top-icons"></div>');
+  const leftGroup = el('<div class="panel-top-group"></div>');
+  const hideBtn = el(`<span class="panel-icon-btn">${iconHTML('chevron_left',18)}</span>`);
+  attachTooltip(hideBtn, 'Hide panel');
+  hideBtn.onclick = ()=> toggleInfoPanel();
   const tuneBtn = el(`<span class="panel-icon-btn">${iconHTML('tune',18)}</span>`);
   attachTooltip(tuneBtn, 'Customize panel');
   tuneBtn.onclick = ()=> openModal('customizeInfoPanel');
+  leftGroup.appendChild(hideBtn); leftGroup.appendChild(tuneBtn);
   const kebabBtn = el(`<span class="panel-icon-btn">${iconHTML('more_vert',18)}</span>`);
   attachTooltip(kebabBtn, 'Actions');
   kebabBtn.onclick = (e)=>{ e.stopPropagation(); openQuickInfoActionsFlyout(kebabBtn); };
-  topIcons.appendChild(tuneBtn); topIcons.appendChild(kebabBtn);
+  topIcons.appendChild(leftGroup); topIcons.appendChild(kebabBtn);
   p.appendChild(topIcons);
 
   // Identity header — fixed, not customizable (structural)
@@ -1490,33 +1638,30 @@ function renderInfoPanel(){
     if(mod.key==='personalData'){
       const sec = el('<div class="panel-section"></div>');
       sec.appendChild(el('<div class="profile-section-title">PERSONAL DATA</div>'));
-      PERSONAL_FIELDS.forEach(f=>{
+      VISIBLE_FIELD_KEYS.forEach(k=>{
+        const f = DRIVER_FIELD_CATALOG.find(x=>x.key===k);
+        if(!f) return;
         const shown = f.masked && !ssnRevealed ? '•••-••-'+f.value.slice(-4) : f.value;
-        const row = el(`<div class="cab-contact-row">${iconHTML(f.icon,15)}<span class="k">${f.label}</span><span class="v editable-field">${shown}</span>${f.masked?`<span class="ssn-eye">${iconHTML(ssnRevealed?'visibility_off':'visibility',15)}</span>`:''}</div>`);
+        const row = el(`<div class="cab-contact-row pd-row">${iconHTML(f.icon,15)}<span class="k">${f.label}</span><span class="v editable-field">${shown}</span>${f.masked?`<span class="ssn-eye">${iconHTML(ssnRevealed?'visibility_off':'visibility',15)}</span>`:''}<span class="pd-remove">${iconHTML('close',14)}</span></div>`);
         makeEditable(row.querySelector('.editable-field'), ()=>f.value, v=>{ f.value=v; });
         if(f.masked){
           const eye = row.querySelector('.ssn-eye');
           eye.onclick = (e)=>{ e.stopPropagation(); ssnRevealed = !ssnRevealed; render(); };
           attachTooltip(eye, ssnRevealed ? 'Hide SSN' : 'Show SSN');
         }
-        sec.appendChild(row);
-      });
-      const addLink = el('<div class="profile-card-link" style="margin-top:6px;">+ Add field</div>');
-      addLink.onclick = ()=>{
-        addLink.replaceWith(el('<div class="pd-add-row"><input class="pd-edit-input" id="newFieldLabel" placeholder="Field name"><input class="pd-edit-input" id="newFieldValue" placeholder="Value"></div>'));
-        const lab = document.getElementById('newFieldLabel');
-        const val = document.getElementById('newFieldValue');
-        lab.focus();
-        const commit = ()=>{
-          if(lab.value.trim() && val.value.trim()){
-            PERSONAL_FIELDS.push({key:'c'+Math.random().toString(36).slice(2,7), label:lab.value.trim(), value:val.value.trim(), icon:'sell'});
-          }
+        const rm = row.querySelector('.pd-remove');
+        attachTooltip(rm, 'Remove from panel');
+        rm.onclick = (e)=>{
+          e.stopPropagation();
+          VISIBLE_FIELD_KEYS = VISIBLE_FIELD_KEYS.filter(x=>x!==k);
+          if(f.group==='Custom') DRIVER_FIELD_CATALOG = DRIVER_FIELD_CATALOG.filter(x=>x.key!==k);
           render();
         };
-        val.onkeydown = (ev)=>{ if(ev.key==='Enter') commit(); if(ev.key==='Escape') render(); };
-        lab.onkeydown = (ev)=>{ if(ev.key==='Enter') val.focus(); if(ev.key==='Escape') render(); };
-      };
-      sec.appendChild(addLink);
+        sec.appendChild(row);
+      });
+      const addBtn = el(`<button class="btn-outline pd-add-btn">${iconHTML('add',15)}Add field</button>`);
+      addBtn.onclick = (e)=>{ e.stopPropagation(); openFieldPickerFlyout(addBtn); };
+      sec.appendChild(addBtn);
       p.appendChild(sec);
     }
     if(mod.key==='comments'){
