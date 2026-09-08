@@ -1526,31 +1526,31 @@ let attachedDispatcher = null;
 // A dispatcher is NOT exclusive — one dispatcher handles many drivers — so
 // dispatchers carry no such field and never trigger a reassignment warning.
 const AVAILABLE_TRUCKS = [
-  {id:'T001', name:'Freightliner Cascadia 1', plate:'NY-2024-001', assignedTo:null},
-  {id:'T002', name:'Freightliner Cascadia 2', plate:'NY-2024-002', assignedTo:'Robert Klein', since:'Mar 2, 2026'},
-  {id:'T003', name:'Volvo VNL 760', plate:'NY-2024-003', assignedTo:null},
-  {id:'T004', name:'Peterbilt 579', plate:'NY-2024-004', assignedTo:'Dmitri Volkov', since:'Jan 18, 2026'},
-  {id:'T005', name:'Kenworth T680', plate:'NC-2023-118', assignedTo:null},
-  {id:'T006', name:'International LT625', plate:'NC-2023-119', assignedTo:'Andre Wilson', since:'Aug 4, 2026'},
-  {id:'T007', name:'Mack Anthem', plate:'TX-2024-441', assignedTo:null},
-  {id:'T008', name:'Freightliner Cascadia 3', plate:'TX-2024-442', assignedTo:null},
-  {id:'T009', name:'Volvo VNL 860', plate:'GA-2022-207', assignedTo:'Carlos Mendez', since:'Nov 12, 2025'},
-  {id:'T010', name:'Peterbilt 389', plate:'GA-2022-208', assignedTo:null},
-  {id:'T011', name:'Western Star 5700XE', plate:'FL-2025-033', assignedTo:null},
-  {id:'T012', name:'Kenworth W990', plate:'FL-2025-034', assignedTo:'Ivan Petrov', since:'Jun 27, 2026'},
+  {id:'T001', name:'Freightliner Cascadia 1', plate:'NY-2024-001', vin:'1FUJGLDR8CLBP8834', assignedTo:null},
+  {id:'T002', name:'Freightliner Cascadia 2', plate:'NY-2024-002', vin:'1FUJGLDR5CLBP8721', assignedTo:'Robert Klein', since:'Mar 2, 2026'},
+  {id:'T003', name:'Volvo VNL 760', plate:'NY-2024-003', vin:'4V4NC9EH7LN229184', assignedTo:null},
+  {id:'T004', name:'Peterbilt 579', plate:'NY-2024-004', vin:'1XPBDP9X1MD745012', assignedTo:'Dmitri Volkov', since:'Jan 18, 2026'},
+  {id:'T005', name:'Kenworth T680', plate:'NC-2023-118', vin:'1XKYDP9X6NJ418866', assignedTo:null},
+  {id:'T006', name:'International LT625', plate:'NC-2023-119', vin:'3HSDZAPR8LN663401', assignedTo:'Andre Wilson', since:'Aug 4, 2026'},
+  {id:'T007', name:'Mack Anthem', plate:'TX-2024-441', vin:'1M1AN07Y3KM019273', assignedTo:null},
+  {id:'T008', name:'Freightliner Cascadia 3', plate:'TX-2024-442', vin:'1FUJGLDR2CLBP8955', assignedTo:null},
+  {id:'T009', name:'Volvo VNL 860', plate:'GA-2022-207', vin:'4V4NC9EJ0KN885530', assignedTo:'Carlos Mendez', since:'Nov 12, 2025'},
+  {id:'T010', name:'Peterbilt 389', plate:'GA-2022-208', vin:'1XPXD49X7JD472119', assignedTo:null},
+  {id:'T011', name:'Western Star 5700XE', plate:'FL-2025-033', vin:'5KJJAVDV8PLBT2044', assignedTo:null},
+  {id:'T012', name:'Kenworth W990', plate:'FL-2025-034', vin:'1XKZDP9X4PJ301778', assignedTo:'Ivan Petrov', since:'Jun 27, 2026'},
 ];
 
 const AVAILABLE_TRAILERS = [
-  {id:'TR001', name:'53ft Dry Van 1', plate:'NY-TR-001', assignedTo:null},
-  {id:'TR002', name:'53ft Dry Van 2', plate:'NY-TR-002', assignedTo:'Robert Klein', since:'Mar 2, 2026'},
-  {id:'TR003', name:'Flatbed 48ft', plate:'NY-TR-003', assignedTo:null},
-  {id:'TR004', name:'Reefer 53ft', plate:'NY-TR-004', assignedTo:'Dmitri Volkov', since:'Jan 18, 2026'},
-  {id:'TR005', name:'53ft Dry Van 3', plate:'NC-TR-118', assignedTo:null},
-  {id:'TR006', name:'Step Deck 48ft', plate:'NC-TR-119', assignedTo:null},
-  {id:'TR007', name:'Reefer 48ft', plate:'TX-TR-441', assignedTo:'Andre Wilson', since:'Aug 4, 2026'},
-  {id:'TR008', name:'Conestoga 53ft', plate:'TX-TR-442', assignedTo:null},
-  {id:'TR009', name:'Flatbed 53ft', plate:'GA-TR-207', assignedTo:null},
-  {id:'TR010', name:'Dry Van 48ft', plate:'FL-TR-033', assignedTo:'Carlos Mendez', since:'Nov 12, 2025'},
+  {id:'TR001', name:'53ft Dry Van 1', plate:'NY-TR-001', vin:'1JJV532D4LL201884', assignedTo:null},
+  {id:'TR002', name:'53ft Dry Van 2', plate:'NY-TR-002', vin:'1JJV532D9LL201990', assignedTo:'Robert Klein', since:'Mar 2, 2026'},
+  {id:'TR003', name:'Flatbed 48ft', plate:'NY-TR-003', vin:'1UYFS2486MA662017', assignedTo:null},
+  {id:'TR004', name:'Reefer 53ft', plate:'NY-TR-004', vin:'1UYVS2537NU334205', assignedTo:'Dmitri Volkov', since:'Jan 18, 2026'},
+  {id:'TR005', name:'53ft Dry Van 3', plate:'NC-TR-118', vin:'1JJV532D1NL445612', assignedTo:null},
+  {id:'TR006', name:'Step Deck 48ft', plate:'NC-TR-119', vin:'1DW1A4820LB119043', assignedTo:null},
+  {id:'TR007', name:'Reefer 48ft', plate:'TX-TR-441', vin:'1UYVS2483KU778190', assignedTo:'Andre Wilson', since:'Aug 4, 2026'},
+  {id:'TR008', name:'Conestoga 53ft', plate:'TX-TR-442', vin:'5V8VC5326PM905331', assignedTo:null},
+  {id:'TR009', name:'Flatbed 53ft', plate:'GA-TR-207', vin:'1UYFS2530JA550728', assignedTo:null},
+  {id:'TR010', name:'Dry Van 48ft', plate:'FL-TR-033', vin:'1JJV482W8HL880466', assignedTo:'Carlos Mendez', since:'Nov 12, 2025'},
 ];
 
 const AVAILABLE_DISPATCHERS = [
@@ -1672,6 +1672,13 @@ function openEntityPicker(cfg){
     return (cfg.searchFields||[cfg.primaryKey]).some(k=> String(item[k]||'').toLowerCase().includes(q));
   }
 
+  function secondaryOf(item){
+    // secondaryKey may be a plain field name or a function, so a row can
+    // combine several fields on its second line (e.g. plate + VIN).
+    if(!cfg.secondaryKey) return '';
+    return typeof cfg.secondaryKey === 'function' ? (cfg.secondaryKey(item) || '') : (item[cfg.secondaryKey] || '');
+  }
+
   function renderList(){
     const filtered = cfg.items.filter(matches);
     clearBtn.style.display = entityPickerState.query ? '' : 'none';
@@ -1688,12 +1695,13 @@ function openEntityPicker(cfg){
     filtered.forEach(item=>{
       const isSel = entityPickerState.selectedId === item.id;
       const badge = cfg.badgeFn ? cfg.badgeFn(item) : '';
+      const sec = secondaryOf(item);
       const row = el('<div class="colpanel-row" style="cursor:pointer;align-items:flex-start;'+(isSel?'background:var(--bg50);':'')+'">'+
         '<input type="radio" name="entityPick" '+(isSel?'checked':'')+' style="margin-top:2px;"/>'+
         (cfg.icon ? '<span style="color:var(--text400);flex-shrink:0;margin-top:1px;">'+iconHTML(cfg.icon,16)+'</span>' : '')+
         '<div style="flex:1;min-width:0;">'+
           '<div style="font-size:12px;font-weight:600;color:var(--text900);">'+item[cfg.primaryKey]+'</div>'+
-          (cfg.secondaryKey && item[cfg.secondaryKey] ? '<div style="font-size:10px;color:var(--text400);margin-top:2px;">'+item[cfg.secondaryKey]+'</div>' : '')+
+          (sec ? '<div style="font-size:10px;color:var(--text400);margin-top:2px;">'+sec+'</div>' : '')+
           badge+
         '</div>'+
       '</div>');
@@ -1730,26 +1738,28 @@ function openEntityPicker(cfg){
 function openAttachmentPicker(type){
   const CFG = {
     truck: {
-      title:'Select Truck', subtitle:'Attach a truck to this driver. Search by unit name or plate.',
+      title:'Select Truck', subtitle:'Attach a truck to this driver. Search by unit name, plate, VIN or the driver currently holding it.',
       items:AVAILABLE_TRUCKS, current:attachedTruck, icon:'local_shipping', exclusive:true,
-      searchPlaceholder:'Search trucks by name or plate...', secondaryKey:'plate',
+      searchPlaceholder:'Search by unit, plate, VIN or driver...',
       commit:(item)=>{ attachedTruck = item; logActivity('Truck attached','Assigned '+item.name+' ('+item.plate+')','action'); }
     },
     trailer: {
-      title:'Select Trailer', subtitle:'Attach a trailer to this driver. Search by unit name or plate.',
+      title:'Select Trailer', subtitle:'Attach a trailer to this driver. Search by unit name, plate, VIN or the driver currently holding it.',
       items:AVAILABLE_TRAILERS, current:attachedTrailer, icon:'rv_hookup', exclusive:true,
-      searchPlaceholder:'Search trailers by name or plate...', secondaryKey:'plate',
+      searchPlaceholder:'Search by unit, plate, VIN or driver...',
       commit:(item)=>{ attachedTrailer = item; logActivity('Trailer attached','Assigned '+item.name+' ('+item.plate+')','action'); }
     },
     dispatcher: {
       title:'Assign Dispatcher', subtitle:'Assign a dispatcher to this driver. Search by name.',
       items:AVAILABLE_DISPATCHERS, current:attachedDispatcher, icon:'support_agent', exclusive:false,
-      searchPlaceholder:'Search dispatchers by name...', secondaryKey:null,
+      searchPlaceholder:'Search dispatchers by name...',
       commit:(item)=>{ attachedDispatcher = item; logActivity('Dispatcher assigned','Assigned '+item.name,'action'); }
     }
   }[type];
 
   if(entityPickerState.selectedId === null && CFG.current) entityPickerState.selectedId = CFG.current.id;
+
+  const isUnit = CFG.exclusive; // truck/trailer carry plate + VIN; dispatchers don't
 
   return openEntityPicker({
     title: CFG.title,
@@ -1757,9 +1767,15 @@ function openAttachmentPicker(type){
     items: CFG.items,
     icon: CFG.icon,
     searchPlaceholder: CFG.searchPlaceholder,
-    searchFields: CFG.secondaryKey ? ['name', CFG.secondaryKey, 'assignedTo'] : ['name'],
+    // VIN is how compliance, inspections and title paperwork identify a unit,
+    // so it has to be searchable — often it's the only number on the document
+    // in front of the person. Partial matches work (typing the last 6 is the
+    // common shorthand in the field).
+    searchFields: isUnit ? ['name','plate','vin','assignedTo'] : ['name'],
     primaryKey: 'name',
-    secondaryKey: CFG.secondaryKey,
+    secondaryKey: isUnit
+      ? (item)=> item.plate + ' &nbsp;·&nbsp; VIN <span style="font-family:ui-monospace,monospace;letter-spacing:.02em;">' + item.vin + '</span>'
+      : null,
 
     // Exclusive resources show who currently holds them, right in the list —
     // the person shouldn't have to pick first and find out afterwards.
