@@ -104,7 +104,17 @@
   .panel-icon-btn{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--text400);cursor:pointer;}
   .panel-icon-btn:hover{background:var(--bg50);color:var(--text900);}
   .panel-ident{display:flex;flex-direction:column;align-items:center;text-align:center;padding-bottom:16px;border-bottom:1px solid var(--border2);}
+  .panel-avatar-wrap{position:relative;width:76px;height:76px;}
   .panel-avatar{width:76px;height:76px;border-radius:50%;background:#dbeafe;color:#3b82c4;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:20px;}
+  .panel-avatar.generic{background:var(--neutral-bg);color:var(--neutral300);}
+  .panel-avatar-img{width:76px;height:76px;border-radius:50%;object-fit:cover;display:block;}
+  .avatar-upload-btn{position:absolute;bottom:0;right:0;width:26px;height:26px;border-radius:50%;background:#fff;border:1px solid var(--border2);color:var(--text400);display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 1px 4px rgba(51,55,97,.12);transition:all .12s ease;}
+  .avatar-upload-btn:hover{color:var(--accent-dark,#1e8e5a);border-color:var(--accent);}
+  .avatar-remove-btn{position:absolute;top:-2px;right:-2px;width:20px;height:20px;border-radius:50%;background:#fff;border:1px solid var(--border2);color:var(--text400);display:none;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 1px 4px rgba(51,55,97,.12);}
+  .panel-avatar-wrap:hover .avatar-remove-btn{display:flex;}
+  .avatar-remove-btn:hover{color:var(--danger);border-color:var(--danger);}
+  .cab-avatar-sm.generic{background:var(--neutral-bg);color:var(--neutral300);}
+  .cab-avatar-sm-img{width:30px;height:30px;border-radius:50%;object-fit:cover;display:block;flex-shrink:0;}
   .panel-name{font-weight:700;font-size:15.5px;color:var(--text900);margin-top:10px;}
   .panel-ident .cab-pill{margin-top:8px;}
   .qa-row{display:flex;gap:10px;margin-top:12px;}
@@ -1571,6 +1581,20 @@ function openFieldPickerFlyout(anchor){
   },0);
 }
 
+let driverPhoto = null; // data-URL after a (simulated) upload — testable live
+
+function avatarUploadInput(){
+  const input = el('<input type="file" accept="image/*" style="display:none;">');
+  input.onchange = ()=>{
+    const file = input.files && input.files[0];
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload = ()=>{ driverPhoto = reader.result; render(); showToast('Profile photo updated'); };
+    reader.readAsDataURL(file);
+  };
+  return input;
+}
+
 function renderInfoPanel(){
   const p = el(`<div class="cab-left${state.leftPanelCollapsed?' collapsed':''}"></div>`);
 
@@ -1579,7 +1603,7 @@ function renderInfoPanel(){
   // panel design, logged as "collapse like the rail").
   if(state.leftPanelCollapsed){
     const btn = el(`<div class="cab-collapsed-btn">
-      <div class="cab-avatar-sm">MG</div>
+      ${driverPhoto ? `<img class="cab-avatar-sm-img" src="${driverPhoto}">` : `<div class="cab-avatar-sm generic">${iconHTML('person',16)}</div>`}
       <span class="cab-collapsed-chevron">${iconHTML('chevron_right',18)}</span>
     </div>`);
     attachTooltip(btn, 'Show panel');
@@ -1606,7 +1630,24 @@ function renderInfoPanel(){
 
   // Identity header — fixed, not customizable (structural)
   const ident = el('<div class="panel-ident"></div>');
-  ident.appendChild(el('<div class="panel-avatar">MG</div>'));
+  const avatarWrap = el('<div class="panel-avatar-wrap"></div>');
+  const fileInput = avatarUploadInput();
+  avatarWrap.appendChild(fileInput);
+  if(driverPhoto){
+    avatarWrap.appendChild(el(`<img class="panel-avatar-img" src="${driverPhoto}">`));
+    const removeBtn = el(`<span class="avatar-remove-btn">${iconHTML('close',13)}</span>`);
+    attachTooltip(removeBtn, 'Remove photo');
+    removeBtn.onclick = (e)=>{ e.stopPropagation(); driverPhoto = null; render(); showToast('Profile photo removed'); };
+    avatarWrap.appendChild(removeBtn);
+  } else {
+    // Generic placeholder when no photo is uploaded
+    avatarWrap.appendChild(el(`<div class="panel-avatar generic">${iconHTML('person',34)}</div>`));
+  }
+  const uploadBtn = el(`<span class="avatar-upload-btn">${iconHTML('photo_camera',14)}</span>`);
+  attachTooltip(uploadBtn, driverPhoto ? 'Change photo' : 'Upload photo');
+  uploadBtn.onclick = (e)=>{ e.stopPropagation(); fileInput.click(); };
+  avatarWrap.appendChild(uploadBtn);
+  ident.appendChild(avatarWrap);
   ident.appendChild(el('<div class="panel-name">MAKSIM GERASIMOV</div>'));
   ident.appendChild(el('<div class="cab-pill">CANDIDATE — ONBOARDING</div>'));
   const qaRow = el('<div class="qa-row"></div>');
