@@ -660,7 +660,7 @@ function openPreviewLightbox(url, name){
   scrim.className = 'preview-lightbox-scrim';
   scrim.onclick = (e)=>{ if(e.target===scrim) scrim.remove(); };
   const box = document.createElement('div');
-  box.className = 'preview-lightbox';
+  box.className = 'preview-lightbox zoom-sync';
   const header = el(`<div class="preview-lightbox-header"><span class="preview-lightbox-title">${name}</span><span class="modal-close" style="position:static;">${iconHTML('close',16)}</span></div>`);
   header.querySelector('.modal-close').onclick = ()=> scrim.remove();
   box.appendChild(header);
@@ -669,6 +669,7 @@ function openPreviewLightbox(url, name){
   frame.src = url;
   box.appendChild(frame);
   scrim.appendChild(box);
+  box.style.zoom = currentAppScale;
   document.body.appendChild(scrim);
   document.addEventListener('keydown', function onEsc(e){ if(e.key==='Escape'){ scrim.remove(); document.removeEventListener('keydown', onEsc); } });
 }
@@ -1115,6 +1116,7 @@ function emptySlotActions(f){
 
 // ============ APP ROOT ============
 const app = document.getElementById('app');
+let currentAppScale = 1;
 function render(){
   // Full rebuild replaces every DOM node, which would otherwise snap the file
   // table's scroll back to the top on every interaction (sort, edit, toggle,
@@ -2152,6 +2154,8 @@ function openNestedModal(contentNode){
   scrim.className = 'modal-scrim';
   scrim.style.zIndex = 260;
   scrim.appendChild(contentNode);
+  contentNode.classList.add('zoom-sync');
+  contentNode.style.zoom = currentAppScale;
   document.body.appendChild(scrim);
   scrim.onclick = (e)=>{ if(e.target===scrim) scrim.remove(); };
   return ()=> scrim.remove();
@@ -2178,7 +2182,7 @@ function openDocumentPanel(doc){
   const scrim = document.createElement('div');
   scrim.className = 'side-panel-scrim';
   const panel = document.createElement('div');
-  panel.className = 'side-panel';
+  panel.className = 'side-panel zoom-sync';
 
   function closePanel(){ scrim.classList.remove('open'); setTimeout(()=> scrim.remove(), 200); openPanelRefresh = null; }
   scrim.onclick = (e)=>{ if(e.target===scrim) closePanel(); };
@@ -2550,6 +2554,7 @@ function openDocumentPanel(doc){
   openPanelRefresh = { docId: doc.id, refresh: renderPanel };
 
   scrim.appendChild(panel);
+  panel.style.zoom = currentAppScale;
   document.body.appendChild(scrim);
   requestAnimationFrame(()=> scrim.classList.add('open'));
 }
@@ -4637,6 +4642,7 @@ function applyDesktopScale(){
   // even above 1x. No cap here: on a wide monitor the design should fill it,
   // not float in a box with empty space on every side.
   const scale = window.innerWidth / DESIGN_WIDTH;
+  currentAppScale = scale;
   if('zoom' in document.body.style){
     // `zoom` triggers a real re-layout/re-rasterization at the new size
     // (Chrome, Edge, Safari, and current Firefox all support it) — crisp at
@@ -4651,6 +4657,16 @@ function applyDesktopScale(){
     document.body.style.width = (DESIGN_WIDTH*scale)+'px';
     document.body.style.height = (DESIGN_HEIGHT*scale)+'px';
   }
+  // The side panel, nested modals, and the preview lightbox are all
+  // deliberately appended straight to document.body (not inside #app) so
+  // they survive #app's full-rebuild render() cycle without extra
+  // save/restore plumbing — see 06_Reusable_UI_Patterns.md §6. But that
+  // also means they sit OUTSIDE the zoom applied to #app, so at any window
+  // width other than exactly 1320px their fonts/buttons render at native
+  // size while everything else is scaled — the "looks like a different
+  // piece of software" mismatch. Fix: apply the same zoom to each of them
+  // directly, kept in sync here on every resize too.
+  document.querySelectorAll('.zoom-sync').forEach(elz=>{ elz.style.zoom = scale; });
 }
 applyDesktopScale();
 window.addEventListener('resize', applyDesktopScale);
