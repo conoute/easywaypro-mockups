@@ -2120,6 +2120,17 @@ function openNestedModal(contentNode){
 // modal). Lives outside the render() cycle entirely, like openNestedModal,
 // so it survives the main app re-rendering underneath it (e.g. after a
 // rename triggered from inside the panel). ----
+// The side panel lives outside the main render() cycle (appended straight
+// to document.body), so nothing rebuilds it automatically when a modal
+// opened FROM it changes the same document's state further down the line
+// (e.g. actually sending a signature request, a step after the panel's own
+// "Add Form" step). This hook lets any such modal ask "is a panel open for
+// this exact document?" and refresh it in place if so, instead of every
+// caller having to thread its own onDone callback through.
+let openPanelRefresh = null;
+function refreshOpenPanelIfMatches(docId){
+  if(openPanelRefresh && openPanelRefresh.docId === docId) openPanelRefresh.refresh();
+}
 function openDocumentPanel(doc){
   document.querySelectorAll('.side-panel-scrim').forEach(n=>n.remove());
   const scrim = document.createElement('div');
@@ -2127,7 +2138,7 @@ function openDocumentPanel(doc){
   const panel = document.createElement('div');
   panel.className = 'side-panel';
 
-  function closePanel(){ scrim.classList.remove('open'); setTimeout(()=> scrim.remove(), 200); }
+  function closePanel(){ scrim.classList.remove('open'); setTimeout(()=> scrim.remove(), 200); openPanelRefresh = null; }
   scrim.onclick = (e)=>{ if(e.target===scrim) closePanel(); };
   document.addEventListener('keydown', function onEsc(e){ if(e.key==='Escape'){ closePanel(); document.removeEventListener('keydown', onEsc); } });
 
@@ -2345,7 +2356,7 @@ function openDocumentPanel(doc){
         } else {
           // No form linked yet — pick or create one first, then go straight
           // into the same Link/Mobile App request used everywhere else.
-          openAddFormPicker(doc, ()=> openModal('requestSignature', doc));
+          openAddFormPicker(doc, ()=>{ renderPanel(); openModal('requestSignature', doc); });
         }
       };
       addRow.appendChild(uploadFileBtn); addRow.appendChild(requestUploadBtn); addRow.appendChild(requestSignBtn);
@@ -2494,6 +2505,7 @@ function openDocumentPanel(doc){
     panel.appendChild(footer);
   }
   renderPanel();
+  openPanelRefresh = { docId: doc.id, refresh: renderPanel };
 
   scrim.appendChild(panel);
   document.body.appendChild(scrim);
@@ -3415,6 +3427,7 @@ function modalDeliveryChoice(doc, mode){
     doc.deliveryChannel = 'link';
     doc.deliveryLink = fakeUploadLink(doc);
     logActivity(doc, `Emailed the link to ${DRIVER_EMAIL}`);
+    refreshOpenPanelIfMatches(doc.id);
     openModal('linkReady', doc); // show the copyable link persistently, not a toast that vanishes
   };
   optionsWrap.appendChild(linkOpt);
@@ -3430,6 +3443,7 @@ function modalDeliveryChoice(doc, mode){
       doc.deliveryChannel = 'mobile_app';
       closeModal();
       showToast(`Sent to Maksim Gerasimov's mobile app`);
+      refreshOpenPanelIfMatches(doc.id);
       render();
     };
   }
