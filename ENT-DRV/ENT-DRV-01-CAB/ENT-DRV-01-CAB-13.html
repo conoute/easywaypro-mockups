@@ -1607,50 +1607,60 @@ function avatarUploadInput(){
 function openAttachmentPicker(type){
   const title = type==='truck'?'Select Truck':(type==='trailer'?'Select Trailer':'Assign Dispatcher');
   const items = type==='truck'?AVAILABLE_TRUCKS:(type==='trailer'?AVAILABLE_TRAILERS:AVAILABLE_DISPATCHERS);
+  const currentAttached = type==='truck'?attachedTruck:(type==='trailer'?attachedTrailer:attachedDispatcher);
   
-  // Create modal content
-  const modal = el('<div class="modal-content"></div>');
-  modal.appendChild(el('<div style="padding:16px;border-bottom:1px solid var(--border2);"><h3 style="margin:0;font-size:14px;font-weight:700;">'+title+'</h3></div>'));
+  let selectedItem = currentAttached;
   
-  const list = el('<div style="max-height:300px;overflow-y:auto;"></div>');
+  const m = modalShell('<h2>'+title+'</h2><p class="mdesc">Select an item to attach to this driver.</p>');
+  const modal = m.querySelector('.modal');
+  
+  const list = el('<div style="max-height:320px;overflow-y:auto;margin:12px 0;"></div>');
   items.forEach(item=>{
-    let rowHTML = '<div style="padding:12px 16px;border-bottom:1px solid var(--border2);cursor:pointer;transition:background 0.15s;">';
-    rowHTML += '<div style="font-size:12px;font-weight:600;color:var(--text900);">'+item.name+'</div>';
-    if(item.plate) rowHTML += '<div style="font-size:10px;color:var(--text400);margin-top:2px;">'+item.plate+'</div>';
-    rowHTML += '</div>';
-    const row = el(rowHTML);
-    row.onmouseenter = ()=> row.style.background = 'var(--bg50)';
-    row.onmouseleave = ()=> row.style.background = 'transparent';
+    const isSelected = selectedItem && selectedItem.id === item.id;
+    const row = el('<div class="colpanel-row" style="cursor:pointer;'+(isSelected?'background:var(--bg50);':'')+'">'+
+      '<input type="radio" name="attach-select" '+(isSelected?'checked':'')+'/>'+
+      '<div style="flex:1;">'+
+        '<div style="font-size:12px;font-weight:600;color:var(--text900);">'+item.name+'</div>'+
+        (item.plate?'<div style="font-size:10px;color:var(--text400);margin-top:2px;">'+item.plate+'</div>':'')+
+      '</div>'+
+    '</div>');
+    
     row.onclick = ()=>{
-      if(type==='truck'){
-        attachedTruck = item;
-        logActivity('Truck attached', 'Assigned '+item.name+' ('+item.plate+')', 'action');
-      } else if(type==='trailer'){
-        attachedTrailer = item;
-        logActivity('Trailer attached', 'Assigned '+item.name+' ('+item.plate+')', 'action');
-      } else {
-        attachedDispatcher = item;
-        logActivity('Dispatcher assigned', 'Assigned '+item.name, 'action');
-      }
-      backdrop.remove();
-      render();
+      selectedItem = item;
+      list.querySelectorAll('input[type="radio"]').forEach(r=>r.checked=false);
+      list.querySelectorAll('.colpanel-row').forEach(r=>r.style.background='');
+      row.querySelector('input').checked = true;
+      row.style.background = 'var(--bg50)';
     };
     list.appendChild(row);
   });
   modal.appendChild(list);
   
-  const actions = el('<div style="padding:16px;border-top:1px solid var(--border2);display:flex;gap:8px;"></div>');
-  const cancelBtn = el('<button class="btn" style="width:100%;">Cancel</button>');
-  cancelBtn.onclick = ()=> backdrop.remove();
+  // Actions footer
+  const actions = el('<div class="actions"></div>');
+  const cancelBtn = el('<button class="btn">Cancel</button>');
+  cancelBtn.onclick = closeModal;
+  const confirmBtn = el('<button class="btn primary">Confirm</button>');
+  confirmBtn.onclick = ()=>{
+    if(!selectedItem){ showToast('Please select an item'); return; }
+    if(type==='truck'){
+      attachedTruck = selectedItem;
+      logActivity('Truck attached', 'Assigned '+selectedItem.name+' ('+selectedItem.plate+')', 'action');
+    } else if(type==='trailer'){
+      attachedTrailer = selectedItem;
+      logActivity('Trailer attached', 'Assigned '+selectedItem.name+' ('+selectedItem.plate+')', 'action');
+    } else {
+      attachedDispatcher = selectedItem;
+      logActivity('Dispatcher assigned', 'Assigned '+selectedItem.name, 'action');
+    }
+    closeModal();
+    render();
+  };
   actions.appendChild(cancelBtn);
+  actions.appendChild(confirmBtn);
   modal.appendChild(actions);
   
-  // Create backdrop (container) and add modal inside
-  const backdrop = el('<div class="modal-backdrop"></div>');
-  backdrop.appendChild(modal);
-  backdrop.onclick = (e)=>{ if(e.target === backdrop) backdrop.remove(); };
-  
-  document.body.appendChild(backdrop);
+  return m;
 }
 
 function renderActivityTab(){
@@ -1871,7 +1881,7 @@ function renderInfoPanel(){
       truckHTML += '</div>'+iconHTML(truckIcon,16)+'</div>';
       const truckRow = el(truckHTML);
       truckRow.style.cursor = 'pointer';
-      truckRow.onclick = ()=>{ if(attachedTruck){ attachedTruck=null; logActivity('Truck detached','Removed truck assignment','action'); } else { openAttachmentPicker('truck'); } render(); };
+      truckRow.onclick = ()=>{ if(attachedTruck){ attachedTruck=null; logActivity('Truck detached','Removed truck assignment','action'); render(); } else { openModal('attachPicker','truck'); } };
       sec.appendChild(truckRow);
       
       // Trailer
@@ -1881,7 +1891,7 @@ function renderInfoPanel(){
       trailerHTML += '</div>'+iconHTML(trailerIcon,16)+'</div>';
       const trailerRow = el(trailerHTML);
       trailerRow.style.cursor = 'pointer';
-      trailerRow.onclick = ()=>{ if(attachedTrailer){ attachedTrailer=null; logActivity('Trailer detached','Removed trailer assignment','action'); } else { openAttachmentPicker('trailer'); } render(); };
+      trailerRow.onclick = ()=>{ if(attachedTrailer){ attachedTrailer=null; logActivity('Trailer detached','Removed trailer assignment','action'); render(); } else { openModal('attachPicker','trailer'); } };
       sec.appendChild(trailerRow);
       
       // Dispatcher
@@ -1889,7 +1899,7 @@ function renderInfoPanel(){
       let dispatchHTML = '<div class="attach-row">'+iconHTML('support_agent',16)+'<div style="flex:1;"><div style="font-size:12px;font-weight:600;color:var(--text900);">'+(attachedDispatcher?attachedDispatcher.name:'Assign Dispatcher')+'</div></div>'+iconHTML(dispatchIcon,16)+'</div>';
       const dispatchRow = el(dispatchHTML);
       dispatchRow.style.cursor = 'pointer';
-      dispatchRow.onclick = ()=>{ if(attachedDispatcher){ attachedDispatcher=null; logActivity('Dispatcher unassigned','Removed dispatcher assignment','action'); } else { openAttachmentPicker('dispatcher'); } render(); };
+      dispatchRow.onclick = ()=>{ if(attachedDispatcher){ attachedDispatcher=null; logActivity('Dispatcher unassigned','Removed dispatcher assignment','action'); render(); } else { openModal('attachPicker','dispatcher'); } };
       sec.appendChild(dispatchRow);
       
       p.appendChild(sec);
@@ -3519,6 +3529,7 @@ function renderModal(){
   else if(type==='customizeRail') node = modalCustomizeRail();
   else if(type==='customizeTabs') node = modalCustomizeTabs();
   else if(type==='customizeInfoPanel') node = modalCustomizeInfoPanel();
+  else if(type==='attachPicker') node = openAttachmentPicker(payload);
   else if(type==='addPanelField') node = modalAddPanelField();
   else if(type==='bulkDeliveryChoice') node = modalBulkDeliveryChoice(payload);
   else if(type==='bulkReject') node = modalBulkReject(payload);
