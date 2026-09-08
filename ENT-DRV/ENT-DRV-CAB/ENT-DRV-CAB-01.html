@@ -1881,14 +1881,13 @@ function createBrandedSelect(options, currentValue, onChange){
       menu.appendChild(item);
     });
     // Match the trigger's own on-screen width exactly, rather than a fixed
-    // min/max range unrelated to it — a dropdown noticeably narrower than
-    // the button that opened it reads as broken, not stylistic. The
-    // trigger's rendered width is in screen pixels (already scaled by
-    // whatever zoom applies to it); the menu gets its own zoom too (see
-    // positionFlyout), so its CSS width has to be expressed in the menu's
-    // own local units — divide out the scale before assigning.
+    // min/max range unrelated to it. The trigger may be inside a zoomed
+    // nested modal (so its rendered width is already scaled); the menu
+    // itself is NOT zoomed (zoom on a fixed-position flyout caused a real
+    // bug — see Decision Log), so its CSS width is just real screen
+    // pixels — use the trigger's screen width directly, no scale division.
     const anchorScreenWidth = el_.getBoundingClientRect().width;
-    menu.style.width = Math.max(180, anchorScreenWidth / currentAppScale) + 'px';
+    menu.style.width = Math.max(180, anchorScreenWidth) + 'px';
     positionFlyout(menu, el_);
     setTimeout(()=>{
       document.addEventListener('click', function h(ev){ if(!menu.contains(ev.target) && ev.target!==el_){ menu.remove(); document.removeEventListener('click',h); } });
