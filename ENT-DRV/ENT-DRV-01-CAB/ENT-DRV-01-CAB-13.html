@@ -1704,7 +1704,7 @@ function openEntityPicker(cfg){
       const isSel = entityPickerState.selectedId === item.id;
       const badge = cfg.badgeFn ? cfg.badgeFn(item) : '';
       const sec = secondaryOf(item);
-      const row = el('<div class="colpanel-row" style="cursor:pointer;align-items:flex-start;'+(isSel?'background:var(--bg50);':'')+'">'+
+      const row = el('<div class="colpanel-row" style="cursor:pointer;align-items:flex-start;padding:9px 12px;border-radius:0;'+(isSel?'background:var(--bg50);':'')+'">'+
         '<input type="radio" name="entityPick" '+(isSel?'checked':'')+' style="margin-top:2px;"/>'+
         (cfg.icon ? '<span style="color:var(--text400);flex-shrink:0;margin-top:1px;">'+iconHTML(cfg.icon,16)+'</span>' : '')+
         '<div style="flex:1;min-width:0;">'+
@@ -1783,8 +1783,10 @@ function modalDispatcherAccess(){
   search.appendChild(clearBtn);
   modal.appendChild(search);
 
-  // ---- column headers
-  modal.appendChild(el('<div style="display:flex;align-items:flex-end;gap:10px;padding:0 10px 6px;">'
+  // Column headers — the leading spacer matches the radio column on the rows
+  // below, so the two checkbox columns line up with their labels.
+  modal.appendChild(el('<div style="display:flex;align-items:flex-end;gap:10px;padding:0 12px 6px;">'
+    + '<div style="width:13px;flex-shrink:0;"></div>'
     + '<div style="flex:1;font-size:10px;font-weight:700;color:var(--text400);letter-spacing:.03em;">ADMINISTERS</div>'
     + '<div style="width:62px;text-align:center;font-size:10px;font-weight:700;color:var(--text400);letter-spacing:.03em;">CAN VIEW</div>'
     + '<div style="width:62px;text-align:center;font-size:10px;font-weight:700;color:var(--text400);letter-spacing:.03em;">CAN EDIT</div>'
@@ -1844,7 +1846,8 @@ function modalDispatcherAccess(){
     const grantable = AVAILABLE_DISPATCHERS.filter(d=>!isOwner(d));
     const allView = grantable.length>0 && grantable.every(d=>S.access[d.id].view);
     const allEdit = grantable.length>0 && grantable.every(d=>S.access[d.id].edit);
-    const ar = el('<div style="display:flex;align-items:center;gap:10px;padding:10px;background:var(--bg50);border-bottom:1px solid var(--border2);"></div>');
+    const ar = el('<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--bg50);border-bottom:1px solid var(--border2);"></div>');
+    ar.appendChild(el('<div style="width:13px;flex-shrink:0;"></div>'));
     ar.appendChild(el('<div style="flex:1;min-width:0;">'
       + '<div style="font-size:12px;font-weight:700;color:var(--text900);">All dispatchers</div>'
       + '<div style="font-size:10px;color:var(--text400);margin-top:2px;">Applies to everyone except the administering dispatcher</div>'
@@ -1862,7 +1865,7 @@ function modalDispatcherAccess(){
     }
     visible.forEach(d=>{
       const owner = isOwner(d);
-      const r = el('<div class="colpanel-row" style="align-items:center;gap:10px;'+(owner?'background:var(--bg50);':'')+'"></div>');
+      const r = el('<div class="colpanel-row" style="align-items:center;gap:10px;padding:9px 12px;border-radius:0;'+(owner?'background:var(--bg50);':'')+'"></div>');
 
       const radio = el('<input type="radio" name="dispOwner"'+(owner?' checked':'')+' style="flex-shrink:0;cursor:pointer;">');
       radio.onchange = ()=>{ S.ownerId = d.id; renderRows(); };
