@@ -103,6 +103,16 @@
   .panel-top-icons{display:flex;justify-content:space-between;margin-bottom:4px;}
   .panel-icon-btn{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--text400);cursor:pointer;}
   .panel-icon-btn:hover{background:var(--bg50);color:var(--text900);}
+  .panel-icon-btn.active{background:rgba(72,200,118,.14);color:var(--accent-dark,#1e8e5a);}
+  .panel-section.editing{border:1.5px dashed var(--accent);border-radius:12px;padding:12px;margin-top:14px;border-top:1.5px dashed var(--accent);}
+  .pdE-list{display:flex;flex-direction:column;gap:6px;margin-top:4px;}
+  .pdE-row{display:flex;align-items:center;gap:8px;background:var(--bg50);border-radius:8px;padding:6px 8px;}
+  .pdE-row .drag-handle{color:var(--text400);cursor:grab;display:flex;flex-shrink:0;}
+  .pdE-label{font-size:11.5px;font-weight:600;color:var(--text400);width:82px;flex-shrink:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .pdE-row .pd-edit-input{max-width:none;flex:1;background:#fff;}
+  .pdE-row .pd-remove{display:flex;color:var(--text400);cursor:pointer;flex-shrink:0;}
+  .pdE-row .pd-remove:hover{color:var(--danger);}
+  .pd-done-btn{width:100%;margin-top:8px;font-size:12px;padding:8px 12px;border-radius:8px;}
   .panel-ident{display:flex;flex-direction:column;align-items:center;text-align:center;padding-bottom:16px;border-bottom:1px solid var(--border2);}
   .photo-card{position:relative;width:100%;aspect-ratio:1/1.02;border-radius:20px;background:linear-gradient(160deg,#eef2f6 0%,#e6ecf1 55%,#e2f3e9 100%);overflow:hidden;}
   .photo-card-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:top center;}
@@ -1519,102 +1529,7 @@ let PANEL_COMMENTS = [
   {author:'Marcus Webb', time:'Sep 4, 10:05 AM', text:'Strong references from previous carrier.'},
 ];
 let ssnRevealed = false;
-
-// Click-to-edit: swaps the value span for an input; Enter/blur commits.
-function makeEditable(span, getVal, setVal){
-  span.onclick = (e)=>{
-    e.stopPropagation();
-    const input = el(`<input class="pd-edit-input" value="${getVal().replace(/"/g,'&quot;')}">`);
-    span.replaceWith(input);
-    input.focus(); input.select();
-    const commit = ()=>{ const v = input.value.trim(); if(v) setVal(v); render(); };
-    input.onkeydown = (ev)=>{ if(ev.key==='Enter') commit(); if(ev.key==='Escape') render(); };
-    input.onblur = commit;
-  };
-}
-
-// Collapse/expand — per Reusable Patterns §2 (rail lesson): the toggle
-// manipulates the class directly on the EXISTING DOM element so the width
-// transition actually animates; a full re-render would create a new element
-// and kill the animation. Content is swapped in place after the class flip.
-function toggleInfoPanel(){
-  clearTooltips(); // the hovered toggle button is about to be replaced in place
-  state.leftPanelCollapsed = !state.leftPanelCollapsed;
-  const node = document.querySelector('.cab-left');
-  if(!node){ render(); return; }
-  node.classList.toggle('collapsed', state.leftPanelCollapsed);
-  const fresh = renderInfoPanel();
-  node.innerHTML = '';
-  [...fresh.childNodes].forEach(c=> node.appendChild(c));
-}
-
-// Field picker — lists everything from the driver's Edit menu that is NOT
-// already shown in the panel, grouped and searchable. Picking one adds it
-// (with its real value). "Create custom field" appends a one-off field to
-// the catalog under "Custom" and shows it immediately.
-function openFieldPickerFlyout(anchor){
-  document.querySelectorAll('.flyout').forEach(m=>m.remove());
-  const menu = el(`<div class="flyout field-picker">
-    <input class="fp-search" placeholder="Search fields…">
-    <div class="fp-list"></div>
-    <hr/>
-    <button class="fp-custom">${iconHTML('add',15)}Create custom field…</button>
-  </div>`);
-  const listEl = menu.querySelector('.fp-list');
-  const searchEl = menu.querySelector('.fp-search');
-
-  function refreshList(){
-    const q = searchEl.value.trim().toLowerCase();
-    listEl.innerHTML = '';
-    const available = DRIVER_FIELD_CATALOG.filter(f=> !VISIBLE_FIELD_KEYS.includes(f.key) && (!q || f.label.toLowerCase().includes(q) || f.group.toLowerCase().includes(q)));
-    if(available.length===0){
-      listEl.appendChild(el('<div class="fp-empty">No matching fields — everything from the edit menu is already shown.</div>'));
-      return;
-    }
-    let lastGroup = null;
-    available.forEach(f=>{
-      if(f.group !== lastGroup){
-        listEl.appendChild(el(`<div class="fp-group">${f.group.toUpperCase()}</div>`));
-        lastGroup = f.group;
-      }
-      const item = el(`<button class="fp-item">${iconHTML(f.icon,15)}<span class="fp-label">${f.label}</span><span class="fp-preview">${f.masked?'•••':f.value}</span></button>`);
-      item.onclick = ()=>{ VISIBLE_FIELD_KEYS.push(f.key); menu.remove(); render(); };
-      listEl.appendChild(item);
-    });
-  }
-  searchEl.oninput = refreshList;
-  refreshList();
-
-  menu.querySelector('.fp-custom').onclick = ()=>{
-    listEl.innerHTML = '';
-    menu.querySelector('.fp-search').style.display='none';
-    menu.querySelector('.fp-custom').style.display='none';
-    const form = el(`<div class="fp-custom-form">
-      <input class="pd-edit-input" id="fpLabel" placeholder="Field name">
-      <input class="pd-edit-input" id="fpValue" placeholder="Value">
-    </div>`);
-    listEl.appendChild(form);
-    const lab = form.querySelector('#fpLabel');
-    const val = form.querySelector('#fpValue');
-    lab.focus();
-    const commit = ()=>{
-      if(lab.value.trim() && val.value.trim()){
-        const key = 'c'+Math.random().toString(36).slice(2,7);
-        DRIVER_FIELD_CATALOG.push({key, label:lab.value.trim(), value:val.value.trim(), icon:'sell', group:'Custom'});
-        VISIBLE_FIELD_KEYS.push(key);
-      }
-      menu.remove(); render();
-    };
-    lab.onkeydown = (ev)=>{ if(ev.key==='Enter') val.focus(); if(ev.key==='Escape'){ menu.remove(); } };
-    val.onkeydown = (ev)=>{ if(ev.key==='Enter') commit(); if(ev.key==='Escape'){ menu.remove(); } };
-  };
-
-  positionFlyout(menu, anchor);
-  searchEl.focus();
-  setTimeout(()=>{
-    document.addEventListener('click', function h(ev){ if(!menu.contains(ev.target) && ev.target!==anchor){ menu.remove(); document.removeEventListener('click',h); } });
-  },0);
-}
+let panelEditMode = false;
 
 let driverPhoto = null;          // baked (cropped) data-URL shown everywhere
 let driverPhotoOriginal = null;  // raw upload, kept so the crop can be re-adjusted
@@ -1708,6 +1623,21 @@ function openPhotoEditor(srcDataUrl, params){
   };
 }
 
+// Collapse/expand — per Reusable Patterns §2 (rail lesson): the toggle
+// manipulates the class directly on the EXISTING DOM element so the width
+// transition actually animates; a full re-render would create a new element
+// and kill the animation. Content is swapped in place after the class flip.
+function toggleInfoPanel(){
+  clearTooltips(); // the hovered toggle button is about to be replaced in place
+  state.leftPanelCollapsed = !state.leftPanelCollapsed;
+  const node = document.querySelector('.cab-left');
+  if(!node){ render(); return; }
+  node.classList.toggle('collapsed', state.leftPanelCollapsed);
+  const fresh = renderInfoPanel();
+  node.innerHTML = '';
+  [...fresh.childNodes].forEach(c=> node.appendChild(c));
+}
+
 function renderInfoPanel(){
   const p = el(`<div class="cab-left${state.leftPanelCollapsed?' collapsed':''}"></div>`);
 
@@ -1734,7 +1664,10 @@ function renderInfoPanel(){
   const tuneBtn = el(`<span class="panel-icon-btn">${iconHTML('tune',18)}</span>`);
   attachTooltip(tuneBtn, 'Customize panel');
   tuneBtn.onclick = ()=> openModal('customizeInfoPanel');
-  leftGroup.appendChild(hideBtn); leftGroup.appendChild(tuneBtn);
+  const editBtn = el(`<span class="panel-icon-btn${panelEditMode?' active':''}">${iconHTML('edit',17)}</span>`);
+  attachTooltip(editBtn, panelEditMode ? 'Finish editing' : 'Edit fields');
+  editBtn.onclick = ()=>{ panelEditMode = !panelEditMode; render(); };
+  leftGroup.appendChild(hideBtn); leftGroup.appendChild(tuneBtn); leftGroup.appendChild(editBtn);
   const kebabBtn = el(`<span class="panel-icon-btn">${iconHTML('more_vert',18)}</span>`);
   attachTooltip(kebabBtn, 'Actions');
   kebabBtn.onclick = (e)=>{ e.stopPropagation(); openQuickInfoActionsFlyout(kebabBtn); };
@@ -1815,32 +1748,66 @@ function renderInfoPanel(){
       p.appendChild(sec);
     }
     if(mod.key==='personalData'){
-      const sec = el('<div class="panel-section"></div>');
+      const sec = el(`<div class="panel-section${panelEditMode?' editing':''}"></div>`);
       sec.appendChild(el('<div class="profile-section-title">PERSONAL DATA</div>'));
-      VISIBLE_FIELD_KEYS.forEach(k=>{
-        const f = DRIVER_FIELD_CATALOG.find(x=>x.key===k);
-        if(!f) return;
-        const shown = f.masked && !ssnRevealed ? '•••-••-'+f.value.slice(-4) : f.value;
-        const row = el(`<div class="cab-contact-row pd-row">${iconHTML(f.icon,15)}<span class="k">${f.label}</span><span class="v editable-field">${shown}</span>${f.masked?`<span class="ssn-eye">${iconHTML(ssnRevealed?'visibility_off':'visibility',15)}</span>`:''}<span class="pd-remove">${iconHTML('close',14)}</span></div>`);
-        makeEditable(row.querySelector('.editable-field'), ()=>f.value, v=>{ f.value=v; });
-        if(f.masked){
-          const eye = row.querySelector('.ssn-eye');
-          eye.onclick = (e)=>{ e.stopPropagation(); ssnRevealed = !ssnRevealed; render(); };
-          attachTooltip(eye, ssnRevealed ? 'Hide SSN' : 'Show SSN');
-        }
-        const rm = row.querySelector('.pd-remove');
-        attachTooltip(rm, 'Remove from panel');
-        rm.onclick = (e)=>{
-          e.stopPropagation();
-          VISIBLE_FIELD_KEYS = VISIBLE_FIELD_KEYS.filter(x=>x!==k);
-          if(f.group==='Custom') DRIVER_FIELD_CATALOG = DRIVER_FIELD_CATALOG.filter(x=>x.key!==k);
-          render();
-        };
-        sec.appendChild(row);
-      });
-      const addBtn = el(`<button class="btn-outline pd-add-btn">${iconHTML('add',15)}Add field</button>`);
-      addBtn.onclick = (e)=>{ e.stopPropagation(); openFieldPickerFlyout(addBtn); };
-      sec.appendChild(addBtn);
+      if(!panelEditMode){
+        // Normal display — plain, read-only rows. All editing lives behind
+        // the module-level edit icon at the top (same as the Filters panel's
+        // customize mode), never scattered per-row in the reading view.
+        VISIBLE_FIELD_KEYS.forEach(k=>{
+          const f = DRIVER_FIELD_CATALOG.find(x=>x.key===k);
+          if(!f) return;
+          const shown = f.masked && !ssnRevealed ? '•••-••-'+f.value.slice(-4) : f.value;
+          const row = el(`<div class="cab-contact-row">${iconHTML(f.icon,15)}<span class="k">${f.label}</span><span class="v">${shown}</span>${f.masked?`<span class="ssn-eye">${iconHTML(ssnRevealed?'visibility_off':'visibility',15)}</span>`:''}</div>`);
+          if(f.masked){
+            const eye = row.querySelector('.ssn-eye');
+            eye.onclick = (e)=>{ e.stopPropagation(); ssnRevealed = !ssnRevealed; render(); };
+            attachTooltip(eye, ssnRevealed ? 'Hide SSN' : 'Show SSN');
+          }
+          sec.appendChild(row);
+        });
+      } else {
+        // Edit mode — mirrors ORG-FILTER-01/02 customize mode: dashed accent
+        // outline, drag handle per row, value inputs, per-row remove, and an
+        // Add field modal borrowed from the table's Add Custom Column.
+        const list = el('<div class="pdE-list"></div>');
+        VISIBLE_FIELD_KEYS.forEach(k=>{
+          const f = DRIVER_FIELD_CATALOG.find(x=>x.key===k);
+          if(!f) return;
+          const row = el(`<div class="pdE-row" data-key="${f.key}">
+            <span class="drag-handle">${iconHTML('drag_indicator',16)}</span>
+            <span class="pdE-label">${f.label}</span>
+            <input class="pd-edit-input" value="${f.value.replace(/"/g,'&quot;')}">
+            <span class="pd-remove">${iconHTML('close',14)}</span>
+          </div>`);
+          const input = row.querySelector('input');
+          input.oninput = ()=>{ f.value = input.value; };
+          const rm = row.querySelector('.pd-remove');
+          attachTooltip(rm, 'Remove from panel');
+          rm.onclick = ()=>{
+            VISIBLE_FIELD_KEYS = VISIBLE_FIELD_KEYS.filter(x=>x!==k);
+            if(f.group==='Custom') DRIVER_FIELD_CATALOG = DRIVER_FIELD_CATALOG.filter(x=>x.key!==k);
+            render();
+          };
+          list.appendChild(row);
+        });
+        sec.appendChild(list);
+        safeSortable(list, {
+          onEnd: (evt)=>{
+            try{
+              const [moved] = VISIBLE_FIELD_KEYS.splice(evt.oldIndex, 1);
+              VISIBLE_FIELD_KEYS.splice(evt.newIndex, 0, moved);
+              render();
+            }catch(err){ console.error('Reorder failed:', err); render(); }
+          }
+        });
+        const addBtn = el(`<button class="btn-outline pd-add-btn">${iconHTML('add',15)}Add field</button>`);
+        addBtn.onclick = ()=> openModal('addPanelField');
+        sec.appendChild(addBtn);
+        const doneBtn = el('<button class="btn-dark pd-done-btn">Done</button>');
+        doneBtn.onclick = ()=>{ panelEditMode = false; render(); };
+        sec.appendChild(doneBtn);
+      }
       p.appendChild(sec);
     }
     if(mod.key==='comments'){
@@ -1881,7 +1848,7 @@ function openQuickInfoActionsFlyout(anchor){
     <button data-a="terminate" class="danger">${iconHTML('person_off',16)}Terminate</button>
   </div>`);
   positionFlyout(menu, anchor);
-  menu.querySelector('[data-a="edit"]').onclick = ()=>{ menu.remove(); showToast('Click any field value in Personal Data to edit it inline'); };
+  menu.querySelector('[data-a="edit"]').onclick = ()=>{ menu.remove(); panelEditMode = true; render(); };
   menu.querySelector('[data-a="status"]').onclick = ()=>{ menu.remove(); showToast('Change status — not wired in this mock'); };
   menu.querySelector('[data-a="team"]').onclick = ()=>{ menu.remove(); showToast('Create team — not wired in this mock'); };
   menu.querySelector('[data-a="mvr"]').onclick = ()=>{ menu.remove(); generateSystemDoc('MVR Report', 365); };
@@ -3354,6 +3321,81 @@ function openAddFormPicker(doc, onDone){
 
 function closeModal(){ state.modal=null; render(); }
 
+function modalAddPanelField(){
+  // Borrowed from the table's "Add Custom Column" mechanism: same modal
+  // shape, same name+type fields, same options-chips builder for selects.
+  // First choice: pick an existing field from the driver's Edit menu that
+  // isn't shown yet, or switch to creating a fully custom field.
+  const remaining = DRIVER_FIELD_CATALOG.filter(f=> !VISIBLE_FIELD_KEYS.includes(f.key));
+  const m = modalShell(`<h2>Add Field</h2><p class="mdesc">Pick a field from the driver's edit menu, or create a custom one (same mechanism as custom table columns).</p>
+    <div class="field"><label>Field</label>
+      <select id="pfSource">
+        ${remaining.map(f=>`<option value="${f.key}">${f.label} (${f.group})</option>`).join('')}
+        <option value="__custom__">— Custom field —</option>
+      </select>
+    </div>
+    <div id="pfCustomWrap" style="display:none;">
+      <div class="field"><label>Field name</label><input type="text" id="pfName" placeholder="e.g. Shirt Size"/></div>
+      <div class="field"><label>Field type</label>
+        <select id="pfType">
+          <option value="text">Text</option>
+          <option value="number">Number</option>
+          <option value="date">Date</option>
+          <option value="select">Single select</option>
+        </select>
+      </div>
+      <div class="field" id="pfOptionsWrap" style="display:none;"><label>Options</label></div>
+    </div>`);
+  const modal = m.querySelector('.modal');
+  const srcSel = modal.querySelector('#pfSource');
+  const customWrap = modal.querySelector('#pfCustomWrap');
+  const typeSel = modal.querySelector('#pfType');
+  const optionsWrap = modal.querySelector('#pfOptionsWrap');
+  if(remaining.length===0){ srcSel.value = '__custom__'; customWrap.style.display='block'; }
+  srcSel.onchange = ()=>{ customWrap.style.display = srcSel.value==='__custom__' ? 'block' : 'none'; };
+
+  const chipRow = el('<div class="option-chip-row"></div>');
+  let pendingOptions = [];
+  function renderChips(){
+    chipRow.innerHTML = '';
+    if(pendingOptions.length===0) chipRow.appendChild(el('<span class="no-options-hint">No options yet — add at least one below.</span>'));
+    pendingOptions.forEach((opt,i)=>{
+      const chip = el(`<span class="option-chip">${opt}<span class="chip-remove">${iconHTML('close',13)}</span></span>`);
+      chip.querySelector('.chip-remove').onclick = ()=>{ pendingOptions.splice(i,1); renderChips(); };
+      chipRow.appendChild(chip);
+    });
+  }
+  renderChips();
+  optionsWrap.appendChild(chipRow);
+  const addOptRow = el('<div class="add-option-row"></div>');
+  const optInput = el('<input type="text" placeholder="Type an option, press Enter"/>');
+  optInput.onkeydown = (e)=>{ if(e.key==='Enter'){ e.preventDefault(); const v=optInput.value.trim(); if(v && !pendingOptions.includes(v)) pendingOptions.push(v); optInput.value=''; renderChips(); } };
+  addOptRow.appendChild(optInput);
+  optionsWrap.appendChild(addOptRow);
+  typeSel.onchange = ()=>{ optionsWrap.style.display = typeSel.value==='select' ? 'block' : 'none'; };
+
+  const actions = el('<div class="actions"></div>');
+  const cancelBtn = el('<button class="btn">Cancel</button>');
+  cancelBtn.onclick = ()=> closeModal();
+  const addBtn = el('<button class="btn primary">Add Field</button>');
+  addBtn.onclick = ()=>{
+    if(srcSel.value !== '__custom__'){
+      VISIBLE_FIELD_KEYS.push(srcSel.value);
+    } else {
+      const name = modal.querySelector('#pfName').value.trim();
+      if(!name){ showToast('Field name is required'); return; }
+      const key = 'c'+Math.random().toString(36).slice(2,7);
+      const value = typeSel.value==='select' ? (pendingOptions[0]||'—') : '—';
+      DRIVER_FIELD_CATALOG.push({key, label:name, value, icon:'sell', group:'Custom', fieldType:typeSel.value, options:pendingOptions.slice()});
+      VISIBLE_FIELD_KEYS.push(key);
+    }
+    closeModal(); render();
+  };
+  actions.appendChild(cancelBtn); actions.appendChild(addBtn);
+  modal.appendChild(actions);
+  return m;
+}
+
 function renderModal(){
   if(!state.modal) return;
   const {type, payload} = state.modal;
@@ -3363,6 +3405,7 @@ function renderModal(){
   else if(type==='customizeRail') node = modalCustomizeRail();
   else if(type==='customizeTabs') node = modalCustomizeTabs();
   else if(type==='customizeInfoPanel') node = modalCustomizeInfoPanel();
+  else if(type==='addPanelField') node = modalAddPanelField();
   else if(type==='bulkDeliveryChoice') node = modalBulkDeliveryChoice(payload);
   else if(type==='bulkReject') node = modalBulkReject(payload);
   else if(type==='bulkCreateTask') node = modalBulkCreateTask(payload);
