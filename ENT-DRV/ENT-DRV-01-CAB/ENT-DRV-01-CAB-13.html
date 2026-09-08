@@ -2111,23 +2111,36 @@ function modalCustomizeInfoPanel(){
 }
 
 function renderCabinetContent(){
-  const p = el('<div class="cab-full"></div>');
-  p.appendChild(renderTabsBar());
+  const wrap = el('<div style="display:flex;gap:12px;flex:1;overflow:hidden;"></div>');
+  
+  // LEFT: Info panel persistent
+  const left = el('<div class="cab-info-left" style="width:380px;flex-shrink:0;border-right:1px solid var(--border2);overflow-y:auto;"></div>');
+  left.appendChild(renderInfoPanel());
+  wrap.appendChild(left);
+  
+  // RIGHT: Tabs + content
+  const right = el('<div style="flex:1;display:flex;flex-direction:column;overflow:hidden;"></div>');
+  right.appendChild(renderTabsBar());
+  
+  const content = el('<div style="flex:1;overflow-y:auto;"></div>');
   if(state.activeTab === 'profile'){
-    p.appendChild(renderProfileTab());
+    content.appendChild(renderProfileTab());
   } else if(state.activeTab === 'documents'){
-    p.appendChild(renderDocToolbar());
-    p.appendChild(renderFoldersRow());
-    p.appendChild(renderAllFilesLabel());
-    p.appendChild(renderTable());
-    p.appendChild(renderPagination());
+    content.appendChild(renderDocToolbar());
+    content.appendChild(renderFoldersRow());
+    content.appendChild(renderAllFilesLabel());
+    content.appendChild(renderTable());
+    content.appendChild(renderPagination());
   } else if(state.activeTab === 'activity'){
-    p.appendChild(renderActivityTab());
+    content.appendChild(renderActivityTab());
   } else {
     const label = TABS.find(t=>t.key===state.activeTab)?.label;
-    p.appendChild(el(`<div class="placeholder-tab">${label ? `${label} module — not built in this mock.<br>Only Profile and Documents (ENT-DRV-01-CAB-13 / -01, Candidate) are fully functional here.` : 'All tabs are hidden — use the tune icon above to bring one back.'}</div>`));
+    content.appendChild(el(`<div class="placeholder-tab">${label ? `${label} module — not built in this mock.<br>Only Profile and Documents (ENT-DRV-01-CAB-13 / -01, Candidate) are fully functional here.` : 'All tabs are hidden — use the tune icon above to bring one back.'}</div>`));
   }
-  return p;
+  right.appendChild(content);
+  wrap.appendChild(right);
+  
+  return wrap;
 }
 
 // ============ PROFILE TAB (ENT-DRV-01-CAB-13) — final design, matching
@@ -2135,20 +2148,8 @@ function renderCabinetContent(){
 // the redesign). No invented "progress %" on binary screening items. AI
 // purple used ONLY for the AI Fit Score gauge / AI Insights card. ============
 function renderProfileTab(){
-  const wrap = el('<div class="cab-full"></div>');
-  
-  // Header cu info panel title + tune customize
-  const header = el('<div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--border2);background:white;">'+
-    '<div style="font-size:13px;font-weight:700;color:var(--text900);">Profile Information</div>'+
-    '<span style="cursor:pointer;color:var(--text400);">'+iconHTML('tune',18)+'</span>'+
-  '</div>');
-  header.querySelector('span').onclick = ()=> openModal('customizeInfoPanel');
-  wrap.appendChild(header);
-  
-  // Info panel content
-  wrap.appendChild(renderInfoPanel());
-  
-  return wrap;
+  // Profile tab is empty — all content is in the persistent left panel
+  return el('<div style="padding:20px;color:var(--text400);text-align:center;">All profile information is displayed in the left panel. Use the tune icon to customize what fields are visible.</div>');
 }
 
 function renderTabsBar(){
