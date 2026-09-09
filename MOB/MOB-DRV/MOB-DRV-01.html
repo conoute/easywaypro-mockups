@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="EasyWay Driver">
+<meta name="theme-color" content="#2e2a5c">
+<title>MOB-DRV-01 — EasyWay Driver (Mobile Mockup)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=block" rel="stylesheet">
+<style>
+:root{
+  --accent:#48C876; --info:#56a8dd; --warning:#FFAD20; --danger:#E82C3F; --purple:#7852F7; --accentBlue:#2E5BFF;
+  --rail:#2e2a5c; --text900:#333761; --text600:#666989; --text400:#9a9ab0; --neutral300:#b3b4c4; --neutral200:#d0d0da;
+  --border:#e5e6eb; --border2:#eeeef2; --rowBorder:#f0f0f4; --headerBg:#fafafc;
+  --bg50:#f5f5f7; --white:#fff;
+  --success-bg:#eafcf1; --success-t:#1e8e5a;
+  --warning-bg:#fff5e6; --warning-t:#a85e00;
+  --danger-bg:#fdecec; --danger-t:#c22b2b;
+  --neutral-bg:#f0f0f4; --neutral-t:#666989;
+  --accent-dark:#1e8e5a; --info-bg:#eef4fb; --purple-bg:#efeafe; --selected-bg:#f4fdf7;
+  --sat:env(safe-area-inset-top,0px); --sab:env(safe-area-inset-bottom,0px);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html,body{margin:0;height:100%;}
+body{font-family:'Source Sans 3',sans-serif;color:var(--text900);background:var(--bg50);font-size:15px;line-height:1.4;overscroll-behavior:none;}
+.material-symbols-outlined{font-family:'Material Symbols Outlined';font-variation-settings:'FILL' 0;font-weight:normal;font-style:normal;line-height:1;display:inline-block;white-space:nowrap;-webkit-font-smoothing:antialiased;}
+.material-symbols-outlined.icon-filled{font-variation-settings:'FILL' 1;}
+#frame{position:fixed;inset:0;background:var(--bg50);overflow:hidden;}
+#app{position:absolute;inset:0;display:flex;flex-direction:column;}
+/* Desktop preview: a phone bezel; on a real phone the app is edge-to-edge */
+@media (min-width:600px){
+  body{background:#e6e6ec;}
+  #frame{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);width:390px;height:844px;border-radius:46px;border:10px solid #1a1830;box-shadow:0 30px 80px rgba(0,0,0,.35);inset:auto;}
+  #frame:before{content:'';position:absolute;top:10px;left:50%;transform:translateX(-50%);width:120px;height:30px;background:#1a1830;border-radius:0 0 18px 18px;z-index:50;}
+  :root{--sat:34px;--sab:18px;}
+  .desk-hint{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);font-size:12px;color:var(--text400);text-align:center;}
+}
+@media (max-width:599px){ .desk-hint{display:none;} }
+
+/* Header */
+.m-header{flex-shrink:0;background:#fff;padding:calc(var(--sat) + 8px) 12px 10px;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--border2);min-height:calc(var(--sat) + 56px);}
+.m-header.dark{background:var(--rail);color:#fff;border-bottom:none;}
+.m-header .h-title{font-size:18px;font-weight:700;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.m-header .h-sub{font-size:12.5px;color:var(--text400);font-weight:400;display:block;margin-top:1px;}
+.m-header.dark .h-sub{color:rgba(255,255,255,.6);}
+.icon-btn{width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;color:var(--text900);cursor:pointer;background:none;border:none;position:relative;flex-shrink:0;}
+.icon-btn:active{background:var(--bg50);}
+.m-header.dark .icon-btn{color:#fff;}
+.icon-btn .badge{position:absolute;top:6px;right:6px;min-width:16px;height:16px;border-radius:8px;background:var(--danger);color:#fff;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;padding:0 4px;border:2px solid #fff;}
+.m-header.dark .icon-btn .badge{border-color:var(--rail);}
+
+/* Screen body */
+.m-body{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:12px 14px calc(var(--sab) + 84px);animation:fadeIn .18s ease;}
+.m-body.no-tabs{padding-bottom:calc(var(--sab) + 24px);}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:none;}}
+.section{font-size:11px;font-weight:700;letter-spacing:.4px;color:var(--text400);margin:16px 2px 8px;display:flex;align-items:center;gap:8px;}
+.section .spacer{flex:1;} .section a{color:var(--accent-dark);font-weight:600;letter-spacing:0;font-size:13px;text-transform:none;}
+.card{background:#fff;border:1px solid var(--border2);border-radius:16px;padding:14px;margin-bottom:10px;}
+.card.tap{cursor:pointer;} .card.tap:active{background:var(--bg50);}
+.card.accent{border-color:#bfe9d0;background:var(--selected-bg);}
+.card.warn{border-color:#f3dcb0;background:var(--warning-bg);}
+.card.danger{border-color:#f5c2c2;background:var(--danger-bg);}
+.card.purple{border-color:#d9cffb;background:var(--purple-bg);}
+.card h3{margin:0 0 4px;font-size:16px;font-weight:700;}
+.card .sub{font-size:13px;color:var(--text600);}
+.kv{display:flex;justify-content:space-between;gap:12px;padding:7px 0;border-bottom:1px solid var(--rowBorder);font-size:14px;}
+.kv:last-child{border-bottom:none;} .kv .k{color:var(--text600);} .kv .v{font-weight:600;text-align:right;}
+.row{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--rowBorder);cursor:pointer;}
+.row:last-child{border-bottom:none;} .row:active{opacity:.7;}
+.row .r-icon{width:40px;height:40px;border-radius:12px;background:var(--bg50);display:flex;align-items:center;justify-content:center;color:var(--text900);flex-shrink:0;}
+.row .r-icon.ok{background:var(--success-bg);color:var(--success-t);} .row .r-icon.warn{background:var(--warning-bg);color:var(--warning-t);} .row .r-icon.bad{background:var(--danger-bg);color:var(--danger-t);} .row .r-icon.info{background:var(--info-bg);color:var(--info);} .row .r-icon.ai{background:var(--purple-bg);color:var(--purple);}
+.row .r-main{flex:1;min-width:0;} .row .r-title{font-size:15px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;} .row .r-sub{font-size:12.5px;color:var(--text600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px;}
+.row .r-right{text-align:right;flex-shrink:0;font-size:13px;color:var(--text400);display:flex;align-items:center;gap:4px;}
+.pill{display:inline-block;font-size:11px;font-weight:700;padding:3px 9px;border-radius:6px;white-space:nowrap;}
+.pill.success{background:var(--success-bg);color:var(--success-t);} .pill.warning{background:var(--warning-bg);color:var(--warning-t);} .pill.danger{background:var(--danger-bg);color:var(--danger-t);} .pill.info{background:var(--info-bg);color:var(--info);} .pill.neutral{background:var(--neutral-bg);color:var(--neutral-t);} .pill.purple{background:var(--purple-bg);color:var(--purple);} .pill.dashed{background:#fff;border:1px dashed var(--border);color:var(--text400);}
+.btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;height:48px;border-radius:14px;border:1px solid var(--border);background:#fff;color:var(--text900);font-size:15px;font-weight:600;font-family:inherit;cursor:pointer;}
+.btn:active{background:var(--bg50);} .btn.primary{background:var(--accent);border-color:var(--accent);color:#fff;} .btn.primary:active{background:#3fb96a;} .btn.danger{background:var(--danger);border-color:var(--danger);color:#fff;} .btn.dark{background:var(--text900);border-color:var(--text900);color:#fff;} .btn.purple{background:var(--purple);border-color:var(--purple);color:#fff;} .btn:disabled{opacity:.45;pointer-events:none;}
+.btn-row{display:flex;gap:10px;margin-top:10px;} .btn-row .btn{flex:1;}
+.btn.sm{height:40px;font-size:14px;border-radius:12px;}
+.link{color:var(--accent-dark);font-weight:600;font-size:14px;cursor:pointer;background:none;border:none;font-family:inherit;padding:0;}
+.quick{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;}
+.quick .q{background:#fff;border:1px solid var(--border2);border-radius:14px;padding:12px 4px 10px;display:flex;flex-direction:column;align-items:center;gap:6px;font-size:11.5px;font-weight:600;color:var(--text900);cursor:pointer;text-align:center;}
+.quick .q .material-symbols-outlined{font-size:24px;} .quick .q:active{background:var(--bg50);}
+.seg{display:flex;background:var(--neutral-bg);border-radius:12px;padding:3px;margin-bottom:12px;}
+.seg button{flex:1;border:none;background:none;height:34px;border-radius:10px;font-family:inherit;font-size:13.5px;font-weight:600;color:var(--text600);cursor:pointer;}
+.seg button.active{background:#fff;color:var(--text900);box-shadow:0 1px 3px rgba(0,0,0,.08);}
+.chips{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;scrollbar-width:none;} .chips::-webkit-scrollbar{display:none;}
+.chip{flex-shrink:0;border:1px solid var(--border);border-radius:20px;padding:8px 14px;font-size:13.5px;font-weight:600;background:#fff;cursor:pointer;white-space:nowrap;} .chip.active{background:var(--text900);color:#fff;border-color:var(--text900);}
+.stat3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;}
+.stat{background:#fff;border:1px solid var(--border2);border-radius:14px;padding:10px 8px;text-align:center;} .stat .n{font-size:20px;font-weight:700;} .stat .l{font-size:11px;font-weight:700;letter-spacing:.3px;color:var(--text400);}
+.ai{display:flex;gap:8px;align-items:flex-start;color:var(--purple);font-size:13px;font-weight:600;}
+
+/* HOS */
+.hos{display:flex;flex-direction:column;gap:9px;}
+.hos-row{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--text600);}
+.hos-row .lbl{width:44px;font-weight:600;color:var(--text900);} .hos-row .val{width:66px;font-weight:700;color:var(--text900);text-align:right;}
+.hos-bar{flex:1;height:8px;border-radius:4px;background:var(--border2);overflow:hidden;} .hos-bar i{display:block;height:100%;background:var(--accent);border-radius:4px;} .hos-bar i.warn{background:var(--warning);} .hos-bar i.danger{background:var(--danger);}
+.big-clock{text-align:center;padding:10px 0 6px;} .big-clock .t{font-size:44px;font-weight:700;letter-spacing:-1px;line-height:1;} .big-clock .l{font-size:12px;font-weight:700;letter-spacing:.4px;color:var(--text400);margin-top:4px;}
+.duty{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;}
+.duty button{height:52px;border-radius:14px;border:1px solid var(--border);background:#fff;font-family:inherit;font-size:13px;font-weight:700;color:var(--text600);cursor:pointer;} .duty button.active{background:var(--text900);color:#fff;border-color:var(--text900);}
+.log{display:flex;height:34px;border-radius:8px;overflow:hidden;border:1px solid var(--border2);} .log span{display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff;} .log .off{background:var(--neutral300);} .log .sb{background:var(--info);} .log .dr{background:var(--accent);} .log .on{background:var(--warning);}
+.log-hours{display:flex;justify-content:space-between;font-size:10px;color:var(--text400);margin-top:4px;}
+
+/* Load / stops */
+.load-head{display:flex;align-items:center;gap:8px;margin-bottom:6px;} .load-head .num{font-size:20px;font-weight:700;}
+.route{font-size:15px;font-weight:600;} .route .arrow{color:var(--text400);margin:0 6px;}
+.stops{margin-top:6px;} .stop{display:flex;gap:12px;padding:10px 0;position:relative;}
+.stop .dot{width:14px;height:14px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1.5px var(--border);flex-shrink:0;margin-top:5px;background:var(--info);} .stop .dot.delivery{background:var(--accent);} .stop .dot.done{background:var(--text400);} .stop .dot.here{box-shadow:0 0 0 3px rgba(72,200,118,.35);}
+.stop:not(:last-child):before{content:'';position:absolute;left:6px;top:24px;bottom:-10px;width:2px;background:var(--border2);}
+.stop .s-body{flex:1;min-width:0;} .stop .s-title{font-size:15px;font-weight:600;display:flex;align-items:center;gap:8px;flex-wrap:wrap;} .stop .s-addr{font-size:13px;color:var(--text600);margin-top:2px;} .stop .s-time{font-size:13px;margin-top:4px;} .stop .s-time b{font-weight:600;} .stop .s-time.late{color:var(--danger-t);}
+.stop .s-actions{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;} .stop .s-actions .btn{width:auto;flex:1;height:40px;font-size:13.5px;border-radius:12px;padding:0 10px;}
+.eta-box{display:flex;gap:10px;align-items:center;background:var(--bg50);border-radius:12px;padding:10px 12px;margin-top:8px;} .eta-box .e-main{font-size:15px;font-weight:700;} .eta-box .e-sub{font-size:12.5px;color:var(--text600);}
+.timer{font-variant-numeric:tabular-nums;}
+
+/* Messages */
+.thread{display:flex;flex-direction:column;gap:8px;} .msg{max-width:84%;padding:10px 13px;border-radius:16px;font-size:14.5px;line-height:1.35;} .msg.in{background:#fff;border:1px solid var(--border2);align-self:flex-start;border-bottom-left-radius:5px;} .msg.out{background:var(--accent);color:#fff;align-self:flex-end;border-bottom-right-radius:5px;} .msg .m-meta{font-size:11px;opacity:.7;margin-top:3px;} .msg.sys{align-self:center;background:none;color:var(--text400);font-size:12px;text-align:center;}
+.composer{position:absolute;left:0;right:0;bottom:0;background:#fff;border-top:1px solid var(--border2);padding:8px 10px calc(var(--sab) + 8px);display:flex;gap:8px;align-items:flex-end;}
+.composer textarea{flex:1;border:1px solid var(--border);border-radius:14px;padding:11px 14px;font-family:inherit;font-size:15px;resize:none;height:44px;max-height:110px;outline:none;color:var(--text900);}
+.composer .send{width:44px;height:44px;border-radius:14px;background:var(--accent);color:#fff;border:none;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.tpl-row{display:flex;gap:8px;overflow-x:auto;padding:0 0 8px;scrollbar-width:none;} .tpl-row::-webkit-scrollbar{display:none;}
+
+/* Documents / photos */
+.doc-thumb{width:100%;height:150px;border-radius:12px;background:repeating-linear-gradient(0deg,#fff 0 12px,#f2f2f6 12px 14px);border:1px solid var(--border2);position:relative;overflow:hidden;display:flex;align-items:flex-end;padding:10px;color:var(--text400);font-size:12px;}
+.doc-thumb:before{content:'';position:absolute;left:12px;top:12px;width:60%;height:10px;background:#dcdce4;border-radius:4px;} .doc-thumb:after{content:'';position:absolute;left:12px;top:28px;width:40%;height:8px;background:#e6e6ee;border-radius:4px;}
+.doc-thumb .stamp{position:absolute;right:14px;top:14px;border:2px solid var(--accent);color:var(--accent-dark);font-weight:700;font-size:12px;padding:3px 8px;border-radius:6px;transform:rotate(-8deg);opacity:.85;}
+.camera{background:#1a1830;border-radius:16px;height:230px;position:relative;display:flex;align-items:center;justify-content:center;color:#fff;overflow:hidden;}
+.camera .vf{position:absolute;inset:26px;border:2px solid rgba(255,255,255,.5);border-radius:10px;} .camera .vf i{position:absolute;width:22px;height:22px;border:3px solid var(--accent);} .camera .vf i.tl{left:-3px;top:-3px;border-right:none;border-bottom:none;} .camera .vf i.tr{right:-3px;top:-3px;border-left:none;border-bottom:none;} .camera .vf i.bl{left:-3px;bottom:-3px;border-right:none;border-top:none;} .camera .vf i.br{right:-3px;bottom:-3px;border-left:none;border-top:none;}
+.camera .hint{position:absolute;bottom:12px;left:0;right:0;text-align:center;font-size:12px;opacity:.8;}
+.shutter{width:66px;height:66px;border-radius:50%;background:#fff;border:5px solid #d0d0da;margin:14px auto 0;cursor:pointer;display:block;}
+
+/* Checklist */
+.chk{display:flex;align-items:center;gap:10px;padding:11px 0;border-bottom:1px solid var(--rowBorder);}
+.chk:last-child{border-bottom:none;} .chk .c-name{flex:1;font-size:15px;} .chk .c-btns{display:flex;gap:6px;} .chk .c-btns button{height:34px;padding:0 12px;border-radius:10px;border:1px solid var(--border);background:#fff;font-family:inherit;font-size:13px;font-weight:600;color:var(--text600);cursor:pointer;} .chk .c-btns button.pass.on{background:var(--success-bg);border-color:var(--accent);color:var(--success-t);} .chk .c-btns button.def.on{background:var(--danger-bg);border-color:var(--danger);color:var(--danger-t);}
+.progress{height:6px;border-radius:3px;background:var(--border2);overflow:hidden;margin:8px 0 4px;} .progress i{display:block;height:100%;background:var(--accent);}
+
+/* Forms */
+.field{margin-bottom:12px;} .field label{display:block;font-size:12.5px;font-weight:700;color:var(--text600);margin-bottom:6px;}
+.field input,.field select,.field textarea{width:100%;height:48px;border:1px solid var(--border);border-radius:14px;padding:0 14px;font-family:inherit;font-size:15px;color:var(--text900);background:#fff;outline:none;} .field textarea{height:96px;padding:12px 14px;resize:none;} .field input:focus,.field textarea:focus,.field select:focus{border-color:var(--info);}
+.field.inline{display:flex;gap:10px;} .field.inline>div{flex:1;}
+.switch-row{display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--rowBorder);font-size:15px;} .switch-row:last-child{border-bottom:none;}
+.switch{width:46px;height:26px;border-radius:13px;background:var(--neutral200);position:relative;cursor:pointer;transition:background .15s;flex-shrink:0;} .switch.on{background:var(--accent);} .switch .knob{position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;transition:left .15s;box-shadow:0 1px 3px rgba(0,0,0,.2);} .switch.on .knob{left:23px;}
+
+/* Tab bar */
+.tabbar{position:absolute;left:0;right:0;bottom:0;background:#fff;border-top:1px solid var(--border2);display:flex;padding:6px 6px calc(var(--sab) + 6px);z-index:20;}
+.tabbar .tab{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:10.5px;font-weight:600;color:var(--text400);cursor:pointer;padding:4px 0;position:relative;}
+.tabbar .tab.active{color:var(--accent-dark);} .tabbar .tab .material-symbols-outlined{font-size:24px;}
+.tabbar .tab .dot{position:absolute;top:2px;right:calc(50% - 16px);width:8px;height:8px;border-radius:50%;background:var(--danger);border:2px solid #fff;}
+
+/* Sheet + toast */
+.scrim{position:absolute;inset:0;background:rgba(46,42,92,.45);z-index:40;display:flex;align-items:flex-end;animation:fadeIn .15s;}
+.sheet{width:100%;background:#fff;border-radius:22px 22px 0 0;padding:10px 16px calc(var(--sab) + 16px);max-height:88%;overflow-y:auto;animation:slideUp .2s ease;}
+@keyframes slideUp{from{transform:translateY(40px);opacity:.6;}to{transform:none;opacity:1;}}
+.sheet .grab{width:40px;height:4px;border-radius:2px;background:var(--neutral200);margin:0 auto 12px;}
+.sheet h3{margin:0 0 4px;font-size:18px;} .sheet .sub{font-size:13.5px;color:var(--text600);margin-bottom:12px;}
+.toast-m{position:absolute;left:14px;right:14px;bottom:calc(var(--sab) + 90px);background:var(--text900);color:#fff;border-radius:14px;padding:12px 14px;font-size:14px;font-weight:600;z-index:60;display:flex;align-items:center;gap:8px;box-shadow:0 8px 24px rgba(0,0,0,.25);animation:slideUp .2s;} .toast-m .dot{width:8px;height:8px;border-radius:50%;background:var(--accent);flex-shrink:0;} .toast-m .dot.warning{background:var(--warning);} .toast-m .dot.danger{background:var(--danger);} .toast-m .dot.ai{background:var(--purple);}
+.avatar{width:44px;height:44px;border-radius:50%;background:#dbeafe;color:#3b82c4;font-weight:700;font-size:15px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.avatar.lg{width:72px;height:72px;font-size:24px;}
+.brand{display:flex;align-items:center;gap:8px;justify-content:center;} .brand .wordmark{font-weight:700;font-size:22px;color:#fff;letter-spacing:-.3px;}
+.signin{flex:1;display:flex;flex-direction:column;justify-content:center;padding:0 24px calc(var(--sab) + 24px);background:var(--rail);color:#fff;}
+.signin .card{background:#fff;color:var(--text900);margin-top:22px;}
+.empty{text-align:center;color:var(--text400);padding:40px 20px;font-size:14px;} .empty .material-symbols-outlined{font-size:44px;color:var(--border);}
+.unread{font-weight:700;} .r-title .unread-dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--accent);margin-left:6px;vertical-align:middle;}
+
+</style>
+</head>
+<body>
+<div id="frame"><div id="app"></div></div>
+<div class="desk-hint">Open this page on your phone for the full-screen experience · MOB-DRV-01</div>
+<script>
+/* ============================================================
+   EasyWay Driver — mobile mockup (MOB-DRV-01). Hash router, one state, no libraries.
+   ============================================================ */
+const NOW = new Date(2026, 8, 9, 9, 40);
+function D(d, h, m){ return new Date(2026, 8, 9 + d, h, m||0); }
+const MONTHS=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'], DOW=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+function fmtTime(d){ if(!d) return '—'; let h=d.getHours(), m=d.getMinutes(); const ap=h>=12?'PM':'AM'; h=h%12; if(h===0) h=12; return h+':'+(m<10?'0':'')+m+' '+ap; }
+function fmtDate(d){ return MONTHS[d.getMonth()]+' '+d.getDate(); }
+function fmtDay(d){ const same=d.toDateString()===NOW.toDateString(); const tom=new Date(NOW); tom.setDate(tom.getDate()+1); return same?'Today':(d.toDateString()===tom.toDateString()?'Tomorrow':DOW[d.getDay()]+' '+fmtDate(d)); }
+function fmtDayTime(d){ return fmtDay(d)+' '+fmtTime(d); }
+function fmtDur(min){ min=Math.round(Math.abs(min)); const h=Math.floor(min/60), m=min%60; if(!h) return m+'m'; if(!m) return h+'h'; return h+'h '+(m<10?'0':'')+m+'m'; }
+function relTime(d){ const diff=(d-NOW)/60000; if(Math.abs(diff)<1) return 'now'; return diff<0 ? fmtDur(-diff)+' ago' : 'in '+fmtDur(diff); }
+function money(n){ return '$'+Math.round(n).toLocaleString('en-US'); }
+function apptText(a){ if(a.type==='hard') return fmtDayTime(a.start)+' · hard appt'; return fmtDayTime(a.start)+'–'+fmtTime(a.end)+(a.type==='fcfs'?' · FCFS':' · window'); }
+function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function ic(name, size, extra, filled){ return '<span class="material-symbols-outlined'+(filled?' icon-filled':'')+'" style="font-size:'+(size||22)+'px;'+(extra||'')+'">'+name+'</span>'; }
+function initials(n){ return n.split(/\s+/).slice(0,2).map(p=>p[0]).join('').toUpperCase(); }
+const STATUS = {dispatched:['Needs acceptance','warning'], scheduled:['Scheduled','info'], at_pickup:['At pickup','warning'], in_transit:['In transit','success'], at_delivery:['At delivery','warning'], delivered:['Delivered','neutral']};
+
+/* ---------------- Data ---------------- */
+const ME = {id:'d1', name:'Sultan Suleymanov', phone:'(806) 555-0142', email:'s.suleymanov@hussarllc.com', company:'Hussar LLC', type:'Company driver', cdl:'TX 4489 2210', home:'Amarillo, TX',
+  truck:{unit:'2758', model:'Freightliner Cascadia 2022', plate:'TX 4HK-2291', odometer:412880, vin:'3AKJHHDR5NSMK4821'}, trailer:{unit:'5312', type:'Dry van 53\''},
+  dispatcher:{name:'Marcus Webb', phone:'(214) 555-0120'}, safety:{name:'Angela Torres', phone:'(214) 555-0131'},
+  duty:'driving', hos:{drive:522, shift:675, cycle:3130, breakIn:190}, gps:{city:'Birmingham', st:'AL', road:'I-20 E', speed:66}, payRate:0.65};
+let loads = [
+  {id:'24117', status:'in_transit', accepted:true, customer:'Werner Enterprises', ref:'PO 1914553', commodity:'Paper products', weight:41200, equipment:'Dry van', miles:782, deadhead:38, pay:508, dispatcher:'Marcus Webb', notes:'Hard appt 6 PM — gate 3, lumper on site.',
+    stops:[{kind:'pickup', name:'Georgia-Pacific DC', addr:'1450 Industrial Pkwy, Dallas, TX 75207', city:'Dallas', st:'TX', appt:{start:D(-1,13,0), end:D(-1,15,0), type:'window'}, arrived:D(-1,12,48), departed:D(-1,14,10), contact:'Dock office', phone:'(972) 555-0104', notes:''},
+           {kind:'delivery', name:'Home Depot RDC', addr:'6200 Fulton Industrial Blvd, Atlanta, GA 30336', city:'Atlanta', st:'GA', appt:{start:D(0,18,0), end:null, type:'hard'}, contact:'Receiving', phone:'(404) 555-0166', notes:'Check in at gate 3, lumper on site', milesLeft:148}],
+    docs:{bol:'on_file', pod:'na'}, accessorials:[], activity:[{t:'Departed Georgia-Pacific DC', at:D(-1,14,10)},{t:'Arrived at pickup', at:D(-1,12,48)},{t:'Accepted load', at:D(-2,16,40)},{t:'Dispatched by Marcus Webb', at:D(-2,16,20)}]},
+  {id:'24142', status:'dispatched', accepted:false, customer:'Coyote Logistics', ref:'PO 9903355', commodity:'Beverages', weight:43900, equipment:'Dry van', miles:245, deadhead:14, pay:159, dispatcher:'Marcus Webb', notes:'Reload after Home Depot. Live load, 2 hrs free time.',
+    stops:[{kind:'pickup', name:'Coca-Cola Bottling Atlanta', addr:'1 Coca-Cola Plaza NW, Atlanta, GA 30313', city:'Atlanta', st:'GA', appt:{start:D(1,7,0), end:D(1,9,0), type:'window'}, contact:'Shipping', phone:'(404) 555-0190', notes:''},
+           {kind:'delivery', name:'Publix DC Charlotte', addr:'3700 Westinghouse Blvd, Charlotte, NC 28273', city:'Charlotte', st:'NC', appt:{start:D(1,15,0), end:null, type:'hard'}, contact:'Receiving', phone:'(704) 555-0142', notes:''}],
+    docs:{bol:'na', pod:'na'}, accessorials:[], activity:[{t:'Dispatched by Marcus Webb', at:D(0,8,55)}]},
+  {id:'24145', status:'scheduled', accepted:true, customer:'Schneider National', ref:'PO 6120110', commodity:'Paper', weight:40800, equipment:'Dry van', miles:410, deadhead:22, pay:267, dispatcher:'Marcus Webb', notes:'',
+    stops:[{kind:'pickup', name:'International Paper', addr:'2000 Freedom Dr, Charlotte, NC 28208', city:'Charlotte', st:'NC', appt:{start:D(2,8,0), end:null, type:'hard'}, contact:'Gate', phone:'(704) 555-0177', notes:''},
+           {kind:'delivery', name:'Kroger Delta', addr:'2620 Elm Hill Pike, Nashville, TN 37214', city:'Nashville', st:'TN', appt:{start:D(2,17,0), end:D(2,20,0), type:'window'}, contact:'Receiving', phone:'(615) 555-0152', notes:''}],
+    docs:{bol:'na', pod:'na'}, accessorials:[], activity:[{t:'Accepted load', at:D(0,9,2)},{t:'Dispatched by Marcus Webb', at:D(0,8,58)}]},
+  {id:'24110', status:'delivered', accepted:true, customer:'J.B. Hunt Transport', ref:'PO 3318801', commodity:'Appliances', weight:36900, equipment:'Dry van', miles:460, deadhead:30, pay:299, dispatcher:'Marcus Webb', notes:'',
+    stops:[{kind:'pickup', name:'Whirlpool DC', addr:'Memphis, TN', city:'Memphis', st:'TN', appt:{start:D(-4,8,0), end:null, type:'hard'}, arrived:D(-4,7,50), departed:D(-4,9,20)},{kind:'delivery', name:'Lowe\'s RDC', addr:'Dallas, TX', city:'Dallas', st:'TX', appt:{start:D(-4,18,0), end:D(-4,20,0), type:'window'}, arrived:D(-4,18,10), departed:D(-4,19,25)}],
+    docs:{bol:'on_file', pod:'on_file'}, accessorials:[{name:'Detention', amount:50, addon:25}], activity:[{t:'POD uploaded', at:D(-4,19,30)},{t:'Delivered', at:D(-4,19,25)}]},
+  {id:'24104', status:'delivered', accepted:true, customer:'Werner Enterprises', ref:'PO 1914388', commodity:'Packaged food', weight:40100, equipment:'Dry van', miles:240, deadhead:12, pay:156, dispatcher:'Marcus Webb', notes:'',
+    stops:[{kind:'pickup', name:'Sysco Dallas', addr:'Dallas, TX', city:'Dallas', st:'TX', appt:{start:D(-7,9,0), end:null, type:'hard'}, arrived:D(-7,8,50), departed:D(-7,10,5)},{kind:'delivery', name:'Kroger Houston', addr:'Houston, TX', city:'Houston', st:'TX', appt:{start:D(-7,15,0), end:D(-7,18,0), type:'window'}, arrived:D(-7,14,40), departed:D(-7,16,0)}],
+    docs:{bol:'on_file', pod:'on_file'}, accessorials:[], activity:[{t:'Delivered', at:D(-7,16,0)}]}
+];
+let myDocs = [
+  {id:'cdl', name:'CDL — Class A', sub:'TX 4489 2210 · expires Mar 14, 2028', status:'valid', icon:'badge'},
+  {id:'med', name:'Medical card', sub:'Expires Sep 28, 2026 · 19 days', status:'soon', icon:'medical_information', request:'Upload the renewed card once you have it'},
+  {id:'mvr', name:'Annual MVR review', sub:'Reviewed Jun 12, 2026', status:'valid', icon:'fact_check'},
+  {id:'da', name:'Drug & alcohol test', sub:'Random · Aug 3, 2026 · negative', status:'valid', icon:'science'},
+  {id:'reg', name:'Truck 2758 registration', sub:'Expires Nov 30, 2026', status:'valid', icon:'local_shipping'},
+  {id:'ins', name:'Insurance card', sub:'Policy 88-4412-A · valid', status:'valid', icon:'verified_user'},
+  {id:'ifta', name:'IFTA cab card', sub:'2026 · TX', status:'valid', icon:'description'},
+  {id:'treg', name:'Trailer 5312 registration', sub:'Expires Feb 28, 2027', status:'valid', icon:'rv_hookup'}
+];
+let threads = [
+  {id:'dispatch', name:'Dispatch · Marcus Webb', sub:'Load 24117', avatar:'MW', unread:1, msgs:[
+    {from:'in', text:'Morning Sultan — appt in ATL is hard 6 PM, gate 3.', at:D(0,6,52)},{from:'out', text:'Copy. Rolling out of Meridian now, should be there by 2.', at:D(0,6,58)},{from:'in', text:'Reload for tomorrow is 24142 — Coca-Cola ATL 7 AM. Please accept it in the app.', at:D(0,8,56)}]},
+  {id:'safety', name:'Safety · Angela Torres', sub:'Compliance', avatar:'AT', unread:0, msgs:[{from:'in', text:'Reminder: your medical card expires Sep 28. Upload the new one in Documents when you get it.', at:D(-1,10,15)},{from:'out', text:'Appointment is Sep 20, will upload after.', at:D(-1,10,40)}]},
+  {id:'shop', name:'Shop · Mike Ferraro', sub:'Truck 2758', avatar:'MF', unread:0, msgs:[{from:'in', text:'PM service for 2758 is scheduled Sep 14 in Dallas. Plan to be at the yard by 8 AM.', at:D(-2,15,0)}]}
+];
+let notifications = [
+  {id:'n1', icon:'route', cls:'warn', title:'New load 24142 — accept by 11:00 AM', sub:'Atlanta → Charlotte · pickup tomorrow 7:00 AM', at:D(0,8,56), go:'#/load/24142'},
+  {id:'n2', icon:'chat', cls:'info', title:'Marcus Webb: "Reload for tomorrow is 24142…"', sub:'Dispatch thread', at:D(0,8,56), go:'#/thread/dispatch'},
+  {id:'n3', icon:'medical_information', cls:'warn', title:'Medical card expires in 19 days', sub:'Upload the renewed card in Documents', at:D(-1,10,15), go:'#/docs'},
+  {id:'n4', icon:'build', cls:'info', title:'PM service scheduled Sep 14', sub:'Truck 2758 · Dallas yard, 8:00 AM', at:D(-2,15,0), go:'#/thread/shop'},
+  {id:'n5', icon:'payments', cls:'ok', title:'Paystub Aug 31 – Sep 6 is ready', sub:'Net $1,842 · deposited Sep 8', at:D(-1,9,0), go:'#/pay'}
+];
+let tasks = [ {id:'t1', title:'Post-trip inspection', sub:'Due at end of shift', icon:'fact_check', cls:'info', go:'#/pti'}, {id:'t2', title:'Hazmat awareness training', sub:'Due Sep 15 · 25 min', icon:'school', cls:'info', go:'#/training'} ];
+let pti = {preDone:D(0,5,50), postDone:null, defects:[]};
+let pay = {period:'Sep 7 – Sep 13', trips:[{load:'24117', text:'Dallas → Atlanta · 782 mi', amount:508, status:'in progress'}], addons:[{text:'Detention share · load 24110', amount:25, from:'accessorial'},{text:'Tolls reimbursement · Sep 5', amount:23.40, from:'receipt'}], deductions:[{text:'Occupational accident insurance', amount:42},{text:'Fuel advance · Sep 8', amount:150}],
+  history:[{period:'Aug 31 – Sep 6', net:1842, gross:2140, paid:'Sep 8'},{period:'Aug 24 – Aug 30', net:1910, gross:2205, paid:'Sep 1'},{period:'Aug 17 – Aug 23', net:1655, gross:1930, paid:'Aug 25'}]};
+let fuel = [{station:'Pilot #442', city:'Meridian, MS', gal:118.4, total:412.03, at:D(0,6,20)},{station:'Love\'s #221', city:'Shreveport, LA', gal:96.1, total:334.43, at:D(-1,16,5)}];
+let settings = {push:true, sound:true, geofence:true, lang:'English'};
+let signedIn = (()=>{ try{ return sessionStorage.getItem('ew_driver_signed')==='1'; }catch(e){ return false; } })();
+function setSigned(v){ signedIn=v; try{ sessionStorage.setItem('ew_driver_signed', v?'1':'0'); }catch(e){} }
+const PTI_ITEMS = [['Engine compartment',['Oil level','Coolant level','Belts & hoses','Steering components']],['Cab & controls',['Brakes — air pressure & warning','Horn & wipers','Mirrors & windshield','Seat belt']],['Lights & reflectors',['Headlights / high beams','Turn signals & 4-ways','Brake lights','Clearance & marker lights']],['Tires, wheels & brakes',['Tire tread & inflation','Lug nuts & rims','Brake chambers & slack adjusters','Hub oil / leaks']],['Coupling & trailer',['Fifth wheel & kingpin','Air lines & glad hands','Trailer lights','Landing gear & doors']]];
+let ptiState = {};
+
+/* ---------------- App state + router ---------------- */
+const app = document.getElementById('app');
+let state = {loadsSeg:'active', docsSeg:'mine', sheet:null, timerBase:Date.now()};
+function go(path){ location.hash = path; }
+function back(){ if(history.length>1) history.back(); else go('#/home'); }
+function route(){ const h=location.hash||'#/home'; const p=h.replace(/^#\//,'').split('/'); return {name:p[0]||'home', id:p[1]||null, sub:p[2]||null}; }
+window.addEventListener('hashchange', render);
+function loadById(id){ return loads.find(l=>l.id===id); }
+function nextStop(l){ return l.stops.find(s=>!s.departed) || null; }
+function currentStop(l){ return l.stops.find(s=>s.arrived && !s.departed) || null; }
+function activeLoad(){ return loads.find(l=>['at_pickup','in_transit','at_delivery'].includes(l.status)) || null; }
+function etaOf(l){ const n=nextStop(l); if(!n || n.arrived || !n.milesLeft) return null; return new Date(NOW.getTime() + n.milesLeft/55*3600000); }
+function liveMinutes(base){ return (NOW - base)/60000 + (Date.now()-state.timerBase)/60000; }
+
+/* ---------------- Render ---------------- */
+function render(){
+  closeSheet(false);
+  const r = route();
+  if(!signedIn && r.name!=='signin'){ location.replace('#/signin'); return; }
+  app.innerHTML='';
+  const screens = {signin:scrSignin, home:scrHome, loads:scrLoads, load:scrLoad, messages:scrMessages, thread:scrThread, docs:scrDocs, more:scrMore, hos:scrHos, pti:scrPti, pay:scrPay, fuel:scrFuel, incident:scrIncident, profile:scrProfile, settings:scrSettings, notifications:scrNotifications, training:scrTraining};
+  (screens[r.name]||scrHome)(r);
+  const top = ['home','loads','messages','docs','more'].includes(r.name);
+  if(top) app.appendChild(tabbar(r.name));
+  const body=app.querySelector('.m-body'); if(body) body.scrollTop=0;
+}
+function header(title, opts){
+  opts=opts||{};
+  const h = document.createElement('div'); h.className='m-header'+(opts.dark?' dark':'');
+  h.innerHTML = (opts.back?'<button class="icon-btn" data-back>'+ic('arrow_back',24)+'</button>':'')+(opts.left||'')+'<div class="h-title">'+title+(opts.sub?'<span class="h-sub">'+opts.sub+'</span>':'')+'</div>'+(opts.right||'');
+  const b=h.querySelector('[data-back]'); if(b) b.onclick=back;
+  return h;
+}
+function body(html, noTabs){ const b=document.createElement('div'); b.className='m-body'+(noTabs?' no-tabs':''); b.innerHTML=html; return b; }
+function bind(node){
+  node.querySelectorAll('[data-go]').forEach(n=>{ n.addEventListener('click', (e)=>{ e.stopPropagation(); go(n.dataset.go); }); });
+  node.querySelectorAll('[data-toast]').forEach(n=>{ n.addEventListener('click', (e)=>{ e.stopPropagation(); toast(n.dataset.toast, n.dataset.tone||''); }); });
+}
+function tabbar(active){
+  const unread = threads.reduce((s,t)=>s+t.unread,0); const needs = loads.filter(l=>l.status==='dispatched').length;
+  const tabs=[['home','home','Home'],['loads','route','Loads'],['messages','chat','Messages'],['docs','description','Docs'],['more','menu','More']];
+  const bar = document.createElement('div'); bar.className='tabbar';
+  bar.innerHTML = tabs.map(([k,i,l])=>'<div class="tab'+(k===active?' active':'')+'" data-go="#/'+k+'">'+ic(i,24,'',k===active)+l+((k==='messages'&&unread)||(k==='loads'&&needs)?'<span class="dot"></span>':'')+'</div>').join('');
+  bind(bar); return bar;
+}
+function toast(msg, tone){ document.querySelectorAll('.toast-m').forEach(t=>t.remove()); const t=document.createElement('div'); t.className='toast-m'; t.innerHTML='<span class="dot '+(tone||'')+'"></span><span>'+msg+'</span>'; app.appendChild(t); setTimeout(()=>t.remove(), 2800); }
+function openSheet(html, onOpen){
+  closeSheet(false);
+  const s=document.createElement('div'); s.className='scrim'; s.innerHTML='<div class="sheet"><div class="grab"></div>'+html+'</div>';
+  s.onclick=(e)=>{ if(e.target===s) closeSheet(); };
+  app.appendChild(s); state.sheet=s; bind(s); if(onOpen) onOpen(s.querySelector('.sheet'));
+  return s.querySelector('.sheet');
+}
+function closeSheet(){ if(state.sheet){ state.sheet.remove(); state.sheet=null; } }
+
+/* ---------------- Screens ---------------- */
+function scrSignin(){
+  const s=document.createElement('div'); s.className='signin';
+  s.innerHTML='<div class="brand"><svg width="34" height="32" viewBox="0 0 100 94" xmlns="http://www.w3.org/2000/svg"><circle cx="13" cy="13" r="13" fill="#48C876"/><rect x="34" y="0" width="66" height="26" rx="13" fill="#48C876"/><rect x="0" y="34" width="100" height="26" rx="13" fill="#FFAD20"/><rect x="0" y="68" width="100" height="26" rx="13" fill="#E82C3F"/></svg><span class="wordmark">easyway</span></div><div style="text-align:center;font-size:13px;opacity:.7;margin-top:6px">Driver app · '+esc(ME.company)+'</div>'+
+    '<div class="card"><h3>Sign in</h3><div class="sub" style="margin-bottom:12px">Use the phone number on file with your company.</div><div class="field"><label>Phone</label><input type="tel" value="'+esc(ME.phone)+'"/></div><div class="field"><label>PIN</label><input type="password" value="482910"/></div><button class="btn primary" id="signin">Sign in</button><button class="btn" style="margin-top:8px" id="faceid">'+ic('face',20)+'Use Face ID</button><div style="text-align:center;margin-top:12px"><button class="link" data-toast="A reset link was sent to (806) ***-0142">Forgot PIN?</button></div></div><div style="text-align:center;font-size:11.5px;opacity:.5;margin-top:18px">MOB-DRV-01 · functional mockup · v0.1</div>';
+  app.appendChild(s); bind(s);
+  const enter=()=>{ setSigned(true); toast('Welcome back, '+ME.name.split(' ')[0]); go('#/home'); };
+  s.querySelector('#signin').onclick=enter; s.querySelector('#faceid').onclick=enter;
+}
+function hosBars(compact){
+  const bar=(l,v,max)=>{ const pct=Math.max(0,Math.min(100,v/max*100)); const cls=v<60?'danger':(v<180?'warn':''); return '<div class="hos-row"><span class="lbl">'+l+'</span><span class="hos-bar"><i class="'+cls+'" style="width:'+pct+'%"></i></span><span class="val">'+fmtDur(v)+'</span></div>'; };
+  return '<div class="hos">'+bar('Drive',ME.hos.drive,660)+bar('Shift',ME.hos.shift,840)+(compact?'':bar('Cycle',ME.hos.cycle,4200))+'</div>';
+}
+function scrHome(){
+  const unread = threads.reduce((s,t)=>s+t.unread,0);
+  app.appendChild(header('Good morning, '+ME.name.split(' ')[0], {dark:true, sub:'Truck '+ME.truck.unit+' · Trailer '+ME.trailer.unit+' · '+({driving:'Driving',on_duty:'On duty',off_duty:'Off duty',sleeper:'Sleeper'}[ME.duty])+' · '+ME.gps.city+', '+ME.gps.st, left:'<div class="avatar" data-go="#/profile" style="cursor:pointer">'+initials(ME.name)+'</div>', right:'<button class="icon-btn" data-go="#/notifications">'+ic('notifications',24)+(notifications.length?'<span class="badge">'+notifications.length+'</span>':'')+'</button>'}));
+  const cur = activeLoad(); const next = cur ? nextStop(cur) : null; const eta = cur ? etaOf(cur) : null; const here = cur ? currentStop(cur) : null;
+  let h='';
+  h += '<div class="card tap" data-go="#/hos"><div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><h3 style="margin:0;flex:1">Hours of service</h3><span class="pill '+(ME.hos.drive<120?'danger':(ME.hos.breakIn<60?'warning':'success'))+'">'+(ME.hos.breakIn<60?'Break in '+fmtDur(ME.hos.breakIn):'Break in '+fmtDur(ME.hos.breakIn))+'</span></div>'+hosBars(true)+'</div>';
+  if(cur){
+    const dl=next.appt.end||next.appt.start; const late = eta && eta>dl;
+    h += '<div class="section">CURRENT LOAD<span class="spacer"></span><a data-go="#/load/'+cur.id+'">Details</a></div>';
+    h += '<div class="card accent tap" data-go="#/load/'+cur.id+'"><div class="load-head"><span class="num">'+cur.id+'</span><span class="pill '+STATUS[cur.status][1]+'">'+STATUS[cur.status][0]+'</span><span style="margin-left:auto;font-size:13px;color:var(--text600)">'+esc(cur.customer)+'</span></div><div class="route">'+esc(cur.stops[0].city)+', '+cur.stops[0].st+'<span class="arrow">→</span>'+esc(cur.stops[cur.stops.length-1].city)+', '+cur.stops[cur.stops.length-1].st+'</div>'+
+      (here ? '<div class="eta-box">'+ic('schedule',22,'color:var(--warning-t)')+'<div><div class="e-main timer" data-timer="'+here.arrived.getTime()+'">On site '+fmtDur(liveMinutes(here.arrived))+'</div><div class="e-sub">'+esc(here.name)+' · free time 2h</div></div></div>' :
+      '<div class="eta-box">'+ic('place',22,'color:var(--accent-dark)')+'<div><div class="e-main">Next: '+esc(next.name)+', '+esc(next.city)+'</div><div class="e-sub">'+esc(apptText(next.appt))+(eta?' · ETA '+fmtTime(eta)+(late?' — late':' · '+next.milesLeft+' mi'):'')+'</div></div></div>')+
+      '<div class="btn-row">'+(here?'<button class="btn primary sm" data-act="depart" data-load="'+cur.id+'">'+ic('local_shipping',18)+(here.kind==='pickup'?'Loaded, departing':'Delivered')+'</button>':'<button class="btn primary sm" data-act="navigate" data-load="'+cur.id+'">'+ic('navigation',18)+'Navigate</button><button class="btn sm" data-act="arrive" data-load="'+cur.id+'">'+ic('where_to_vote',18)+'Arrived</button>')+'<button class="btn sm" data-go="#/thread/dispatch" style="flex:0 0 48px">'+ic('chat',20)+'</button></div></div>';
+  }
+  const needs = loads.filter(l=>l.status==='dispatched');
+  const actions = [];
+  needs.forEach(l=>actions.push({icon:'route', cls:'warn', title:'Accept load '+l.id+' · '+l.stops[0].city+' → '+l.stops[l.stops.length-1].city, sub:'Pickup '+apptText(l.stops[0].appt)+' · '+money(l.pay), go:'#/load/'+l.id}));
+  loads.filter(l=>l.status==='delivered' && l.docs.pod!=='on_file').forEach(l=>actions.push({icon:'upload_file', cls:'bad', title:'Upload POD for load '+l.id, sub:'Billing is waiting for the signed delivery receipt', go:'#/load/'+l.id}));
+  myDocs.filter(d=>d.status==='soon'||d.status==='expired').forEach(d=>actions.push({icon:d.icon, cls:d.status==='expired'?'bad':'warn', title:d.name+' — '+(d.status==='expired'?'expired':'expires soon'), sub:d.sub, go:'#/docs'}));
+  tasks.forEach(t=>actions.push({icon:t.icon, cls:t.cls, title:t.title, sub:t.sub, go:t.go}));
+  h += '<div class="section">NEEDS YOUR ATTENTION · '+actions.length+'</div><div class="card" style="padding:2px 14px">'+(actions.length?actions.map(a=>'<div class="row" data-go="'+a.go+'"><div class="r-icon '+a.cls+'">'+ic(a.icon,22)+'</div><div class="r-main"><div class="r-title">'+esc(a.title)+'</div><div class="r-sub">'+esc(a.sub)+'</div></div><div class="r-right">'+ic('chevron_right',20)+'</div></div>').join(''):'<div class="empty">All caught up.</div>')+'</div>';
+  h += '<div class="section">QUICK ACTIONS</div><div class="quick"><div class="q" data-go="#/pti">'+ic('fact_check')+'Inspection</div><div class="q" data-go="#/fuel">'+ic('local_gas_station')+'Fuel</div><div class="q" data-act="upload-any">'+ic('photo_camera')+'Upload doc</div><div class="q" data-go="#/incident">'+ic('report_problem')+'Incident</div></div>';
+  const up = loads.filter(l=>l.status==='scheduled'||l.status==='dispatched');
+  if(up.length) h += '<div class="section">UPCOMING<span class="spacer"></span><a data-go="#/loads">All loads</a></div><div class="card" style="padding:2px 14px">'+up.map(loadRow).join('')+'</div>';
+  const b=body(h); app.appendChild(b); bind(b); bindLoadActions(b);
+}
+function loadRow(l){
+  const last=l.stops[l.stops.length-1]; const when = l.status==='delivered' ? 'Delivered '+fmtDay(last.departed) : 'Pickup '+fmtDayTime(l.stops[0].appt.start);
+  return '<div class="row" data-go="#/load/'+l.id+'"><div class="r-icon '+(l.status==='dispatched'?'warn':(l.status==='delivered'?'':'info'))+'">'+ic('route',22)+'</div><div class="r-main"><div class="r-title">'+l.id+' · '+esc(l.stops[0].city)+' → '+esc(last.city)+'</div><div class="r-sub">'+when+' · '+l.miles+' mi · '+esc(l.customer)+'</div></div><div class="r-right"><div style="text-align:right"><div style="font-weight:700;color:var(--accent-dark);font-size:14px">'+money(l.pay)+'</div><span class="pill '+STATUS[l.status][1]+'" style="font-size:10px">'+STATUS[l.status][0]+'</span></div></div></div>';
+}
+function scrLoads(){
+  app.appendChild(header('Loads', {right:'<button class="icon-btn" data-go="#/notifications">'+ic('notifications',24)+(notifications.length?'<span class="badge">'+notifications.length+'</span>':'')+'</button>'}));
+  const seg=state.loadsSeg; const list = loads.filter(l=> seg==='active' ? l.status!=='delivered' : l.status==='delivered');
+  const b=body('<div class="seg"><button class="'+(seg==='active'?'active':'')+'" data-seg="active">Active · '+loads.filter(l=>l.status!=='delivered').length+'</button><button class="'+(seg==='delivered'?'active':'')+'" data-seg="delivered">Delivered</button></div>'+(list.length?'<div class="card" style="padding:2px 14px">'+list.map(loadRow).join('')+'</div>':'<div class="empty">'+ic('route')+'<div>No loads here.</div></div>')+(seg==='delivered'?'<div class="stat3" style="margin-top:8px"><div class="stat"><div class="n">'+loads.filter(l=>l.status==='delivered').length+'</div><div class="l">THIS MONTH</div></div><div class="stat"><div class="n">'+loads.filter(l=>l.status==='delivered').reduce((s,l)=>s+l.miles,0).toLocaleString()+'</div><div class="l">MILES</div></div><div class="stat"><div class="n">'+money(loads.filter(l=>l.status==='delivered').reduce((s,l)=>s+l.pay,0))+'</div><div class="l">EARNED</div></div></div>':''));
+  b.querySelectorAll('[data-seg]').forEach(x=>x.onclick=()=>{ state.loadsSeg=x.dataset.seg; render(); });
+  app.appendChild(b); bind(b);
+}
+function scrLoad(r){
+  const l=loadById(r.id); if(!l){ go('#/loads'); return; }
+  app.appendChild(header('Load '+l.id, {back:true, sub:esc(l.customer)+' · '+esc(l.ref), right:'<button class="icon-btn" data-go="#/thread/dispatch">'+ic('chat',24)+'</button>'}));
+  const next=nextStop(l), here=currentStop(l), eta=etaOf(l); const last=l.stops[l.stops.length-1];
+  let h='';
+  if(l.status==='dispatched') h += '<div class="card warn"><h3>New load from '+esc(l.dispatcher)+'</h3><div class="sub">Accept to add it to your schedule. Decline if you can\'t run it — dispatch will reassign.</div><div class="btn-row"><button class="btn primary" data-act="accept" data-load="'+l.id+'">'+ic('check',20)+'Accept load</button><button class="btn" data-act="decline" data-load="'+l.id+'">Decline</button></div></div>';
+  h += '<div class="card"><div class="load-head"><span class="pill '+STATUS[l.status][1]+'">'+STATUS[l.status][0]+'</span><span style="margin-left:auto;font-weight:700;color:var(--accent-dark);font-size:18px">'+money(l.pay)+'</span></div><div class="route">'+esc(l.stops[0].city)+', '+l.stops[0].st+'<span class="arrow">→</span>'+esc(last.city)+', '+last.st+'</div><div class="sub" style="margin-top:4px">'+l.miles+' loaded mi · '+l.deadhead+' deadhead · $'+ME.payRate.toFixed(2)+'/mi · '+esc(l.equipment)+' · '+l.weight.toLocaleString()+' lb · '+esc(l.commodity)+'</div>'+(l.notes?'<div class="eta-box" style="margin-top:10px">'+ic('sticky_note_2',20,'color:var(--text400)')+'<div class="e-sub" style="color:var(--text900)">'+esc(l.notes)+'</div></div>':'')+'</div>';
+  h += '<div class="section">STOPS</div><div class="card"><div class="stops">'+l.stops.map((s,i)=>{
+    const done=!!s.departed, isHere=s.arrived&&!s.departed, isNext = next===s && !s.arrived;
+    const dl=s.appt.end||s.appt.start; const late = isNext && eta && eta>dl;
+    let times='<div class="s-time">Appt <b>'+esc(apptText(s.appt))+'</b></div>';
+    if(isNext && eta) times += '<div class="s-time'+(late?' late':'')+'">ETA <b>'+fmtTime(eta)+'</b> · '+s.milesLeft+' mi'+(late?' · past the appointment — message dispatch':'')+'</div>';
+    if(s.arrived) times += '<div class="s-time">Arrived <b>'+fmtDayTime(s.arrived)+'</b>'+(s.departed?' · Departed <b>'+fmtTime(s.departed)+'</b>':'')+'</div>';
+    if(isHere) times += '<div class="s-time timer" data-timer="'+s.arrived.getTime()+'">On site <b>'+fmtDur(liveMinutes(s.arrived))+'</b> · free time 2h</div>';
+    let actions='';
+    if(l.status!=='delivered' && l.status!=='dispatched'){
+      if(isNext) actions='<div class="s-actions"><button class="btn primary" data-act="navigate" data-load="'+l.id+'" data-i="'+i+'">'+ic('navigation',18)+'Navigate</button><button class="btn" data-act="arrive" data-load="'+l.id+'" data-i="'+i+'">'+ic('where_to_vote',18)+'Arrived</button>'+(s.phone?'<button class="btn" data-act="call" data-phone="'+s.phone+'" style="flex:0 0 46px">'+ic('call',18)+'</button>':'')+'</div>';
+      if(isHere) actions='<div class="s-actions"><button class="btn primary" data-act="depart" data-load="'+l.id+'" data-i="'+i+'">'+ic(s.kind==='pickup'?'local_shipping':'task_alt',18)+(s.kind==='pickup'?'Loaded, departing':'Delivered')+'</button><button class="btn" data-act="issue" data-load="'+l.id+'" data-i="'+i+'">'+ic('report',18)+'Issue</button></div>';
+    }
+    return '<div class="stop"><span class="dot '+(done?'done':s.kind)+(isHere?' here':'')+'"></span><div class="s-body"><div class="s-title">'+(s.kind==='pickup'?'Pickup':'Delivery')+' · '+esc(s.name)+(isHere?'<span class="pill success">ON SITE</span>':(done?'<span class="pill neutral">DONE</span>':''))+'</div><div class="s-addr">'+esc(s.addr)+(s.contact?' · '+esc(s.contact):'')+'</div>'+(s.notes?'<div class="s-addr" style="color:var(--text400)">'+ic('info',14,'vertical-align:-2px')+' '+esc(s.notes)+'</div>':'')+times+actions+'</div></div>';
+  }).join('')+'</div></div>';
+  const docChip=(k,lbl)=>'<div class="row" data-act="doc" data-load="'+l.id+'" data-k="'+k+'"><div class="r-icon '+(l.docs[k]==='on_file'?'ok':'')+'">'+ic(l.docs[k]==='on_file'?'task':'description',22)+'</div><div class="r-main"><div class="r-title">'+lbl+'</div><div class="r-sub">'+(l.docs[k]==='on_file'?'Uploaded · sent to dispatch':(l.docs[k]==='na'?'Not yet due':'Missing — upload from the camera'))+'</div></div><div class="r-right">'+(l.docs[k]==='on_file'?ic('visibility',20):ic('photo_camera',20))+'</div></div>';
+  h += '<div class="section">DOCUMENTS</div><div class="card" style="padding:2px 14px">'+docChip('bol','Bill of lading')+docChip('pod','Proof of delivery')+'</div>';
+  if(l.accessorials.length) h += '<div class="section">EXTRA CHARGES ON THIS LOAD</div><div class="card" style="padding:2px 14px">'+l.accessorials.map(a=>'<div class="kv"><span class="k">'+esc(a.name)+(a.receipt?' · receipt':'')+'</span><span class="v">'+money(a.amount)+(a.addon?' <span style="color:var(--purple)">· '+money(a.addon)+' to you</span>':'')+'</span></div>').join('')+'</div>';
+  if(l.status!=='delivered' && l.status!=='dispatched') h += '<button class="btn" data-act="lumper" data-load="'+l.id+'">'+ic('receipt_long',20)+'Add lumper / receipt</button>';
+  h += '<div class="section">ACTIVITY</div><div class="card" style="padding:2px 14px">'+l.activity.map(a=>'<div class="kv"><span class="k">'+esc(a.t)+'</span><span class="v" style="font-weight:400;color:var(--text400)">'+fmtDayTime(a.at)+'</span></div>').join('')+'</div>';
+  const b=body(h, true); app.appendChild(b); bind(b); bindLoadActions(b);
+}
+function bindLoadActions(node){
+  node.querySelectorAll('[data-act]').forEach(btn=>{
+    btn.addEventListener('click', (e)=>{
+      e.stopPropagation(); const a=btn.dataset.act; const l=btn.dataset.load?loadById(btn.dataset.load):null;
+      if(a==='navigate'){ const s=nextStop(l); const url='https://maps.google.com/?q='+encodeURIComponent(s.addr); window.open(url,'_blank'); toast('Opening navigation to '+s.name); }
+      else if(a==='call'){ toast('Calling '+btn.dataset.phone+'…'); }
+      else if(a==='arrive'){ const s=nextStop(l); openSheet('<h3>Arrived at '+esc(s.name)+'?</h3><div class="sub">'+esc(s.addr)+'<br/>Your position matches the geofence — dispatch and the customer get a check-in at '+fmtTime(NOW)+'.</div><div class="field"><label>Door / gate (optional)</label><input type="text" id="gate" placeholder="e.g. Gate 3, door 12"/></div><button class="btn primary" id="ok">'+ic('where_to_vote',20)+'Confirm arrival</button>', (sh)=>{ sh.querySelector('#ok').onclick=()=>{ s.arrived=NOW; state.timerBase=Date.now(); l.status = s.kind==='pickup'?'at_pickup':'at_delivery'; const g=sh.querySelector('#gate').value.trim(); l.activity.unshift({t:'Arrived at '+s.name+(g?' · '+g:''), at:NOW}); closeSheet(); toast('Check-in sent · free time starts now'); render(); }; }); }
+      else if(a==='depart'){ const s=currentStop(l); if(s.kind==='pickup') openSheet('<h3>Loaded and departing</h3><div class="sub">Take a photo of the signed bill of lading before you leave the dock.</div>'+cameraHtml('Bill of lading')+'<div class="field" style="margin-top:12px"><label>Seal number (optional)</label><input type="text" placeholder="e.g. 0048812"/></div><button class="btn primary" id="ok" disabled>'+ic('local_shipping',20)+'Confirm departure</button>', (sh)=>wireCamera(sh, ()=>{ s.departed=NOW; l.docs.bol='on_file'; l.status='in_transit'; l.activity.unshift({t:'Departed '+s.name+' · BOL uploaded', at:NOW}); closeSheet(); toast('BOL sent to dispatch · rolling'); render(); }));
+        else openSheet('<h3>Delivered</h3><div class="sub">Photograph the signed proof of delivery. Billing needs it to invoice the load.</div>'+cameraHtml('Proof of delivery')+'<div class="field" style="margin-top:12px"><label>Received by</label><input type="text" id="recv" placeholder="Name of the receiver"/></div><div class="field"><label>Notes (damage, shortages, OS&D)</label><input type="text" id="osd" placeholder="e.g. 2 pallets refused"/></div><button class="btn primary" id="ok" disabled>'+ic('task_alt',20)+'Confirm delivery</button>', (sh)=>wireCamera(sh, ()=>{ s.departed=NOW; l.docs.pod='on_file'; l.status='delivered'; l.activity.unshift({t:'Delivered · POD uploaded'+(sh.querySelector('#recv').value?' · received by '+sh.querySelector('#recv').value:''), at:NOW}); pay.trips=pay.trips.map(t=>t.load===l.id?Object.assign(t,{status:'delivered'}):t); closeSheet(); toast('POD sent · '+money(l.pay)+' added to your paystub'); const nx=loads.find(x=>x.status==='dispatched'||x.status==='scheduled'); go('#/loads'); if(nx) setTimeout(()=>toast('Next: load '+nx.id+' · '+nx.stops[0].city+' '+fmtDayTime(nx.stops[0].appt.start)),2900); })); }
+      else if(a==='accept'){ l.accepted=true; l.status='scheduled'; l.activity.unshift({t:'Accepted load', at:NOW}); notifications=notifications.filter(n=>n.id!=='n1'); toast('Load '+l.id+' accepted · dispatch notified'); render(); }
+      else if(a==='decline'){ openSheet('<h3>Decline load '+l.id+'?</h3><div class="sub">Dispatch will reassign it. Please tell them why.</div><div class="field"><label>Reason</label><select id="why"><option>Out of hours</option><option>Truck issue</option><option>Personal / home time</option><option>Other</option></select></div><button class="btn danger" id="ok">Decline</button>', (sh)=>{ sh.querySelector('#ok').onclick=()=>{ const why=sh.querySelector('#why').value; loads=loads.filter(x=>x.id!==l.id); threads[0].msgs.push({from:'out', text:'Declined load '+l.id+' — '+why+'.', at:NOW}); closeSheet(); toast('Declined · Marcus Webb notified','warning'); go('#/loads'); }; }); }
+      else if(a==='issue'){ const s=currentStop(l); openSheet('<h3>Issue at '+esc(s.name)+'</h3><div class="sub">Dispatch sees it immediately and can call the customer.</div><div class="field"><label>What is happening?</label><select id="kind"><option>Waiting — no door assigned</option><option>Freight not ready</option><option>Wrong / damaged freight</option><option>Lumper requested payment</option><option>Other</option></select></div><div class="field"><label>Details</label><textarea id="txt" placeholder="e.g. Told to wait, 3 trucks ahead of me"></textarea></div><button class="btn primary" id="ok">Send to dispatch</button>', (sh)=>{ sh.querySelector('#ok').onclick=()=>{ threads[0].msgs.push({from:'out', text:'Issue at '+s.name+': '+sh.querySelector('#kind').value+(sh.querySelector('#txt').value?' — '+sh.querySelector('#txt').value:''), at:NOW}); closeSheet(); toast('Sent — Marcus will call the receiver'); setTimeout(()=>{ threads[0].msgs.push({from:'in', text:'Got it. Calling them now, keep your detention timer running.', at:NOW}); threads[0].unread++; if(route().name!=='thread') toast('Marcus Webb replied','ai'); }, 2500); }; }); }
+      else if(a==='lumper'){ openSheet('<h3>Lumper / receipt</h3><div class="sub">Paid out of pocket? Photograph the receipt — the amount is reimbursed on your next paystub.</div>'+cameraHtml('Receipt')+'<div class="field inline" style="margin-top:12px"><div><label>Type</label><select id="kind"><option>Lumper</option><option>Scale ticket</option><option>Tolls</option><option>Reefer fuel</option><option>Other</option></select></div><div><label>Amount ($)</label><input type="number" id="amt" placeholder="0.00"/></div></div><button class="btn primary" id="ok" disabled>Submit</button>', (sh)=>wireCamera(sh, ()=>{ const amt=Number(sh.querySelector('#amt').value)||0; if(!amt){ toast('Enter the amount','warning'); return; } const name=sh.querySelector('#kind').value; l.accessorials.push({name, amount:amt, addon:amt, receipt:true}); pay.addons.push({text:name+' reimbursement · load '+l.id, amount:amt, from:'receipt'}); l.activity.unshift({t:name+' receipt '+money(amt)+' submitted', at:NOW}); closeSheet(); toast(name+' '+money(amt)+' → your paystub '+pay.period); render(); })); }
+      else if(a==='doc'){ const k=btn.dataset.k; if(l.docs[k]==='on_file') openSheet('<h3>'+(k==='bol'?'Bill of lading':'Proof of delivery')+' · '+l.id+'</h3><div class="sub">Uploaded · shared with dispatch and billing</div><div class="doc-thumb"><span class="stamp">RECEIVED</span>'+(k==='bol'?'BOL · '+esc(l.stops[0].name):'POD · '+esc(l.stops[l.stops.length-1].name))+'</div><div class="btn-row"><button class="btn" data-toast="Shared to dispatch chat">'+ic('share',18)+'Share</button><button class="btn" id="retake">'+ic('photo_camera',18)+'Retake</button></div>', (sh)=>{ sh.querySelector('#retake').onclick=()=>uploadSheet((k==='bol'?'Bill of lading':'Proof of delivery')+' · '+l.id, ()=>{ toast('New photo uploaded'); render(); }); }); else uploadSheet((k==='bol'?'Bill of lading':'Proof of delivery')+' · '+l.id, ()=>{ l.docs[k]='on_file'; l.activity.unshift({t:(k==='bol'?'BOL':'POD')+' uploaded', at:NOW}); toast('Uploaded · sent to dispatch'); render(); }); }
+      else if(a==='upload-any'){ uploadSheet('Document', ()=>{ toast('Uploaded · dispatch will file it'); }); }
+    });
+  });
+  // live timers
+  node.querySelectorAll('[data-timer]').forEach(n=>{ const base=new Date(Number(n.dataset.timer)); const tick=()=>{ if(!document.body.contains(n)) return; const b=n.querySelector('b'); const txt=fmtDur(liveMinutes(base)); if(b) b.textContent=txt; else n.textContent='On site '+txt; setTimeout(tick, 15000); }; setTimeout(tick, 15000); });
+}
+function cameraHtml(label){ return '<div class="camera" id="cam"><div class="vf"><i class="tl"></i><i class="tr"></i><i class="bl"></i><i class="br"></i></div><div style="font-size:13px;opacity:.85">'+ic('document_scanner',36)+'<div>Frame the '+esc(label).toLowerCase()+'</div></div><div class="hint">Auto-crop and glare check are on</div></div><button class="shutter" id="shutter" title="Take photo"></button>'; }
+function wireCamera(sh, onDone){
+  const cam=sh.querySelector('#cam'), sh_=sh.querySelector('#shutter'), ok=sh.querySelector('#ok');
+  sh_.onclick=()=>{ cam.outerHTML='<div class="doc-thumb" id="cam"><span class="stamp">CAPTURED</span>Photo · '+fmtTime(NOW)+' · looks sharp</div>'; sh_.outerHTML='<div class="ai" style="margin-top:8px">'+ic('auto_awesome',18)+'<span>Text is readable and the signature field is filled — good to send.</span></div>'; ok.disabled=false; };
+  ok.onclick=onDone;
+}
+function uploadSheet(title, onDone){ openSheet('<h3>Upload · '+esc(title)+'</h3><div class="sub">Take a photo or pick one from your gallery.</div>'+cameraHtml(title)+'<div class="btn-row"><button class="btn" id="gallery">'+ic('photo_library',18)+'From gallery</button><button class="btn primary" id="ok" disabled>'+ic('upload',18)+'Upload</button></div>', (sh)=>{ wireCamera(sh, ()=>{ closeSheet(); onDone(); }); sh.querySelector('#gallery').onclick=()=>sh.querySelector('#shutter').click(); }); }
+
+function scrMessages(){
+  app.appendChild(header('Messages', {right:'<button class="icon-btn" data-toast="Calling dispatch · '+ME.dispatcher.phone+'">'+ic('call',24)+'</button>'}));
+  const b=body('<div class="card" style="padding:2px 14px">'+threads.map(t=>{ const last=t.msgs[t.msgs.length-1]; return '<div class="row" data-go="#/thread/'+t.id+'"><div class="avatar">'+t.avatar+'</div><div class="r-main"><div class="r-title'+(t.unread?' unread':'')+'">'+esc(t.name)+(t.unread?'<span class="unread-dot"></span>':'')+'</div><div class="r-sub">'+(last.from==='out'?'You: ':'')+esc(last.text)+'</div></div><div class="r-right">'+fmtTime(last.at)+'</div></div>'; }).join('')+'</div><div class="section">CONTACTS</div><div class="card" style="padding:2px 14px"><div class="row" data-toast="Calling '+ME.dispatcher.name+'"><div class="r-icon info">'+ic('support_agent',22)+'</div><div class="r-main"><div class="r-title">'+ME.dispatcher.name+'</div><div class="r-sub">Dispatcher · '+ME.dispatcher.phone+'</div></div><div class="r-right">'+ic('call',20)+'</div></div><div class="row" data-toast="Calling '+ME.safety.name+'"><div class="r-icon info">'+ic('health_and_safety',22)+'</div><div class="r-main"><div class="r-title">'+ME.safety.name+'</div><div class="r-sub">Safety · '+ME.safety.phone+'</div></div><div class="r-right">'+ic('call',20)+'</div></div><div class="row" data-toast="Calling roadside assistance"><div class="r-icon bad">'+ic('car_repair',22)+'</div><div class="r-main"><div class="r-title">Roadside assistance</div><div class="r-sub">24/7 · (800) 555-0199</div></div><div class="r-right">'+ic('call',20)+'</div></div></div>');
+  app.appendChild(b); bind(b);
+}
+function scrThread(r){
+  const t=threads.find(x=>x.id===r.id); if(!t){ go('#/messages'); return; }
+  t.unread=0;
+  app.appendChild(header(esc(t.name), {back:true, sub:esc(t.sub), right:'<button class="icon-btn" data-toast="Calling…">'+ic('call',24)+'</button>'}));
+  const wrap=document.createElement('div'); wrap.style.cssText='flex:1;min-height:0;position:relative;display:flex;flex-direction:column;';
+  const b=body('<div class="thread">'+t.msgs.map(m=>'<div class="msg '+m.from+'">'+esc(m.text)+'<div class="m-meta">'+fmtDayTime(m.at)+'</div></div>').join('')+'</div>', true); b.style.paddingBottom='150px';
+  const tpls=['Running 30 min late','At the shipper','Loaded, rolling','At the receiver','Need a door assignment','Call me when free'];
+  const comp=document.createElement('div'); comp.className='composer'; comp.innerHTML='<div style="position:absolute;left:0;right:0;top:-44px;padding:0 10px"><div class="tpl-row">'+tpls.map(x=>'<span class="chip" data-tpl="'+esc(x)+'">'+esc(x)+'</span>').join('')+'</div></div><textarea id="msg" placeholder="Message"></textarea><button class="send" id="send">'+ic('send',22)+'</button>';
+  wrap.appendChild(b); wrap.appendChild(comp); app.appendChild(wrap);
+  const send=(text)=>{ text=(text||b.parentElement.querySelector('#msg').value).trim(); if(!text) return; t.msgs.push({from:'out', text, at:NOW}); render(); setTimeout(()=>{ const reply = /late|eta/i.test(text)?'Copy, I will let the receiver know.':(/loaded|rolling/i.test(text)?'Great, safe travels.':(/door|shipper|receiver/i.test(text)?'Noted — calling them now.':'Copy that.')); t.msgs.push({from:'in', text:reply, at:NOW}); if(route().name==='thread' && route().id===t.id) render(); else { t.unread++; toast(t.name.split(' · ')[1]+' replied','ai'); } }, 1800); };
+  comp.querySelector('#send').onclick=()=>send();
+  comp.querySelectorAll('[data-tpl]').forEach(c=>c.onclick=()=>send(c.dataset.tpl));
+  comp.querySelector('#msg').onkeydown=(e)=>{ if(e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); send(); } };
+  setTimeout(()=>{ b.scrollTop=b.scrollHeight; },0);
+}
+function scrDocs(){
+  app.appendChild(header('Documents', {right:'<button class="icon-btn" id="upl">'+ic('add_a_photo',24)+'</button>'}));
+  const seg=state.docsSeg;
+  let h='<div class="seg"><button class="'+(seg==='mine'?'active':'')+'" data-seg="mine">My documents</button><button class="'+(seg==='loads'?'active':'')+'" data-seg="loads">Load documents</button></div>';
+  if(seg==='mine'){
+    const pill=(s)=> s==='valid'?'<span class="pill success">Valid</span>':(s==='soon'?'<span class="pill warning">Expires soon</span>':(s==='expired'?'<span class="pill danger">Expired</span>':'<span class="pill info">Uploaded</span>'));
+    h += '<div class="card" style="padding:2px 14px">'+myDocs.map(d=>'<div class="row" data-doc="'+d.id+'"><div class="r-icon '+(d.status==='valid'?'ok':(d.status==='soon'?'warn':(d.status==='expired'?'bad':'info')))+'">'+ic(d.icon,22)+'</div><div class="r-main"><div class="r-title">'+esc(d.name)+'</div><div class="r-sub">'+esc(d.sub)+'</div></div><div class="r-right">'+pill(d.status)+'</div></div>').join('')+'</div><div class="card"><div class="ai">'+ic('auto_awesome',18)+'<span>Everything is on file. The only thing coming up is the medical card — upload it after your Sep 20 appointment and Safety is notified automatically.</span></div></div>';
+  } else {
+    h += loads.map(l=>'<div class="section">LOAD '+l.id+' · '+esc(l.stops[0].city)+' → '+esc(l.stops[l.stops.length-1].city)+'</div><div class="card" style="padding:2px 14px">'+[['bol','Bill of lading'],['pod','Proof of delivery']].map(([k,lbl])=>'<div class="row" data-go="#/load/'+l.id+'"><div class="r-icon '+(l.docs[k]==='on_file'?'ok':'')+'">'+ic(l.docs[k]==='on_file'?'task':'description',22)+'</div><div class="r-main"><div class="r-title">'+lbl+'</div><div class="r-sub">'+(l.docs[k]==='on_file'?'Uploaded':(l.docs[k]==='na'?'Not yet due':'Missing'))+'</div></div><div class="r-right">'+ic('chevron_right',20)+'</div></div>').join('')+'</div>').join('');
+  }
+  const b=body(h); app.appendChild(b); bind(b);
+  b.querySelectorAll('[data-seg]').forEach(x=>x.onclick=()=>{ state.docsSeg=x.dataset.seg; render(); });
+  b.querySelectorAll('[data-doc]').forEach(x=>x.onclick=()=>{ const d=myDocs.find(y=>y.id===x.dataset.doc); openSheet('<h3>'+esc(d.name)+'</h3><div class="sub">'+esc(d.sub)+'</div><div class="doc-thumb"><span class="stamp">ON FILE</span>'+esc(d.name)+'</div>'+(d.request?'<div class="card warn" style="margin-top:12px"><div class="sub" style="color:var(--warning-t)">'+ic('info',16,'vertical-align:-3px')+' '+esc(d.request)+'</div></div>':'')+'<div class="btn-row"><button class="btn" data-toast="Shared as PDF">'+ic('share',18)+'Share</button><button class="btn primary" id="new">'+ic('photo_camera',18)+'Upload new</button></div>', (sh)=>{ sh.querySelector('#new').onclick=()=>uploadSheet(d.name, ()=>{ d.status='valid'; d.sub='Uploaded '+fmtDate(NOW)+' · pending review by Safety'; d.request=null; toast('Uploaded · Safety will review it'); render(); }); }); });
+  const upl=app.querySelector('#upl'); if(upl) upl.onclick=()=>uploadSheet('Document', ()=>{ myDocs.push({id:'x'+Date.now(), name:'New document', sub:'Uploaded '+fmtDate(NOW)+' · pending review', status:'uploaded', icon:'description'}); toast('Uploaded · Safety will file it'); render(); });
+}
+function scrHos(){
+  app.appendChild(header('Hours of service', {back:true, sub:'ELD · synced 1 min ago'}));
+  const dutyLbl={off_duty:'Off duty',sleeper:'Sleeper',driving:'Driving',on_duty:'On duty'};
+  const h='<div class="card"><div class="big-clock"><div class="t">'+fmtDur(ME.hos.drive)+'</div><div class="l">DRIVE TIME LEFT</div></div>'+hosBars(false)+'<div class="kv" style="margin-top:8px"><span class="k">Break required in</span><span class="v">'+fmtDur(ME.hos.breakIn)+'</span></div><div class="kv"><span class="k">Cycle</span><span class="v">70 h / 8 days · '+fmtDur(4200-ME.hos.cycle)+' used</span></div></div>'+
+    '<div class="section">DUTY STATUS</div><div class="card"><div class="duty">'+Object.entries(dutyLbl).map(([k,v])=>'<button class="'+(ME.duty===k?'active':'')+'" data-duty="'+k+'">'+v+'</button>').join('')+'</div><div class="sub" style="margin-top:10px">Driving is set automatically by the ELD when the truck moves. Personal conveyance and yard move are under More → Settings.</div></div>'+
+    '<div class="section">TODAY\'S LOG</div><div class="card"><div class="log"><span class="off" style="flex:5.5">OFF</span><span class="on" style="flex:.5"></span><span class="dr" style="flex:3.7">D</span><span class="off" style="flex:14.3;color:var(--text400)">remaining</span></div><div class="log-hours"><span>12 AM</span><span>6 AM</span><span>12 PM</span><span>6 PM</span><span>12 AM</span></div><div class="kv" style="margin-top:10px"><span class="k">Off duty 12:00 AM – 5:30 AM</span><span class="v">5h 30m</span></div><div class="kv"><span class="k">On duty 5:30 – 6:00 AM · pre-trip</span><span class="v">30m</span></div><div class="kv"><span class="k">Driving 6:00 – 9:40 AM · I-20 E</span><span class="v">3h 40m</span></div><button class="btn dark" style="margin-top:12px" data-toast="Log certified for Sep 9">'+ic('verified',20)+'Certify today\'s log</button></div>';
+  const b=body(h, true); app.appendChild(b); bind(b);
+  b.querySelectorAll('[data-duty]').forEach(x=>x.onclick=()=>{ ME.duty=x.dataset.duty; toast('Status: '+dutyLbl[ME.duty]+' · logged '+fmtTime(NOW)); render(); });
+}
+function scrPti(){
+  app.appendChild(header('Inspection', {back:true, sub:'Truck '+ME.truck.unit+' · Trailer '+ME.trailer.unit}));
+  const total=PTI_ITEMS.reduce((s,[,items])=>s+items.length,0); const done=Object.keys(ptiState).length; const defects=Object.values(ptiState).filter(v=>v==='def').length;
+  let h='<div class="card"><div style="display:flex;align-items:center;gap:8px"><h3 style="margin:0;flex:1">Post-trip inspection</h3><span class="pill '+(pti.postDone?'success':'info')+'">'+(pti.postDone?'Done '+fmtTime(pti.postDone):'Due end of shift')+'</span></div><div class="sub">Pre-trip done today at '+fmtTime(pti.preDone)+'. Tap Pass or Defect on every item — defects need a photo and go straight to the shop.</div><div class="progress"><i style="width:'+(done/total*100)+'%"></i></div><div class="sub">'+done+' of '+total+' checked'+(defects?' · <span style="color:var(--danger-t);font-weight:600">'+defects+' defect'+(defects>1?'s':'')+'</span>':'')+'</div></div>';
+  h += '<div class="card purple"><div class="ai">'+ic('auto_awesome',18)+'<span>Photo assist: point the camera at each tire — tread depth and uneven wear are checked automatically. Last check flagged the front-left tire at 5/32.</span></div></div>';
+  PTI_ITEMS.forEach(([sec, items])=>{ h += '<div class="section">'+sec.toUpperCase()+'</div><div class="card" style="padding:2px 14px">'+items.map(it=>{ const v=ptiState[it]||''; return '<div class="chk"><span class="c-name">'+esc(it)+'</span><div class="c-btns"><button class="pass '+(v==='pass'?'on':'')+'" data-it="'+esc(it)+'" data-v="pass">Pass</button><button class="def '+(v==='def'?'on':'')+'" data-it="'+esc(it)+'" data-v="def">Defect</button></div></div>'; }).join('')+'</div>'; });
+  h += '<div class="btn-row" style="margin-top:14px"><button class="btn" id="allpass">Mark all pass</button><button class="btn primary" id="submit" '+(done<total?'disabled':'')+'>'+ic('verified',20)+'Submit</button></div>';
+  const b=body(h, true); app.appendChild(b); bind(b);
+  b.querySelectorAll('[data-it]').forEach(x=>x.onclick=()=>{ const it=x.dataset.it, v=x.dataset.v; if(v==='def'){ openSheet('<h3>Defect · '+esc(it)+'</h3><div class="sub">Photo + a short note. The shop and Safety are notified; a work order opens on truck '+ME.truck.unit+'.</div>'+cameraHtml(it)+'<div class="field" style="margin-top:12px"><label>Note</label><input type="text" id="note" placeholder="e.g. Left turn signal not blinking"/></div><div class="switch-row"><span>Truck is safe to drive</span><span class="switch on" id="safe"><span class="knob"></span></span></div><button class="btn danger" id="ok" disabled>Report defect</button>', (sh)=>{ sh.querySelector('#safe').onclick=(e)=>e.currentTarget.classList.toggle('on'); wireCamera(sh, ()=>{ ptiState[it]='def'; pti.defects.push({it, note:sh.querySelector('#note').value}); closeSheet(); toast('Defect reported · work order created','warning'); render(); }); }); } else { ptiState[it]='pass'; render(); } });
+  b.querySelector('#allpass').onclick=()=>{ PTI_ITEMS.forEach(([,items])=>items.forEach(it=>{ if(!ptiState[it]) ptiState[it]='pass'; })); render(); };
+  b.querySelector('#submit').onclick=()=>{ pti.postDone=NOW; tasks=tasks.filter(t=>t.id!=='t1'); toast('Inspection submitted · '+(defects?defects+' defect'+(defects>1?'s':'')+' sent to the shop':'no defects')); go('#/home'); };
+}
+function scrPay(){
+  app.appendChild(header('Pay', {back:true, sub:'Current period · '+pay.period}));
+  const trips=pay.trips.reduce((s,t)=>s+t.amount,0), addons=pay.addons.reduce((s,a)=>s+a.amount,0), ded=pay.deductions.reduce((s,d)=>s+d.amount,0);
+  const h='<div class="card accent"><div class="big-clock"><div class="t" style="color:var(--accent-dark)">'+money(trips+addons-ded)+'</div><div class="l">ESTIMATED NET · '+pay.period.toUpperCase()+'</div></div><div class="kv"><span class="k">Trip pay</span><span class="v">'+money(trips)+'</span></div><div class="kv"><span class="k">Addons & reimbursements</span><span class="v" style="color:var(--purple)">+'+money(addons)+'</span></div><div class="kv"><span class="k">Deductions</span><span class="v" style="color:var(--danger-t)">−'+money(ded)+'</span></div><div class="sub" style="margin-top:8px">Paid every Monday by direct deposit. Loads count when delivered with the POD on file.</div></div>'+
+    '<div class="section">TRIPS</div><div class="card" style="padding:2px 14px">'+pay.trips.map(t=>'<div class="kv"><span class="k"><b style="color:var(--text900)">'+t.load+'</b> · '+esc(t.text)+'<br/><span class="pill '+(t.status==='delivered'?'success':'info')+'" style="margin-top:4px">'+t.status+'</span></span><span class="v">'+money(t.amount)+'</span></div>').join('')+'</div>'+
+    '<div class="section">ADDONS & REIMBURSEMENTS</div><div class="card" style="padding:2px 14px">'+pay.addons.map(a=>'<div class="kv"><span class="k">'+esc(a.text)+'<br/><span class="pill purple" style="margin-top:4px">'+(a.from==='accessorial'?'from load charge':'receipt')+'</span></span><span class="v">+$'+a.amount.toFixed(2)+'</span></div>').join('')+'</div>'+
+    '<div class="section">DEDUCTIONS</div><div class="card" style="padding:2px 14px">'+pay.deductions.map(d=>'<div class="kv"><span class="k">'+esc(d.text)+'</span><span class="v">−'+money(d.amount)+'</span></div>').join('')+'</div>'+
+    '<div class="section">PREVIOUS PAYSTUBS</div><div class="card" style="padding:2px 14px">'+pay.history.map(p=>'<div class="row" data-toast="Paystub '+esc(p.period)+' opens as PDF"><div class="r-icon ok">'+ic('receipt_long',22)+'</div><div class="r-main"><div class="r-title">'+esc(p.period)+'</div><div class="r-sub">Gross '+money(p.gross)+' · paid '+p.paid+'</div></div><div class="r-right" style="font-weight:700;color:var(--text900)">'+money(p.net)+'</div></div>').join('')+'</div>';
+  const b=body(h, true); app.appendChild(b); bind(b);
+}
+function scrFuel(){
+  app.appendChild(header('Fuel', {back:true, sub:'Card ending 4471 · '+ME.truck.odometer.toLocaleString()+' mi'}));
+  const h='<div class="card"><h3>Add fuel receipt</h3><div class="field inline"><div><label>Gallons</label><input type="number" id="gal" placeholder="0.0"/></div><div><label>Total ($)</label><input type="number" id="tot" placeholder="0.00"/></div></div><div class="field inline"><div><label>Station</label><input type="text" id="st" placeholder="e.g. Pilot #442"/></div><div><label>State</label><input type="text" id="state" placeholder="AL" maxlength="2"/></div></div><div class="field"><label>Odometer</label><input type="number" id="odo" value="'+ME.truck.odometer+'"/></div><button class="btn primary" id="ok">'+ic('receipt_long',20)+'Save & photograph receipt</button></div>'+
+    '<div class="section">RECENT</div><div class="card" style="padding:2px 14px">'+fuel.map(f=>'<div class="row"><div class="r-icon">'+ic('local_gas_station',22)+'</div><div class="r-main"><div class="r-title">'+esc(f.station)+' · '+esc(f.city)+'</div><div class="r-sub">'+f.gal.toFixed(1)+' gal · '+fmtDayTime(f.at)+'</div></div><div class="r-right" style="font-weight:700;color:var(--text900)">$'+f.total.toFixed(2)+'</div></div>').join('')+'</div><div class="card"><div class="ai">'+ic('auto_awesome',18)+'<span>Cheapest diesel on your route: Love\'s #118, Anniston AL — $3.42, 41 mi ahead. Fill there to stay in Alabama for IFTA.</span></div></div>';
+  const b=body(h, true); app.appendChild(b); bind(b);
+  b.querySelector('#ok').onclick=()=>{ const gal=Number(b.querySelector('#gal').value), tot=Number(b.querySelector('#tot').value); if(!gal||!tot){ toast('Gallons and total are required','warning'); return; } uploadSheet('Fuel receipt', ()=>{ fuel.unshift({station:b.querySelector('#st').value||'Fuel stop', city:(b.querySelector('#state').value||'').toUpperCase(), gal, total:tot, at:NOW}); toast('Fuel receipt saved · IFTA updated'); render(); }); };
+}
+function scrIncident(){
+  app.appendChild(header('Report incident', {back:true, sub:'Safety is notified immediately'}));
+  const h='<div class="card danger"><div class="sub" style="color:var(--danger-t)">'+ic('emergency',18,'vertical-align:-3px')+' If anyone is hurt, call 911 first. Then report here so Safety can help you.</div><button class="btn danger" style="margin-top:10px" data-toast="Calling 911…">'+ic('call',20)+'Call 911</button></div>'+
+    '<div class="card"><div class="field"><label>Type</label><select id="type"><option>Accident / collision</option><option>Breakdown</option><option>Roadside inspection</option><option>Cargo damage</option><option>Near miss</option><option>Other</option></select></div><div class="field"><label>Where</label><input type="text" id="where" value="I-20 E, mile 130 · Birmingham, AL"/></div><div class="field"><label>What happened</label><textarea id="what" placeholder="Describe what happened"></textarea></div><div class="switch-row"><span>Police on scene</span><span class="switch" id="police"><span class="knob"></span></span></div><div class="switch-row"><span>Truck drivable</span><span class="switch on" id="drivable"><span class="knob"></span></span></div><button class="btn primary" id="ok" style="margin-top:12px">'+ic('add_a_photo',20)+'Add photos & send</button></div>';
+  const b=body(h, true); app.appendChild(b); bind(b);
+  b.querySelectorAll('.switch').forEach(s=>s.onclick=()=>s.classList.toggle('on'));
+  b.querySelector('#ok').onclick=()=>{ uploadSheet('Incident photos', ()=>{ const type=b.querySelector('#type').value; notifications.unshift({id:'n'+Date.now(), icon:'report_problem', cls:'bad', title:'Incident reported · '+type, sub:'Angela Torres is reviewing · she will call you', at:NOW, go:'#/thread/safety'}); threads[1].msgs.push({from:'out', text:'Incident report sent: '+type+' at '+b.querySelector('#where').value, at:NOW}); toast('Report sent · Safety will call you','warning'); go('#/home'); }); };
+}
+function scrNotifications(){
+  app.appendChild(header('Notifications', {back:true, right:'<button class="icon-btn" id="clear">'+ic('done_all',24)+'</button>'}));
+  const b=body(notifications.length?'<div class="card" style="padding:2px 14px">'+notifications.map(n=>'<div class="row" data-go="'+n.go+'"><div class="r-icon '+n.cls+'">'+ic(n.icon,22)+'</div><div class="r-main"><div class="r-title" style="white-space:normal">'+esc(n.title)+'</div><div class="r-sub">'+esc(n.sub)+' · '+relTime(n.at)+'</div></div></div>').join('')+'</div>':'<div class="empty">'+ic('notifications_off')+'<div>Nothing new.</div></div>', true);
+  app.appendChild(b); bind(b); app.querySelector('#clear').onclick=()=>{ notifications=[]; toast('All read'); render(); };
+}
+function scrMore(){
+  app.appendChild(header('More'));
+  const rows=[['#/hos','schedule','Hours of service','ELD · '+fmtDur(ME.hos.drive)+' drive left'],['#/pti','fact_check','Inspections','Pre-trip done · post-trip due'],['#/pay','payments','Pay','Estimated net '+money(pay.trips.reduce((s,t)=>s+t.amount,0)+pay.addons.reduce((s,a)=>s+a.amount,0)-pay.deductions.reduce((s,d)=>s+d.amount,0))],['#/fuel','local_gas_station','Fuel','Card ending 4471'],['#/incident','report_problem','Report incident','Accident, breakdown, inspection'],['#/training','school','Trainings','1 due · Hazmat awareness'],['#/notifications','notifications','Notifications',notifications.length+' new'],['#/settings','settings','Settings','Notifications, language, ELD']];
+  const b=body('<div class="card tap" data-go="#/profile" style="display:flex;align-items:center;gap:12px"><div class="avatar lg">'+initials(ME.name)+'</div><div style="flex:1;min-width:0"><h3 style="margin:0">'+esc(ME.name)+'</h3><div class="sub">'+ME.type+' · '+esc(ME.company)+'</div><div class="sub">Truck '+ME.truck.unit+' · Trailer '+ME.trailer.unit+'</div></div>'+ic('chevron_right',22,'color:var(--text400)')+'</div><div class="card" style="padding:2px 14px">'+rows.map(([g,i,t,s])=>'<div class="row" data-go="'+g+'"><div class="r-icon">'+ic(i,22)+'</div><div class="r-main"><div class="r-title">'+t+'</div><div class="r-sub">'+esc(s)+'</div></div><div class="r-right">'+ic('chevron_right',20)+'</div></div>').join('')+'</div><div class="card" style="padding:2px 14px"><div class="row" data-toast="Help center opens in the browser"><div class="r-icon">'+ic('help',22)+'</div><div class="r-main"><div class="r-title">Help & FAQ</div></div><div class="r-right">'+ic('open_in_new',20)+'</div></div><div class="row" id="signout"><div class="r-icon bad">'+ic('logout',22)+'</div><div class="r-main"><div class="r-title">Sign out</div></div></div></div><div style="text-align:center;font-size:11.5px;color:var(--text400);margin-top:8px">EasyWay Driver · MOB-DRV-01 · v0.1 · '+esc(ME.company)+'</div>');
+  app.appendChild(b); bind(b); b.querySelector('#signout').onclick=()=>{ setSigned(false); go('#/signin'); };
+}
+function scrProfile(){
+  app.appendChild(header('Profile', {back:true}));
+  const kv=(k,v)=>'<div class="kv"><span class="k">'+k+'</span><span class="v">'+esc(v)+'</span></div>';
+  const b=body('<div class="card" style="text-align:center"><div class="avatar lg" style="margin:0 auto 8px">'+initials(ME.name)+'</div><h3 style="margin:0">'+esc(ME.name)+'</h3><div class="sub">'+ME.type+' · since Mar 2021</div><div class="btn-row"><button class="btn sm" data-toast="Photo updated">'+ic('photo_camera',18)+'Change photo</button></div></div><div class="section">CONTACT</div><div class="card">'+kv('Phone',ME.phone)+kv('Email',ME.email)+kv('Home',ME.home)+kv('Emergency contact','Aida Suleymanova · (806) 555-0177')+'</div><div class="section">EQUIPMENT</div><div class="card">'+kv('Truck','#'+ME.truck.unit+' · '+ME.truck.model)+kv('Plate',ME.truck.plate)+kv('VIN',ME.truck.vin)+kv('Odometer',ME.truck.odometer.toLocaleString()+' mi')+kv('Trailer','#'+ME.trailer.unit+' · '+ME.trailer.type)+'</div><div class="section">COMPANY</div><div class="card">'+kv('Carrier',ME.company)+kv('Dispatcher',ME.dispatcher.name)+kv('Safety',ME.safety.name)+kv('Pay model','$'+ME.payRate.toFixed(2)+' per loaded mile')+'</div>', true);
+  app.appendChild(b); bind(b);
+}
+function scrSettings(){
+  app.appendChild(header('Settings', {back:true}));
+  const sw=(k,l,s)=>'<div class="switch-row"><div><div>'+l+'</div><div class="sub" style="font-size:12.5px">'+s+'</div></div><span class="switch '+(settings[k]?'on':'')+'" data-k="'+k+'"><span class="knob"></span></span></div>';
+  const b=body('<div class="section">NOTIFICATIONS</div><div class="card">'+sw('push','Push notifications','Dispatch, documents, pay')+sw('sound','Sounds','Also when the phone is silent')+'</div><div class="section">TRACKING</div><div class="card">'+sw('geofence','Automatic check-in','Arrive / depart from the ELD geofence')+'<div class="kv"><span class="k">Personal conveyance</span><span class="v"><button class="link" data-toast="Personal conveyance started — ELD notified">Start</button></span></div></div><div class="section">APP</div><div class="card"><div class="kv"><span class="k">Language</span><span class="v"><select id="lang" style="border:none;font-family:inherit;font-size:15px;font-weight:600;color:var(--text900);background:none"><option '+(settings.lang==='English'?'selected':'')+'>English</option><option '+(settings.lang==='Spanish'?'selected':'')+'>Spanish</option><option '+(settings.lang==='Russian'?'selected':'')+'>Russian</option></select></span></div><div class="kv"><span class="k">Units</span><span class="v">Miles · lb · °F</span></div><div class="kv"><span class="k">Version</span><span class="v">0.1 (mockup)</span></div></div>', true);
+  app.appendChild(b); bind(b); b.querySelectorAll('.switch').forEach(s=>s.onclick=()=>{ s.classList.toggle('on'); settings[s.dataset.k]=s.classList.contains('on'); }); b.querySelector('#lang').onchange=(e)=>{ settings.lang=e.target.value; toast('Language: '+settings.lang+' (mockup stays in English)'); };
+}
+function scrTraining(){
+  app.appendChild(header('Trainings', {back:true, sub:'Safety · '+ME.safety.name}));
+  const b=body('<div class="card warn"><h3>Hazmat awareness</h3><div class="sub">25 min · due Sep 15 · required for placarded loads</div><button class="btn primary" style="margin-top:10px" data-toast="Training opens in the browser">'+ic('play_circle',20)+'Start training</button></div><div class="section">COMPLETED</div><div class="card" style="padding:2px 14px"><div class="row"><div class="r-icon ok">'+ic('school',22)+'</div><div class="r-main"><div class="r-title">Defensive driving</div><div class="r-sub">Completed Jun 3, 2026 · 94%</div></div></div><div class="row"><div class="r-icon ok">'+ic('school',22)+'</div><div class="r-main"><div class="r-title">Cargo securement</div><div class="r-sub">Completed Feb 18, 2026 · 100%</div></div></div></div>', true);
+  app.appendChild(b); bind(b);
+}
+
+/* ---------------- Boot ---------------- */
+if(!location.hash) location.replace('#/signin');
+render();
+
+</script>
+</body>
+</html>
