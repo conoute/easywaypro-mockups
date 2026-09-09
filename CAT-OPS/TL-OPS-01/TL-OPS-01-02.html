@@ -292,6 +292,9 @@ button{font-family:inherit;cursor:pointer;}
 .load-bar.st-DELIVERED{background:linear-gradient(135deg,#9a9ab0,#7c7c93);}
 .load-bar .live-dot{width:6px;height:6px;border-radius:50%;background:#fff;display:inline-block;animation:pulse 1.5s infinite;margin-right:4px;}
 @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.35;}}
+.resize-handle{position:absolute; right:0; top:0; bottom:0; width:10px; cursor:ew-resize; border-radius:0 9px 9px 0;}
+.resize-handle:hover{background:rgba(255,255,255,.25);}
+.resize-handle::after{content:''; position:absolute; right:3px; top:50%; transform:translateY(-50%); width:3px; height:18px; border-left:1.5px solid rgba(255,255,255,.7); border-right:1.5px solid rgba(255,255,255,.7);}
 .load-bar .warn-flag{position:absolute; top:4px; right:6px; color:#fff; font-size:15px; filter:drop-shadow(0 1px 2px rgba(0,0,0,.3));}
 .load-bar.flash-warn{animation:flashwarn 1s ease 2;}
 @keyframes flashwarn{0%,100%{box-shadow:0 2px 6px rgba(51,55,97,.15);}50%{box-shadow:0 0 0 4px rgba(255,173,32,.55);}}
@@ -1301,10 +1304,28 @@ function renderGantt(){
       safeSortable(gRow, {
         group:'planner', animation:150, forceFallback:true, fallbackOnBody:true,
         draggable:'.load-bar',
+        filter:'.resize-handle', preventOnFilter:false,
         onAdd: function(evt){
-          const el = evt.item;
-          const loadId = el.dataset.loadId;
-          handleAssign(loadId, drv.id, el);
+          try{
+            const el = evt.item;
+            const loadId = el.dataset.loadId;
+            const cx = evt.originalEvent ? (evt.originalEvent.clientX ?? (evt.originalEvent.touches && evt.originalEvent.touches[0]?.clientX)) : null;
+            handleAssign(loadId, drv.id, el, cx);
+          }catch(err){ console.warn('drop failed', err); renderTray(); renderGantt(); }
+        },
+        onEnd: function(evt){
+          try{
+            if(evt.from!==evt.to) return; // cross-row handled by onAdd
+            const loadId = evt.item.dataset.loadId;
+            const l = loads.find(x=>x.id===loadId);
+            const cx = evt.originalEvent ? evt.originalEvent.clientX : null;
+            if(l && cx!=null){
+              l.dayStart = snapDay(clientXToDay(cx, gRow) - l.dayLen/2, l.dayLen);
+              l._flash = true;
+              renderGantt();
+              setTimeout(()=>{ loads.forEach(x=>x._flash=false); }, 1200);
+            } else { renderGantt(); }
+          }catch(err){ console.warn('move failed', err); renderGantt(); }
         }
       });
     });
@@ -1327,7 +1348,38 @@ function makeLoadBar(l){
     ${l._conflict?'<span class="material-symbols-outlined conflict-flag" title="Overlaps another load on this driver">error</span>':''}
     ${l.late?'<span class="material-symbols-outlined warn-flag">warning</span>':''}
     <div class="route-txt">${l.live!==false && l.status==='IN TRANSIT' ? '<span class=\"live-dot\"></span>' : ''}${l.route}</div>
-    <div class="sub-txt">${l.broker} · $${l.rate.toLocaleString()}</div>`;
+    <div class="sub-txt">${l.broker} · $${l.rate.toLocaleString()}</div>\n    <span class="resize-handle" title="Drag to change duration"></span>`;
+
+  const handle = el.querySelector('.resize-handle');
+  if(handle){
+    handle.addEventListener('mousedown', (e)=>{
+      e.stopPropagation(); e.preventDefault();
+      const rowEl = el.parentElement;
+      const tt = document.getElementById('loadTooltip');
+      let liveLen = l.dayLen;
+      function onMove(me){
+        const endDay = clientXToDay(me.clientX, rowEl);
+        liveLen = Math.max(0.5, Math.round((endDay - l.dayStart)*2)/2);
+        liveLen = Math.min(liveLen, 7 - l.dayStart);
+        el.style.width = 'calc(' + (liveLen/7*100) + '% - 6px)';
+        tt.innerHTML = '<b>' + liveLen + (liveLen===1?' day':' days') + '</b>';
+        tt.classList.remove('hidden');
+        tt.style.left = (me.clientX+14)+'px'; tt.style.top = (me.clientY+14)+'px';
+      }
+      function onUp(){
+        document.removeEventListener('mousemove', onMove);
+        document.removeEventListener('mouseup', onUp);
+        tt.classList.add('hidden');
+        if(liveLen !== l.dayLen){
+          l.dayLen = liveLen;
+          showToast(`${l.route}: duration set to ${liveLen} ${liveLen===1?'day':'days'}.`, 'width');
+        }
+        renderGantt();
+      }
+      document.addEventListener('mousemove', onMove);
+      document.addEventListener('mouseup', onUp);
+    });
+  }
   el.addEventListener('mouseenter',(e)=>showLoadTooltip(l,e));
   el.addEventListener('mousemove',(e)=>positionTooltip(e));
   el.addEventListener('mouseleave',hideLoadTooltip);
@@ -1416,7 +1468,19 @@ safeSortable(document.getElementById('trayCards'), {
   onAdd: function(evt){ evt.item.remove(); } // dropping something INTO the tray isn't supported yet — no-op guard
 });
 
-function handleAssign(loadId, driverId, ghostEl){
+
+function clientXToDay(clientX, rowEl){
+  const rect = rowEl.getBoundingClientRect();
+  const frac = Math.min(1, Math.max(0, (clientX - rect.left) / rect.width));
+  return frac * 7;
+}
+function snapDay(raw, len){
+  let v = Math.round(raw*2)/2; // half-day snap
+  const maxStart = 7 - (len||0.5);
+  return Math.min(Math.max(0, v), Math.max(0, maxStart));
+}
+
+function handleAssign(loadId, driverId, ghostEl, clientX){
   try{
     // was this an unassigned tray card, or an existing load bar being reassigned?
     const uIdx = unassigned.findIndex(u=>u.id===loadId);
@@ -1424,7 +1488,10 @@ function handleAssign(loadId, driverId, ghostEl){
     if(uIdx > -1){
       const u = unassigned[uIdx];
       unassigned.splice(uIdx,1);
-      loads.push({id:u.id, route:u.route, broker:u.broker, rate:u.rate, driverId:driverId, dayStart: 2.4, dayLen: 1.2, status:'SCHEDULED', late:false, hardAppt:false, _flash:true});
+      const rowEl = document.querySelector(`.gantt-driver-row[data-driver-id="${driverId}"]`);
+      const newLen = 1;
+      const start = (clientX!=null && rowEl) ? snapDay(clientXToDay(clientX, rowEl) - newLen/2, newLen) : 2.5;
+      loads.push({id:u.id, route:u.route, broker:u.broker, rate:u.rate, driverId:driverId, dayStart:start, dayLen:newLen, status:'SCHEDULED', late:false, hardAppt:false, _flash:true});
       if(drv.maintenance) showToast(`${u.route} assigned to ${drv.name} — but their truck is in maintenance. Double-check availability.`, 'build', true);
       else showToast(`${u.route} assigned to ${drv.name}. Driver notified.`, 'task_alt');
     } else {
@@ -1433,6 +1500,8 @@ function handleAssign(loadId, driverId, ghostEl){
         const wasHard = l.hardAppt;
         const oldDriver = drivers.find(d=>d.id===l.driverId);
         l.driverId = driverId;
+        const rowEl2 = document.querySelector(`.gantt-driver-row[data-driver-id="${driverId}"]`);
+        if(clientX!=null && rowEl2){ l.dayStart = snapDay(clientXToDay(clientX, rowEl2) - l.dayLen/2, l.dayLen); }
         l._flash = true;
         const nearHOS = drv.cycle > 85;
         if(drv.maintenance){
