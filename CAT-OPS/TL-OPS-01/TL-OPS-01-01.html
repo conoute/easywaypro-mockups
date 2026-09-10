@@ -806,7 +806,7 @@ const HAUL_TYPES = {oversize:'Oversize', overweight:'Overweight', overheight:'Ov
 const LEGAL = {widthFt:8.5, heightFt:13.5, lengthFt:53, weightLb:80000};
 // Permit lifecycle
 const PERMIT_STATUS = {needed:'Needed', requested:'Requested', received:'Active', expired:'Expired', rejected:'Rejected'};
-const PERMIT_PROVIDERS = [{id:'manual',label:'Upload it myself'},{id:'permitservice',label:'Permit service (files with the states)'},{id:'state_dot',label:'Order directly from the state'}];   // planning speed used for ETA / HOS checks (assumption, see 03)
+const PERMIT_PROVIDERS = [{id:'manual',label:'Upload it myself'},{id:'promiles',label:'ProMiles (permit & routing service)'},{id:'oversizeio',label:'Oversize.io (permit & routing service)'}];
 const COST_PER_MILE = 1.90;   // all-in operating cost per mile (company setting) — used to cost deadhead
 const DH_TARGET = 0.10;       // deadhead ratio target (industry benchmark < 10%)
 function dhPct(loaded, dh){ const tot=loaded+dh; return tot ? dh/tot : 0; }
@@ -970,7 +970,7 @@ let LOADS = [
            stop('delivery','H-E-B San Antonio RDC','4710 N Loop 1604','San Antonio','TX',29.42,-98.49,D(0,15,0),null,'hard',{contact:'(210) 555-0116'})],
     docs:{rc:'on_file', bol:'on_file', pod:'na', lumper:'na', detention:'na'},
     activity:[{text:'Departed pickup', by:'System', at:D(0,6,45)}]}),
-  mkLoad({id:'24130', source:'dat', customer:{name:'Arrive Logistics', type:'broker', mc:'MC 782903'}, refs:{rc:'', po:'DAT #8827731'}, dispatcherId:'vd', status:'unassigned', equipment:'Flatbed', commodity:'Steel coils', weight:92000, rate:2100, miles:{loaded:452, deadhead:0}, updated:D(0,9,5), tags:['Tarps'], dims:{lengthFt:48,widthFt:8.5,heightFt:9,weightLb:92000}, oversize:{types:['overweight']}, permits:[{id:'pm1', type:'overweight', state:'TN', status:'needed', number:'', provider:null}, {id:'pm2', type:'overweight', state:'AR', status:'needed', number:'', provider:null}, {id:'pm3', type:'overweight', state:'TX', status:'needed', number:'', provider:null}],
+  mkLoad({id:'24130', source:'dat', customer:{name:'Arrive Logistics', type:'broker', mc:'MC 782903'}, refs:{rc:'', po:'DAT #8827731'}, dispatcherId:'vd', status:'unassigned', equipment:'Flatbed', commodity:'Steel coils', weight:92000, rate:2100, miles:{loaded:452, deadhead:0}, updated:D(0,9,5), tags:['Tarps'], dims:{lengthFt:48,widthFt:8.5,heightFt:9,weightLb:92000}, oversize:{types:['overweight']}, permits:[{id:'pm1', type:'overweight', status:'needed', number:'', provider:null}],
     stops:[stop('pickup','Nucor Steel','3000 Presidents Island','Memphis','TN',35.15,-90.05,D(1,14,0),null,'hard',{}),
            stop('delivery','Commercial Metals','1315 Singleton Blvd','Dallas','TX',32.78,-96.80,D(2,8,0),D(2,12,0),'window',{})],
     docs:{rc:'missing', bol:'na', pod:'na', lumper:'na', detention:'na'},
@@ -989,14 +989,14 @@ let LOADS = [
            stop('delivery','Wayfair Delivery Hub','1701 Elm Hill Pike','Nashville','TN',36.16,-86.78,D(1,9,0),D(1,12,0),'window',{})],
     activity:[{text:'Dispatched to Tariq Nassar / Truck 147', by:'Marcus Webb', at:D(0,8,30)},{text:'Booked from Truckstop', by:'Marcus Webb', at:D(0,8,20)}]}),
   mkLoad({id:'24134', customer:{name:'Werner Enterprises', type:'broker', mc:'MC 293730'}, refs:{rc:'RC-889301', po:'PO 1914610'}, dispatcherId:'vd', driverId:'d13', truckId:'t779', trailerId:'r930', status:'in_transit', equipment:'Flatbed', commodity:'Lumber', weight:45200, rate:1990, miles:{loaded:522, deadhead:41}, updated:D(0,5,20), tags:['Oversize'], dims:{lengthFt:75,widthFt:12,heightFt:13,weightLb:45200}, oversize:{types:['overlength','overwidth']},
-    permits:[{id:'pm4', type:'overwidth', state:'CO', status:'received', number:'CO-OS-4471', provider:'permitservice', issued:D(-2,10,0), expires:D(3,23,59),
-      route:{summary:'US-6 W → I-70 W (permitted corridor) → US-40 W to Utah line', mustFollow:true, waypoints:[{name:'Denver yard',lat:39.74,lng:-104.99},{name:'I-70 / US-6 jct',lat:39.71,lng:-105.20},{name:'Grand Junction',lat:39.06,lng:-108.55},{name:'Utah state line',lat:39.13,lng:-109.05}]},
-      travel:{days:'Mon–Sat', from:'30 min after sunrise', to:'30 min before sunset', curfew:'No travel Sun or state holidays', speedMax:55},
+    permits:[{id:'pm4', type:'overwidth', status:'received', number:'OS-4471', provider:'promiles', issued:D(-2,10,0), expires:D(3,23,59),
+      route:{summary:'US-6 W → I-70 W (permitted corridor) → US-40 W → I-80 W to Salt Lake City', mustFollow:true, waypoints:[{name:'Denver yard',lat:39.74,lng:-104.99},{name:'I-70 / US-6 jct',lat:39.71,lng:-105.20},{name:'Grand Junction',lat:39.06,lng:-108.55},{name:'Heber City',lat:40.51,lng:-111.41},{name:'Salt Lake City',lat:40.76,lng:-111.89}]},
+      travel:{days:'Mon–Sat', from:'30 min after sunrise', to:'30 min before sunset', curfew:'No travel on Sundays or holidays', speedMax:55},
       restrictions:['Escort: 1 rear (over 12 ft wide)','No travel in winds > 35 mph','Amber lights + OVERSIZE LOAD banners','Avoid Eisenhower Tunnel — use US-6 over Loveland Pass']},
-     {id:'pm5', type:'overwidth', state:'UT', status:'received', number:'UT-88213', provider:'state_dot', issued:D(-2,14,0), expires:D(4,23,59),
-      route:{summary:'US-40 W → US-189 → I-80 W to Salt Lake City', mustFollow:true, waypoints:[{name:'Utah state line',lat:39.13,lng:-109.05},{name:'Heber City',lat:40.51,lng:-111.41},{name:'Salt Lake City',lat:40.76,lng:-111.89}]},
-      travel:{days:'Mon–Fri', from:'Sunrise', to:'Sunset', curfew:'No travel Sat/Sun in SLC metro', speedMax:55},
-      restrictions:['Escort: 1 front in SLC metro','Daylight only']}],
+     {id:'pm5', type:'overlength', status:'received', number:'OS-4472', provider:'promiles', issued:D(-2,14,0), expires:D(4,23,59),
+      route:{summary:'Same corridor as the over-width permit', mustFollow:true, waypoints:[{name:'Denver yard',lat:39.74,lng:-104.99},{name:'Grand Junction',lat:39.06,lng:-108.55},{name:'Salt Lake City',lat:40.76,lng:-111.89}]},
+      travel:{days:'Mon–Sat', from:'Sunrise', to:'Sunset', curfew:'No travel on Sundays or holidays', speedMax:55},
+      restrictions:['Daylight only']}],
     stops:[stop('pickup','Boise Cascade','1111 W Jewell Ave','Denver','CO',39.74,-104.99,D(-1,14,0),D(-1,17,0),'window',{arrived:D(-1,13,40), departed:D(-1,15,30)}),
            stop('delivery','Home Depot SLC','1538 S 300 W','Salt Lake City','UT',40.76,-111.89,D(1,9,0),null,'hard',{})],
     docs:{rc:'on_file', bol:'on_file', pod:'na', lumper:'na', detention:'na'},
@@ -1007,7 +1007,7 @@ let LOADS = [
     docs:{rc:'on_file', bol:'on_file', pod:'on_file', lumper:'na', detention:'na'},
     activity:[{text:'POD uploaded by driver', by:'Anna Reed', at:D(-1,15,5)},{text:'Delivered', by:'System', at:D(-1,14,30)}]}),
   mkLoad({id:'24136', customer:{name:'Amazon Logistics', type:'shipper', mc:''}, refs:{rc:'', po:'PO 7710101'}, dispatcherId:'at', driverId:'d14', truckId:'t1188', trailerId:'r61', status:'scheduled', equipment:'Flatbed', commodity:'Racking equipment', weight:33000, rate:760, miles:{loaded:174, deadhead:28}, updated:D(0,8,0), tags:['Over-height'], dims:{lengthFt:48,widthFt:8.5,heightFt:15.5,weightLb:33000}, oversize:{types:['overheight']},
-    permits:[{id:'pm6', type:'overheight', state:'WA', status:'requested', number:'', provider:'permitservice', requested:D(0,8,5), eta:'2–4 business hours'}, {id:'pm7', type:'overheight', state:'OR', status:'requested', number:'', provider:'permitservice', requested:D(0,8,5), eta:'2–4 business hours'}],
+    permits:[{id:'pm6', type:'overheight', status:'requested', number:'', provider:'promiles', requested:D(0,8,5), eta:'a few hours'}],
     stops:[stop('pickup','Amazon BFI4','2700 Center Dr','Kent','WA',47.38,-122.23,D(0,10,0),null,'hard',{}),
            stop('delivery','Amazon PDX9','15000 N Lombard St','Portland','OR',45.52,-122.68,D(0,16,0),D(0,18,0),'window',{})],
     docs:{rc:'missing', bol:'na', pod:'na', lumper:'na', detention:'na'},
@@ -1151,9 +1151,9 @@ function travelWindowOf(l){
   const SUNRISE=6.5, SUNSET=19.5;   // mock daylight window
   let ok=true, why=[];
   active.forEach(p=>{ const t=p.travel;
-    if(/Mon–Fri/.test(t.days) && (dow===0||dow===6)){ ok=false; why.push(p.state+': no weekend travel'); }
-    else if(/Mon–Sat/.test(t.days) && dow===0){ ok=false; why.push(p.state+': no Sunday travel'); }
-    if(hour<SUNRISE || hour>SUNSET){ ok=false; why.push(p.state+': daylight only ('+t.from+' – '+t.to+')'); }
+    if(/Mon–Fri/.test(t.days) && (dow===0||dow===6)){ ok=false; why.push('No weekend travel'); }
+    else if(/Mon–Sat/.test(t.days) && dow===0){ ok=false; why.push('No Sunday travel'); }
+    if(hour<SUNRISE || hour>SUNSET){ ok=false; why.push('Daylight only ('+t.from+' – '+t.to+')'); }
   });
   return {ok, why, from:'sunrise', to:'sunset'};
 }
@@ -1224,8 +1224,8 @@ function deriveLoad(l){
     // 6c. permits for special hauls
     if(isSpecialHaul(l)){
       const ps=permitSummary(l);
-      if(ps && ps.need>0) ex.push({sev:'danger', code:'permit', title:'Permit missing · '+haulTypesOf(l).map(t=>HAUL_TYPES[t]).join(' + ')+' · '+ps.need+' state'+(ps.need>1?'s':''), detail:(l.permits.filter(p=>p.status==='needed'||p.status==='expired').map(p=>p.state).join(', '))+' — order or upload before dispatch', action:'permits'});
-      else if(ps && ps.req>0) ex.push({sev:'warning', code:'permit', title:'Permit pending · '+ps.req+' request'+(ps.req>1?'s':'')+' in progress', detail:l.permits.filter(p=>p.status==='requested').map(p=>p.state).join(', ')+' · ready in '+(l.permits.find(p=>p.eta)?l.permits.find(p=>p.eta).eta:'a few hours'), action:'permits'});
+      if(ps && ps.need>0) ex.push({sev:'danger', code:'permit', title:'Permit missing · '+haulTypesOf(l).map(t=>HAUL_TYPES[t]).join(' + '), detail:haulTypesOf(l).map(t=>HAUL_TYPES[t]).join(' + ')+' — order or upload the permit before dispatch', action:'permits'});
+      else if(ps && ps.req>0) ex.push({sev:'warning', code:'permit', title:'Permit pending · '+ps.req+' request'+(ps.req>1?'s':'')+' in progress', detail:'Ordered · ready in '+(l.permits.find(p=>p.eta)?l.permits.find(p=>p.eta).eta:'a few hours'), action:'permits'});
       // active permits: check the driver stays on the approved route + inside the travel window
       if(l.driverId && l.status!=='scheduled' && l.status!=='delivered'){
         const off=offRouteMiles(l);
@@ -3373,7 +3373,7 @@ function renderPermitsTab(body, l, d, paint){
       '</div><div style="margin-top:8px">'+types.map(t=>'<span class="haul-tag" style="margin-right:6px">'+iconHTML('warning',12)+HAUL_TYPES[t]+'</span>').join('')+'</div></div>';
   }
   // per-state permits
-  h += '<div class="sp-section"><div class="sp-section-title" style="display:flex;align-items:center">PERMITS · '+l.permits.length+' state'+(l.permits.length>1?'s':'')+'<span style="flex:1"></span><button class="link-btn" data-a="request">'+iconHTML('send',13)+'Order permits</button><button class="link-btn" data-a="upload">'+iconHTML('upload',13)+'Upload</button></div>';
+  h += '<div class="sp-section"><div class="sp-section-title" style="display:flex;align-items:center">PERMITS · '+l.permits.length+' permit'+(l.permits.length>1?'s':'')+'<span style="flex:1"></span><button class="link-btn" data-a="request">'+iconHTML('send',13)+'Order permits</button><button class="link-btn" data-a="upload">'+iconHTML('upload',13)+'Upload</button></div>';
   l.permits.forEach(p=>{
     const cls = p.status==='received'?'success':(p.status==='requested'?'warning':'danger');
     let inner='';
@@ -3387,7 +3387,7 @@ function renderPermitsTab(body, l, d, paint){
     } else {
       inner += '<div class="cell-meta" style="margin-top:6px">Not obtained yet — order it through a permit service, or upload the PDF if you already have it.</div><div class="rs-actions" style="margin-top:8px"><button class="link-btn" data-a="request">'+iconHTML('send',13)+'Order permit</button><button class="link-btn" data-a="upload">'+iconHTML('upload',13)+'Upload</button></div>';
     }
-    h += '<div class="perm-row"><div class="pr-head"><span class="perm-dot '+cls+'">'+iconHTML(p.status==='received'?'check':(p.status==='requested'?'schedule':'priority_high'),12)+'</span><span class="pr-state">'+p.state+' · '+HAUL_TYPES[p.type]+'</span><span class="perm-pill '+cls+' pr-badge">'+PERMIT_STATUS[p.status]+(p.number?' · '+p.number:'')+'</span></div>'+inner+'</div>';
+    h += '<div class="perm-row"><div class="pr-head"><span class="perm-dot '+cls+'">'+iconHTML(p.status==='received'?'check':(p.status==='requested'?'schedule':'priority_high'),12)+'</span><span class="pr-state">'+HAUL_TYPES[p.type]+' permit</span><span class="perm-pill '+cls+' pr-badge">'+PERMIT_STATUS[p.status]+(p.number?' · '+p.number:'')+'</span></div>'+inner+'</div>';
   });
   h += '</div>';
   // live compliance (only meaningful with a driver + active permits)
@@ -3408,32 +3408,32 @@ function renderPermitsTab(body, l, d, paint){
   on('simulate', (b)=>{ const p=l.permits.find(x=>x.id===b.dataset.id); simulatePermitArrival(l, p); });
 }
 function simulatePermitArrival(l, p){
-  p.status='received'; p.number=p.state+'-OS-'+(9000+Math.floor(Math.random()*999)); p.issued=NOW; p.expires=new Date(NOW.getTime()+5*86400000);
+  p.status='received'; p.number='OS-'+(9000+Math.floor(Math.random()*999)); p.issued=NOW; p.expires=new Date(NOW.getTime()+5*86400000);
   // AI "reads" a route + windows from the returned permit
   const s0=l.stops[0], s1=l.stops[l.stops.length-1];
-  p.route={summary:'Permit-approved corridor '+s0.st+' → '+s1.st+' (state highways, avoids low bridges)', mustFollow:true, waypoints:[{name:s0.city,lat:s0.lat,lng:s0.lng},{name:'Mid-route checkpoint',lat:(s0.lat+s1.lat)/2,lng:(s0.lng+s1.lng)/2},{name:s1.city,lat:s1.lat,lng:s1.lng}]};
+  p.route={summary:'Permit-approved corridor '+s0.city+' → '+s1.city+' (state highways, avoids low bridges)', mustFollow:true, waypoints:[{name:s0.city,lat:s0.lat,lng:s0.lng},{name:'Mid-route checkpoint',lat:(s0.lat+s1.lat)/2,lng:(s0.lng+s1.lng)/2},{name:s1.city,lat:s1.lat,lng:s1.lng}]};
   p.travel={days:'Mon–Sat', from:'30 min after sunrise', to:'30 min before sunset', curfew:'No travel Sun or holidays', speedMax:55};
   p.restrictions=['Amber lights + OVERSIZE banners', p.type==='overheight'?'Height pole required · avoid posted low clearances':'Escort per state rule'];
-  logAct(l, p.state+' '+HAUL_TYPES[p.type]+' permit received ('+p.number+') — route and travel windows read by AI');
-  showToast(p.state+' permit active — AI mapped the route + travel windows', 'ai');
+  logAct(l, HAUL_TYPES[p.type]+' permit received ('+p.number+') — route and travel windows read by AI');
+  showToast(HAUL_TYPES[p.type]+' permit active — AI mapped the route + travel windows', 'ai');
   render(); if(openPanelRefresh) openPanelRefresh();
 }
 function modalPermitRequest(ctx){
   const l=loadById(ctx.loadId); const pending=l.permits.filter(p=>p.status==='needed'||p.status==='expired'||p.status==='rejected');
-  const states=[...new Set((pending.length?pending:l.permits).map(p=>p.state))];
+  const target=pending.length?pending:l.permits;
   const provider = ctx.provider || 'permitservice';
-  const m = modalShell('<h2>Order permit'+(states.length>1?'s':'')+'</h2><p class="mdesc">We send the load size to a permit service — it files with each state for you and sends the permit back with its route and travel hours. '+esc(HAUL_TYPES[(l.oversize.types[0])])+' · '+states.join(', ')+'.</p>');
+  const m = modalShell('<h2>Order permit'+(target.length>1?'s':'')+'</h2><p class="mdesc">We send the load size to a permit service — it files with whatever states the route crosses and sends the permit back with its approved route and travel hours. '+esc(l.oversize.types.map(t=>HAUL_TYPES[t]).join(' + '))+'.</p>');
   const modal=m.querySelector('.modal');
   modal.appendChild(el('<div class="field"><label>How do you want to get them?</label></div>'));
   let prov=provider; modal.querySelector('.field').appendChild(createBrandedSelect(PERMIT_PROVIDERS.filter(x=>x.id!=='manual').map(x=>({value:x.id,label:x.label})), provider, (v)=>{ prov=v; }));
   modal.appendChild(el('<div class="field inline"><div><label>Length (ft)</label><input type="number" id="pl" value="'+(l.dims?l.dims.lengthFt:'')+'"/></div><div><label>Width (ft)</label><input type="number" id="pw" value="'+(l.dims?l.dims.widthFt:'')+'"/></div></div>'));
   modal.appendChild(el('<div class="field inline"><div><label>Height (ft)</label><input type="number" id="ph" value="'+(l.dims?l.dims.heightFt:'')+'"/></div><div><label>Weight (lb)</label><input type="number" id="pwt" value="'+(l.dims?l.dims.weightLb:'')+'"/></div></div>'));
-  modal.appendChild(el('<div class="field"><label>States</label><input type="text" value="'+states.join(', ')+'" disabled/></div>'));
+
   modal.appendChild(el('<div class="sp-banner info" style="margin-top:0">'+iconHTML('info',18)+'<div>Usually ready in 2–4 hours; superloads can take a day or two. You will get a notification the moment each permit is active.</div></div>'));
   const actions=el('<div class="actions"></div>');
   const cancel=el('<button class="btn">Cancel</button>'); cancel.onclick=closeModal;
-  const send=el('<button class="btn primary">'+iconHTML('send',15)+'Order permit'+(states.length>1?'s':'')+'</button>');
-  send.onclick=()=>{ (pending.length?pending:l.permits).forEach(p=>{ p.status='requested'; p.provider=prov; p.requested=NOW; p.eta='2–4 business hours'; }); logAct(l, 'Permits ordered from '+(PERMIT_PROVIDERS.find(x=>x.id===prov)||{label:'permit service'}).label+' for '+states.join(', ')); showToast('Permits ordered · '+states.length+' state'+(states.length>1?'s':'')+' pending', 'warning'); closeModal(); if(openPanelRefresh) openPanelRefresh(); };
+  const send=el('<button class="btn primary">'+iconHTML('send',15)+'Order permit'+(target.length>1?'s':'')+'</button>');
+  send.onclick=()=>{ target.forEach(p=>{ p.status='requested'; p.provider=prov; p.requested=NOW; p.eta='a few hours'; }); logAct(l, 'Permit'+(target.length>1?'s':'')+' ordered from '+(PERMIT_PROVIDERS.find(x=>x.id===prov)||{label:'permit service'}).label); showToast('Permit'+(target.length>1?'s':'')+' ordered · pending', 'warning'); closeModal(); if(openPanelRefresh) openPanelRefresh(); };
   actions.appendChild(cancel); actions.appendChild(send); modal.appendChild(actions);
   return m;
 }
@@ -3443,7 +3443,7 @@ function modalPermitUpload(ctx){
   const modal=m.querySelector('.modal');
   modal.appendChild(el('<div class="field"><label>Which permit?</label></div>'));
   let pick = ctx.pick || (pending[0] ? pending[0].id : (l.permits[0]&&l.permits[0].id));
-  modal.querySelector('.field').appendChild(createBrandedSelect(l.permits.map(p=>({value:p.id,label:p.state+' · '+HAUL_TYPES[p.type]+' · '+PERMIT_STATUS[p.status]})), pick, (v)=>{ pick=v; }));
+  modal.querySelector('.field').appendChild(createBrandedSelect(l.permits.map(p=>({value:p.id,label:HAUL_TYPES[p.type]+' permit · '+PERMIT_STATUS[p.status]})), pick, (v)=>{ pick=v; }));
   modal.appendChild(el('<div class="field"><label>Permit number</label><input type="text" id="pnum" placeholder="e.g. CO-OS-4471"/></div>'));
   const drop=el('<div class="dropzone" style="border:1.5px dashed var(--border);border-radius:12px;padding:26px;text-align:center;color:var(--text400);cursor:pointer">'+iconHTML('upload_file',34,'color:var(--border2)')+'<div style="margin-top:8px;font-size:13px">Tap to choose the permit PDF</div></div>');
   let uploaded=false; drop.onclick=()=>{ uploaded=true; drop.innerHTML=iconHTML('task',30,'color:var(--accent)')+'<div style="margin-top:6px;font-size:13px;color:var(--text900);font-weight:600">permit.pdf · captured</div><div class="ai-line" style="justify-content:center;margin-top:6px">'+iconHTML('auto_awesome',14)+'AI is reading the route and travel windows…</div>'; };
@@ -3451,7 +3451,7 @@ function modalPermitUpload(ctx){
   const actions=el('<div class="actions"></div>');
   const cancel=el('<button class="btn">Cancel</button>'); cancel.onclick=closeModal;
   const save=el('<button class="btn primary">Save & read with AI</button>');
-  save.onclick=()=>{ if(!uploaded){ showToast('Choose the permit file first','warning'); return; } const p=l.permits.find(x=>x.id===pick); p.number=modal.querySelector('#pnum').value.trim()||p.state+'-'+Math.floor(1000+Math.random()*8999); simulatePermitArrival(l, p); closeModal(); };
+  save.onclick=()=>{ if(!uploaded){ showToast('Choose the permit file first','warning'); return; } const p=l.permits.find(x=>x.id===pick); p.number=modal.querySelector('#pnum').value.trim()||'OS-'+Math.floor(1000+Math.random()*8999); simulatePermitArrival(l, p); closeModal(); };
   actions.appendChild(cancel); actions.appendChild(save); modal.appendChild(actions);
   return m;
 }
