@@ -758,6 +758,25 @@ body.resizing, body.resizing *{cursor:ew-resize !important;}
 /* Deadhead */
 .dh-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;vertical-align:middle;background:var(--accent);}
 .dh-dot.warning{background:var(--warning);} .dh-dot.danger{background:var(--danger);} .dh-dot.success{background:var(--accent);}
+/* Permits */
+.perm-cell{display:flex;align-items:center;gap:8px;min-width:0;cursor:pointer;}
+.perm-dot{width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;flex-shrink:0;}
+.perm-dot.success{background:var(--accent);} .perm-dot.warning{background:var(--warning);} .perm-dot.danger{background:var(--danger);}
+.perm-pill{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;padding:3px 9px;border-radius:6px;}
+.perm-pill.success{background:var(--success-bg);color:var(--success-t);} .perm-pill.warning{background:var(--warning-bg);color:var(--warning-t);} .perm-pill.danger{background:var(--danger-bg);color:var(--danger-t);}
+.perm-row{border:1px solid var(--border2);border-radius:10px;padding:12px;margin-bottom:8px;}
+.perm-row .pr-head{display:flex;align-items:center;gap:8px;}
+.perm-row .pr-state{font-size:13px;font-weight:700;} .perm-row .pr-badge{margin-left:auto;}
+.perm-route{background:var(--info-bg);border-radius:8px;padding:10px 12px;margin-top:8px;font-size:12.5px;color:var(--text900);line-height:1.5;}
+.perm-route .pr-t{font-weight:700;display:flex;align-items:center;gap:6px;margin-bottom:4px;}
+.perm-win{display:grid;grid-template-columns:auto 1fr;gap:4px 10px;font-size:12.5px;margin-top:8px;}
+.perm-win .k{color:var(--text400);font-weight:700;font-size:11px;letter-spacing:.2px;white-space:nowrap;}
+.perm-restr{margin-top:8px;font-size:12px;color:var(--text600);} .perm-restr li{margin:2px 0;}
+.haul-tag{display:inline-flex;align-items:center;gap:4px;font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:6px;background:var(--warning-bg);color:var(--warning-t);}
+/* Planner permit indicator on the bar */
+.g-bar .gb-permit{margin-left:4px;width:14px;height:14px;border-radius:4px;display:inline-flex;align-items:center;justify-content:center;color:#fff;flex-shrink:0;}
+.gb-permit.success{background:var(--accent);} .gb-permit.warning{background:var(--warning);} .gb-permit.danger{background:var(--danger);}
+.tray-card .tc-permit{margin-top:5px;}
 
 </style>
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js" crossorigin="anonymous"></script>
@@ -780,7 +799,14 @@ const DISPATCHERS = [
   {id:'at', name:'Angela Torres'},
   {id:'vd', name:'Viktor Denyshchuk'}
 ];
-const AVG_MPH = 50;   // planning speed used for ETA / HOS checks (assumption, see 03)
+const AVG_MPH = 50;
+// Special-haul characteristics that require a permit
+const HAUL_TYPES = {oversize:'Oversize', overweight:'Overweight', overheight:'Over-height', overlength:'Over-length', overwidth:'Over-width', superload:'Superload', hazmat:'Hazmat'};
+// Legal limits (US, typical) — anything beyond needs a permit
+const LEGAL = {widthFt:8.5, heightFt:13.5, lengthFt:53, weightLb:80000};
+// Permit lifecycle
+const PERMIT_STATUS = {needed:'Needed', requested:'Requested', received:'Active', expired:'Expired', rejected:'Rejected'};
+const PERMIT_PROVIDERS = [{id:'manual',label:'Upload manually'},{id:'permitservice',label:'ProMiles / permit service (API)'},{id:'state_dot',label:'State DOT portal (API)'}];   // planning speed used for ETA / HOS checks (assumption, see 03)
 const COST_PER_MILE = 1.90;   // all-in operating cost per mile (company setting) — used to cost deadhead
 const DH_TARGET = 0.10;       // deadhead ratio target (industry benchmark < 10%)
 function dhPct(loaded, dh){ const tot=loaded+dh; return tot ? dh/tot : 0; }
@@ -869,6 +895,7 @@ let LOAD_SEQ = 24141;
 function mkLoad(o){
   return Object.assign({
     source:'internal', priority:'normal', equipment:'Dry van', commodity:'General freight', weight:0, temp:null,
+    dims:null, oversize:null, permits:[],   // dims:{lengthFt,widthFt,heightFt,weightLb}; oversize:{types:[]}; permits:[{...}]
     driverId:null, truckId:null, trailerId:null, status:'unassigned', tags:[],
     docs:{rc:'on_file', bol:'na', pod:'na', lumper:'na', detention:'na'}, accessorials:[], notes:'',
     created:D(-2,9,0), updated:D(0,9,0), messages:[], activity:[], customFields:{}
@@ -943,7 +970,7 @@ let LOADS = [
            stop('delivery','H-E-B San Antonio RDC','4710 N Loop 1604','San Antonio','TX',29.42,-98.49,D(0,15,0),null,'hard',{contact:'(210) 555-0116'})],
     docs:{rc:'on_file', bol:'on_file', pod:'na', lumper:'na', detention:'na'},
     activity:[{text:'Departed pickup', by:'System', at:D(0,6,45)}]}),
-  mkLoad({id:'24130', source:'dat', customer:{name:'Arrive Logistics', type:'broker', mc:'MC 782903'}, refs:{rc:'', po:'DAT #8827731'}, dispatcherId:'vd', status:'unassigned', equipment:'Flatbed', commodity:'Steel coils', weight:46500, rate:2100, miles:{loaded:452, deadhead:0}, updated:D(0,9,5), tags:['Tarps'],
+  mkLoad({id:'24130', source:'dat', customer:{name:'Arrive Logistics', type:'broker', mc:'MC 782903'}, refs:{rc:'', po:'DAT #8827731'}, dispatcherId:'vd', status:'unassigned', equipment:'Flatbed', commodity:'Steel coils', weight:92000, rate:2100, miles:{loaded:452, deadhead:0}, updated:D(0,9,5), tags:['Tarps'], dims:{lengthFt:48,widthFt:8.5,heightFt:9,weightLb:92000}, oversize:{types:['overweight']}, permits:[{id:'pm1', type:'overweight', state:'TN', status:'needed', number:'', provider:null}, {id:'pm2', type:'overweight', state:'AR', status:'needed', number:'', provider:null}, {id:'pm3', type:'overweight', state:'TX', status:'needed', number:'', provider:null}],
     stops:[stop('pickup','Nucor Steel','3000 Presidents Island','Memphis','TN',35.15,-90.05,D(1,14,0),null,'hard',{}),
            stop('delivery','Commercial Metals','1315 Singleton Blvd','Dallas','TX',32.78,-96.80,D(2,8,0),D(2,12,0),'window',{})],
     docs:{rc:'missing', bol:'na', pod:'na', lumper:'na', detention:'na'},
@@ -961,7 +988,15 @@ let LOADS = [
     stops:[stop('pickup','Wayfair CastleGate','2505 Rickenbacker Pkwy','Columbus','OH',39.96,-83.00,D(0,13,0),null,'hard',{}),
            stop('delivery','Wayfair Delivery Hub','1701 Elm Hill Pike','Nashville','TN',36.16,-86.78,D(1,9,0),D(1,12,0),'window',{})],
     activity:[{text:'Dispatched to Tariq Nassar / Truck 147', by:'Marcus Webb', at:D(0,8,30)},{text:'Booked from Truckstop', by:'Marcus Webb', at:D(0,8,20)}]}),
-  mkLoad({id:'24134', customer:{name:'Werner Enterprises', type:'broker', mc:'MC 293730'}, refs:{rc:'RC-889301', po:'PO 1914610'}, dispatcherId:'vd', driverId:'d13', truckId:'t779', trailerId:'r930', status:'in_transit', equipment:'Flatbed', commodity:'Lumber', weight:45200, rate:1990, miles:{loaded:522, deadhead:41}, updated:D(0,5,20),
+  mkLoad({id:'24134', customer:{name:'Werner Enterprises', type:'broker', mc:'MC 293730'}, refs:{rc:'RC-889301', po:'PO 1914610'}, dispatcherId:'vd', driverId:'d13', truckId:'t779', trailerId:'r930', status:'in_transit', equipment:'Flatbed', commodity:'Lumber', weight:45200, rate:1990, miles:{loaded:522, deadhead:41}, updated:D(0,5,20), tags:['Oversize'], dims:{lengthFt:75,widthFt:12,heightFt:13,weightLb:45200}, oversize:{types:['overlength','overwidth']},
+    permits:[{id:'pm4', type:'overwidth', state:'CO', status:'received', number:'CO-OS-4471', provider:'permitservice', issued:D(-2,10,0), expires:D(3,23,59),
+      route:{summary:'US-6 W → I-70 W (permitted corridor) → US-40 W to Utah line', mustFollow:true, waypoints:[{name:'Denver yard',lat:39.74,lng:-104.99},{name:'I-70 / US-6 jct',lat:39.71,lng:-105.20},{name:'Grand Junction',lat:39.06,lng:-108.55},{name:'Utah state line',lat:39.13,lng:-109.05}]},
+      travel:{days:'Mon–Sat', from:'30 min after sunrise', to:'30 min before sunset', curfew:'No travel Sun or state holidays', speedMax:55},
+      restrictions:['Escort: 1 rear (over 12 ft wide)','No travel in winds > 35 mph','Amber lights + OVERSIZE LOAD banners','Avoid Eisenhower Tunnel — use US-6 over Loveland Pass']},
+     {id:'pm5', type:'overwidth', state:'UT', status:'received', number:'UT-88213', provider:'state_dot', issued:D(-2,14,0), expires:D(4,23,59),
+      route:{summary:'US-40 W → US-189 → I-80 W to Salt Lake City', mustFollow:true, waypoints:[{name:'Utah state line',lat:39.13,lng:-109.05},{name:'Heber City',lat:40.51,lng:-111.41},{name:'Salt Lake City',lat:40.76,lng:-111.89}]},
+      travel:{days:'Mon–Fri', from:'Sunrise', to:'Sunset', curfew:'No travel Sat/Sun in SLC metro', speedMax:55},
+      restrictions:['Escort: 1 front in SLC metro','Daylight only']}],
     stops:[stop('pickup','Boise Cascade','1111 W Jewell Ave','Denver','CO',39.74,-104.99,D(-1,14,0),D(-1,17,0),'window',{arrived:D(-1,13,40), departed:D(-1,15,30)}),
            stop('delivery','Home Depot SLC','1538 S 300 W','Salt Lake City','UT',40.76,-111.89,D(1,9,0),null,'hard',{})],
     docs:{rc:'on_file', bol:'on_file', pod:'na', lumper:'na', detention:'na'},
@@ -971,7 +1006,8 @@ let LOADS = [
            stop('delivery','Fred Meyer DC','3800 SE 22nd Ave','Portland','OR',45.50,-122.64,D(-1,13,0),D(-1,15,0),'window',{arrived:D(-1,13,10), departed:D(-1,14,30)})],
     docs:{rc:'on_file', bol:'on_file', pod:'on_file', lumper:'na', detention:'na'},
     activity:[{text:'POD uploaded by driver', by:'Anna Reed', at:D(-1,15,5)},{text:'Delivered', by:'System', at:D(-1,14,30)}]}),
-  mkLoad({id:'24136', customer:{name:'Amazon Logistics', type:'shipper', mc:''}, refs:{rc:'', po:'PO 7710101'}, dispatcherId:'at', driverId:'d14', truckId:'t1188', trailerId:'r61', status:'scheduled', equipment:'Flatbed', commodity:'Racking equipment', weight:33000, rate:760, miles:{loaded:174, deadhead:28}, updated:D(0,8,0),
+  mkLoad({id:'24136', customer:{name:'Amazon Logistics', type:'shipper', mc:''}, refs:{rc:'', po:'PO 7710101'}, dispatcherId:'at', driverId:'d14', truckId:'t1188', trailerId:'r61', status:'scheduled', equipment:'Flatbed', commodity:'Racking equipment', weight:33000, rate:760, miles:{loaded:174, deadhead:28}, updated:D(0,8,0), tags:['Over-height'], dims:{lengthFt:48,widthFt:8.5,heightFt:15.5,weightLb:33000}, oversize:{types:['overheight']},
+    permits:[{id:'pm6', type:'overheight', state:'WA', status:'requested', number:'', provider:'permitservice', requested:D(0,8,5), eta:'2–4 business hours'}, {id:'pm7', type:'overheight', state:'OR', status:'requested', number:'', provider:'permitservice', requested:D(0,8,5), eta:'2–4 business hours'}],
     stops:[stop('pickup','Amazon BFI4','2700 Center Dr','Kent','WA',47.38,-122.23,D(0,10,0),null,'hard',{}),
            stop('delivery','Amazon PDX9','15000 N Lombard St','Portland','OR',45.52,-122.68,D(0,16,0),D(0,18,0),'window',{})],
     docs:{rc:'missing', bol:'na', pod:'na', lumper:'na', detention:'na'},
@@ -1086,6 +1122,42 @@ function loadById(id){ return LOADS.find(l=>l.id===id); }
 function haversine(a, b){ const R=3958.8, toR=x=>x*Math.PI/180; const dLat=toR(b.lat-a.lat), dLng=toR(b.lng-a.lng); const s=Math.sin(dLat/2)**2+Math.cos(toR(a.lat))*Math.cos(toR(b.lat))*Math.sin(dLng/2)**2; return 2*R*Math.asin(Math.sqrt(s)); }
 function roadMiles(a,b){ return Math.round(haversine(a,b)*1.18); }   // straight line × road factor (assumption)
 
+
+/* ============================================================
+   PERMITS — special-haul characteristics require state permits
+   ============================================================ */
+function haulTypesOf(l){ return (l.oversize && l.oversize.types) ? l.oversize.types : []; }
+function isSpecialHaul(l){ return haulTypesOf(l).length>0; }
+function permitSummary(l){
+  const ps=l.permits||[]; if(!ps.length) return null;
+  const n=ps.length, active=ps.filter(p=>p.status==='received').length, req=ps.filter(p=>p.status==='requested').length, need=ps.filter(p=>p.status==='needed'||p.status==='expired'||p.status==='rejected').length;
+  let state='ok', label='';
+  if(need>0){ state='danger'; label=need+' permit'+(need>1?'s':'')+' missing'; }
+  else if(req>0){ state='warning'; label=req+' permit'+(req>1?'s':'')+' pending'; }
+  else { state='ok'; label=n+' permit'+(n>1?'s':'')+' active'; }
+  return {n, active, req, need, state, label};
+}
+// distance (mi) from a point to the nearest permitted-route waypoint segment (rough: nearest waypoint)
+function offRouteMiles(l){
+  if(!l.driverId) return null; const drv=DRV[l.driverId]; const wps=[]; (l.permits||[]).forEach(p=>{ if(p.route && p.route.waypoints) wps.push(...p.route.waypoints); });
+  if(!wps.length) return null;
+  let min=Infinity; wps.forEach(w=>{ const d=roadMiles(drv.gps, w); if(d<min) min=d; }); return Math.round(min);
+}
+// is NOW inside a permitted travel window? (mock: daylight Mon–Sat unless curfew) — returns {ok, why}
+function travelWindowOf(l){
+  const active=(l.permits||[]).filter(p=>p.status==='received' && p.travel);
+  if(!active.length) return null;
+  const dow=NOW.getDay(); const hour=NOW.getHours()+NOW.getMinutes()/60;
+  const SUNRISE=6.5, SUNSET=19.5;   // mock daylight window
+  let ok=true, why=[];
+  active.forEach(p=>{ const t=p.travel;
+    if(/Mon–Fri/.test(t.days) && (dow===0||dow===6)){ ok=false; why.push(p.state+': no weekend travel'); }
+    else if(/Mon–Sat/.test(t.days) && dow===0){ ok=false; why.push(p.state+': no Sunday travel'); }
+    if(hour<SUNRISE || hour>SUNSET){ ok=false; why.push(p.state+': daylight only ('+t.from+' – '+t.to+')'); }
+  });
+  return {ok, why, from:'sunrise', to:'sunset'};
+}
+
 /* ============================================================
    EXCEPTION ENGINE — reuses the alert severity model of the profiles
    (danger = needs action now, warning = due soon / at risk).
@@ -1149,6 +1221,19 @@ function deriveLoad(l){
     }
     // 6b. heavy deadhead — margin risk (industry target < 10%)
     if(l.miles.deadhead){ const r=dhPct(l.miles.loaded,l.miles.deadhead); if(r>0.25) ex.push({sev:'warning', code:'deadhead', title:'High deadhead · '+l.miles.deadhead+' mi empty ('+Math.round(r*100)+'%)', detail:'≈ '+money(Math.round(l.miles.deadhead*COST_PER_MILE))+' empty-mile cost · look for a closer driver or a backhaul', action:'open'}); }
+    // 6c. permits for special hauls
+    if(isSpecialHaul(l)){
+      const ps=permitSummary(l);
+      if(ps && ps.need>0) ex.push({sev:'danger', code:'permit', title:'Permit missing · '+haulTypesOf(l).map(t=>HAUL_TYPES[t]).join(' + ')+' · '+ps.need+' state'+(ps.need>1?'s':''), detail:(l.permits.filter(p=>p.status==='needed'||p.status==='expired').map(p=>p.state).join(', '))+' — upload or request before dispatch', action:'permits'});
+      else if(ps && ps.req>0) ex.push({sev:'warning', code:'permit', title:'Permit pending · '+ps.req+' request'+(ps.req>1?'s':'')+' in progress', detail:l.permits.filter(p=>p.status==='requested').map(p=>p.state).join(', ')+' · ETA '+(l.permits.find(p=>p.eta)?l.permits.find(p=>p.eta).eta:'soon'), action:'permits'});
+      // active permits: check the driver stays on the approved route + inside the travel window
+      if(l.driverId && l.status!=='scheduled' && l.status!=='delivered'){
+        const off=offRouteMiles(l);
+        if(off!=null && off>25) ex.push({sev:'danger', code:'permit_route', title:'Off the permitted route · '+off+' mi from the approved corridor', detail:'Oversize loads must follow the permit route exactly — call the driver', action:'permits'});
+        const win=travelWindowOf(l);
+        if(win && !win.ok) ex.push({sev:'danger', code:'permit_time', title:'Moving outside the permitted hours', detail:win.why.join(' · '), action:'permits'});
+      }
+    }
     // 7. documents needed before dispatch
     if(l.docs.rc==='missing') ex.push({sev:'warning', code:'docs', title:'Rate confirmation missing', detail:'Request it from '+l.customer.name, action:'docs'});
     // 8. profile alerts (driver / truck / trailer modules)
@@ -1176,7 +1261,10 @@ function deriveLoad(l){
   const dh = l.miles.deadhead, dhRatio = dhPct(l.miles.loaded, dh), dhCost = Math.round(dh*COST_PER_MILE);
   const rpmLoaded = fin.gross/Math.max(1,l.miles.loaded), rpmAllIn = fin.gross/Math.max(1,totalMiles);
   const dhSev = dhRatio>0.20?'danger':(dhRatio>DH_TARGET?'warning':'success');
-  return {drv, trk, trl, next, cur, ex, sev, top, distToNext, travelMin, eta, dwellMin, rpm: fin.rpm, gross: fin.gross, fin, totalMiles, dh, dhRatio, dhCost, dhSev, rpmLoaded, rpmAllIn};
+  const special = isSpecialHaul(l); const permit = special ? permitSummary(l) : null;
+  let permitSev = null;
+  if(special){ const routeBad = ex.some(e=>e.code==='permit_route'||e.code==='permit_time'); permitSev = (permit&&permit.state==='danger')||routeBad ? 'danger' : (permit&&permit.state==='warning' ? 'warning' : 'success'); }
+  return {drv, trk, trl, next, cur, ex, sev, top, distToNext, travelMin, eta, dwellMin, rpm: fin.rpm, gross: fin.gross, fin, totalMiles, dh, dhRatio, dhCost, dhSev, rpmLoaded, rpmAllIn, special, permit, permitSev};
 }
 
 /* ============================================================
@@ -1223,6 +1311,7 @@ function passesKpi(l, d){
   if(k==='at_delivery') return l.status==='at_delivery';
   if(k==='docs') return d.ex.some(e=>e.code==='docs' && e.sev!=='info');
   if(k==='dh') return d.dhRatio > DH_TARGET;
+  if(k==='permit') return d.special && d.permitSev!=='success';
   if(k==='delivered') return l.status==='delivered';
   if(k==='today_pu') return inRange(l.stops[0].appt.start, TODAY, TODAY) && isActive(l);
   return true;
@@ -1261,6 +1350,7 @@ function buildRows(){
       case 'commodity': return l.commodity;
       case 'weight': return l.weight;
       case 'deadhead': return l.miles.deadhead;
+      case 'permit': return (r=>r&&r.special?({danger:0,warning:1,success:2}[r.permitSev]):3)(deriveLoad(l));
       case 'dhpct': return d.dhRatio;
       case 'distToPu': return d.distToNext==null ? 99999 : d.distToNext;
       case 'source': return SOURCE_LABEL[l.source];
@@ -1374,6 +1464,7 @@ let columnDefs = [
   {key:'miles', label:'Loaded mi', width:100, visible:false, sortable:true},
   {key:'rate', label:'Rate / RPM', width:120, visible:true, sortable:true},
   {key:'deadhead', label:'Deadhead', width:130, visible:true, sortable:true},
+  {key:'permit', label:'Permit', width:150, visible:true, sortable:true},
   {key:'docs', label:'Docs', width:120, visible:true, sortable:true},
   {key:'updated', label:'Updated', width:100, visible:false, sortable:true},
   {key:'dispatcher', label:'Dispatcher', width:130, visible:false, sortable:true},
@@ -1635,6 +1726,7 @@ function renderKpiStrip(){
     {key:'at_delivery', label:'AT DELIVERY', value:n(r=>r.l.status==='at_delivery')},
     {key:'docs', label:'MISSING DOCS', value:n(r=>r.d.ex.some(e=>e.code==='docs'&&e.sev!=='info')), cls:'warn'},
     {key:'delivered', label:'DELIVERED 24H', value:n(r=>r.l.status==='delivered')},
+    {key:'permit', label:'PERMITS', value:scope.filter(r=>r.d.special).length, cls:scope.some(r=>r.d.special&&r.d.permitSev==='danger')?'danger':(scope.some(r=>r.d.special&&r.d.permitSev==='warning')?'warn':'')},
     {key:'dh', label:'DEADHEAD', value:(()=>{ const L=act.reduce((s,r)=>s+r.l.miles.loaded,0), H=act.reduce((s,r)=>s+r.l.miles.deadhead,0); return (L+H)? Math.round(H/(L+H)*100)+'%':'0%'; })(), cls:(()=>{ const L=act.reduce((s,r)=>s+r.l.miles.loaded,0), H=act.reduce((s,r)=>s+r.l.miles.deadhead,0); const r=(L+H)?H/(L+H):0; return r>0.20?'danger':(r>0.10?'warn':''); })()},
     {key:null, label:'GROSS ON BOARD', value:money(act.reduce((s,r)=>s+r.d.gross,0))}
   ];
@@ -1768,6 +1860,7 @@ function cellHtml(col, l, d){
   if(c==='miles') return '<div class="cell-primary">'+l.miles.loaded.toLocaleString('en-US')+' mi</div><div class="cell-meta">'+d.totalMiles.toLocaleString('en-US')+' total</div>';
   if(c==='deadhead'){ if(!l.miles.deadhead) return '<div class="cell-primary" style="color:var(--accent-dark)">0 mi</div><div class="cell-meta">loaded to loaded</div>'; return '<div class="cell-primary"><span class="dh-dot '+d.dhSev+'"></span>'+l.miles.deadhead+' mi <span style="color:var(--text400);font-weight:400">('+Math.round(d.dhRatio*100)+'%)</span></div><div class="cell-meta">≈ '+money(d.dhCost)+' empty</div>'; }
   if(c==='dhpct') return '<span class="dh-dot '+d.dhSev+'"></span>'+Math.round(d.dhRatio*100)+'%';
+  if(c==='permit'){ if(!d.special) return '<span class="empty-slot">—</span>'; const types=haulTypesOf(l).map(t=>HAUL_TYPES[t]).join(', '); return '<div class="perm-cell" data-act="permits"><span class="perm-dot '+d.permitSev+'">'+iconHTML(d.permitSev==='success'?'check':(d.permitSev==='warning'?'schedule':'priority_high'),12)+'</span><div style="min-width:0"><div class="cell-primary" style="font-size:12px">'+esc(types)+'</div><div class="cell-meta">'+(d.permit?esc(d.permit.label):'')+'</div></div></div>'; }
   if(c==='rate') return '<div class="cell-primary" style="color:var(--accent-dark)">'+money(d.gross)+'</div><div class="cell-meta">$'+d.rpmAllIn.toFixed(2)+'/mi all-in'+(d.dh?' · <span style="color:var(--text400)">$'+d.rpmLoaded.toFixed(2)+' loaded</span>':'')+'</div>';
   if(c==='docs'){ const k=[['rc','RC'],['bol','BOL'],['pod','POD']]; return '<div class="docs-cell" data-act="docs">'+k.map(([key,lbl])=>'<span class="doc-chip '+l.docs[key]+'">'+lbl+'</span>').join('')+'</div>'; }
   if(c==='updated') return '<div class="cell-primary" style="font-weight:600">'+relTime(l.updated)+'</div><div class="cell-meta">'+fmtShort(l.updated)+'</div>';
@@ -1841,6 +1934,7 @@ function renderTable(rows){
     else if(a==='driver') openProfile('driver', DRV[l.driverId]);
     else if(a==='truck') openProfile('truck', TRK[l.truckId]);
     else if(a==='docs') openLoadPanel(l, 'documents');
+    else if(a==='permits') openLoadPanel(l, 'permits');
     else if(a==='menu'){ e.stopPropagation(); openRowFlyout(act, l); }
     else if(a==='custom'){ e.stopPropagation(); startInlineEdit(act, l, act.dataset.col); }
   });
@@ -2021,7 +2115,7 @@ function openLoadPanel(l, tab){
 
   function detailRow(label, valueHtml){ return '<div class="sp-detail-row"><span class="sp-detail-label">'+label+'</span><span class="sp-detail-value">'+valueHtml+'</span></div>'; }
   function banner(e){
-    const act = e.action==='assign' ? '<button class="link-btn" data-a="assign">Assign</button>' : (e.action==='docs' ? '<button class="link-btn" data-a="docs">Documents</button>' : (e.action==='profile' ? '<button class="link-btn" data-a="profile">Open '+esc(e.module||'profile')+'</button>' : ''));
+    const act = e.action==='assign' ? '<button class="link-btn" data-a="assign">Assign</button>' : (e.action==='docs' ? '<button class="link-btn" data-a="docs">Documents</button>' : (e.action==='profile' ? '<button class="link-btn" data-a="profile">Open '+esc(e.module||'profile')+'</button>' : (e.action==='permits' ? '<button class="link-btn" data-a="permits">Permits</button>' : '')));
     return '<div class="sp-banner '+e.sev+'">'+iconHTML(e.sev==='danger'?'error':(e.sev==='warning'?'warning':'info'),18)+'<div><b>'+esc(e.title)+'</b>'+(e.detail?'<div style="font-weight:400">'+esc(e.detail)+'</div>':'')+'</div>'+act+'</div>';
   }
   function stopBlock(s, i, d){
@@ -2045,15 +2139,16 @@ function openLoadPanel(l, tab){
     header.querySelector('[data-a="close"]').onclick=closePanel;
     header.querySelector('[data-a="menu"]').onclick=(e)=>{ e.stopPropagation(); openRowFlyout(e.currentTarget, l); };
     panel.appendChild(header);
-    const tabs = [['overview','Overview'],['stops','Stops'],['financial','Financial'],['documents','Documents'],['messages','Messages'],['activity','Activity']];
+    const tabs = [['overview','Overview'],['stops','Stops'],['financial','Financial']].concat(d.special?[['permits','Permits']]:[]).concat([['documents','Documents'],['messages','Messages'],['activity','Activity']]);
     const tabsBar = el('<div class="sp-tabs"></div>');
-    tabs.forEach(([k,lbl])=>{ const badge = k==='messages' && l.messages.some(m=>m.from==='driver'&&(NOW-m.at)<3600000) ? ' ●' : (k==='documents' && Object.values(l.docs).some(v=>v==='missing'||v==='awaiting_upload') ? ' !' : ''); const t=el('<div class="sp-tab'+(activeTab===k?' active':'')+'">'+lbl+badge+'</div>'); t.onclick=()=>{ activeTab=k; paint(); }; tabsBar.appendChild(t); });
+    tabs.forEach(([k,lbl])=>{ const badge = k==='messages' && l.messages.some(m=>m.from==='driver'&&(NOW-m.at)<3600000) ? ' ●' : (k==='documents' && Object.values(l.docs).some(v=>v==='missing'||v==='awaiting_upload') ? ' !' : (k==='permits' && d.permitSev==='danger' ? ' !' : (k==='permits' && d.permitSev==='warning' ? ' •' : ''))); const t=el('<div class="sp-tab'+(activeTab===k?' active':'')+'">'+lbl+badge+'</div>'); t.onclick=()=>{ activeTab=k; paint(); }; tabsBar.appendChild(t); });
     panel.appendChild(tabsBar);
     const body = el('<div class="sp-body"></div>');
     if(activeTab==='overview'){
       let h='';
+      if(d.special){ const psev=d.permitSev; const label=haulTypesOf(l).map(t=>HAUL_TYPES[t]).join(' + '); h += '<div class="sp-banner '+(psev==='success'?'success':(psev==='warning'?'warning':'danger'))+'">'+iconHTML('straighten',18)+'<div><b>'+label+' load'+(psev==='success'?' · permits active, on route':(psev==='warning'?' · permits pending':' · permit / route issue'))+'</b><div style="font-weight:400">'+(d.permit?esc(d.permit.label):'')+'</div></div><button class="link-btn" data-a="permits">Open permits</button></div>'; }
       const shown = d.ex.length ? d.ex : [{sev:d.sev, title:d.top.title, detail:d.top.detail}];
-      h += shown.slice(0,4).map(banner).join('');
+      h += shown.filter(e=>e.code!=='permit'&&e.code!=='permit_route'&&e.code!=='permit_time').slice(0,4).map(banner).join('');
       h += '<div class="sp-section"><div class="sp-section-title">ROUTE</div><div class="route-list">'+l.stops.map((s,i)=>stopBlock(s,i,d)).join('')+'</div></div>';
       h += '<div class="sp-section"><div class="sp-section-title">DRIVER · TRUCK · TRAILER</div>';
       if(d.drv){
@@ -2073,6 +2168,7 @@ function openLoadPanel(l, tab){
       body.querySelectorAll('[data-a="unassign"]').forEach(b=>b.onclick=()=>openModal('unassign',{loadId:l.id}));
       body.querySelectorAll('[data-a="docs"]').forEach(b=>b.onclick=()=>{ activeTab='documents'; paint(); });
       body.querySelectorAll('[data-a="fin"]').forEach(b=>b.onclick=()=>{ activeTab='financial'; paint(); });
+      body.querySelectorAll('[data-a="permits"]').forEach(b=>b.onclick=()=>{ activeTab='permits'; paint(); });
       body.querySelectorAll('[data-a="profile"]').forEach(b=>b.onclick=()=>openProfile('driver', d.drv||{name:''}));
       body.querySelectorAll('[data-a="msg"]').forEach(b=>b.onclick=()=>{ activeTab='messages'; paint(); });
       body.querySelectorAll('[data-a="call"]').forEach(b=>b.onclick=()=>showToast('Calling '+(d.drv?d.drv.name+' · '+d.drv.phone:'contact')+'…'));
@@ -2091,11 +2187,14 @@ function openLoadPanel(l, tab){
       const lbl={on_file:'On file', missing:'Missing', awaiting_upload:'Awaiting upload', pending_approval:'Pending approval', na:'Not yet due'};
       body.innerHTML = '<div class="sp-section"><div class="sp-section-title">LOAD DOCUMENTS</div>'+docs.map(([k,name,hint])=>'<div class="doc-row">'+iconHTML(l.docs[k]==='on_file'?'task':'description',20,'color:'+(l.docs[k]==='on_file'?'var(--accent)':'var(--text400)'))+'<div style="flex:1"><div class="dr-name">'+name+'</div><div class="dr-meta">'+hint+'</div></div><span class="status-pill '+(l.docs[k]==='on_file'?'valid':(l.docs[k]==='missing'?'missing':(l.docs[k]==='na'?'na':l.docs[k])))+'">'+lbl[l.docs[k]]+'</span>'+(l.docs[k]==='on_file'?'<span class="row-actions" data-a="view" data-k="'+k+'">'+iconHTML('visibility',16)+'</span>':'<button class="link-btn" data-a="upload" data-k="'+k+'">Upload</button>'+(l.driverId&&(k==='bol'||k==='pod')?'<button class="link-btn" data-a="request" data-k="'+k+'">Request from driver</button>':''))+'</div>').join('')+'</div><div class="sp-section"><div class="sp-section-title">ACCESSORIALS</div><div class="cell-meta" style="white-space:normal">'+(l.accessorials.length?l.accessorials.map(a=>esc(a.name)+' '+money(a.amount)+(a.receipt?' · receipt':'')).join(' · '):'None on this load')+'</div><div style="margin-top:8px"><button class="link-btn" data-a="fin">'+iconHTML('calculate',14)+'Manage in Financial</button></div></div>';
       body.querySelectorAll('[data-a="fin"]').forEach(b=>b.onclick=()=>{ activeTab='financial'; paint(); });
+      body.querySelectorAll('[data-a="permits"]').forEach(b=>b.onclick=()=>{ activeTab='permits'; paint(); });
       body.querySelectorAll('[data-a="upload"]').forEach(b=>b.onclick=()=>{ l.docs[b.dataset.k]='on_file'; logAct(l, docs.find(x=>x[0]===b.dataset.k)[1]+' uploaded'); showToast('Document uploaded'); render(); });
       body.querySelectorAll('[data-a="request"]').forEach(b=>b.onclick=()=>{ l.docs[b.dataset.k]='awaiting_upload'; l.messages.push({from:'dispatcher', text:'Please upload the '+(b.dataset.k==='pod'?'signed POD':'BOL')+' from the app.', at:NOW}); logAct(l,'Requested '+b.dataset.k.toUpperCase()+' from driver'); showToast('Request sent to '+DRV[l.driverId].name); render(); });
       body.querySelectorAll('[data-a="view"]').forEach(b=>b.onclick=()=>showToast('Preview opens in the lightbox'));
     } else if(activeTab==='financial'){
       renderFinancialTab(body, l, d, paint);
+    } else if(activeTab==='permits'){
+      renderPermitsTab(body, l, d, paint);
     } else if(activeTab==='messages'){
       const dr=d.drv;
       body.innerHTML = '<div class="sp-section"><div class="sp-section-title">'+(dr?'THREAD WITH '+esc(dr.name).toUpperCase()+' · LOAD '+l.id:'NO DRIVER ASSIGNED')+'</div><div class="msg-feed">'+(l.messages.length?l.messages.map(m=>'<div class="msg '+m.from+'">'+esc(m.text)+(m.from!=='system'?'<div class="msg-meta">'+(m.from==='driver'?esc(dr?dr.name:'Driver'):'You')+' · '+fmtShort(m.at)+'</div>':'')+'</div>').join(''):'<div class="no-options-hint">No messages on this load yet.</div>')+'</div>'+(dr?'<div class="sp-comment-input-row"><textarea id="msgInput" placeholder="Message '+esc(dr.name)+' (delivered in the driver app + SMS fallback)"></textarea><div style="display:flex;gap:8px;align-items:center"><button class="link-btn" data-a="tpl">'+iconHTML('bolt',13)+'Send ETA request</button><button class="link-btn" data-a="chat">'+iconHTML('chat',13)+'Open in Chat</button><span style="flex:1"></span><button class="btn primary" data-a="send">Send</button></div></div>':'')+'</div>';
@@ -2140,7 +2239,7 @@ function modalShell(innerHtml){
 function renderModal(){
   document.querySelectorAll('.modal-scrim').forEach(n=>n.remove());
   if(!state.modal) return;
-  const builders = {filters:modalFilters, columns:modalColumns, addColumn:modalAddColumn, deleteColumn:modalDeleteColumn, customizeTabs:modalCustomizeTabs, customizeRail:modalCustomizeRail, assign:modalAssign, unassign:modalUnassign, status:modalStatus, appointment:modalAppointment, addLoad:modalAddLoad, saveView:modalSaveView, cancelLoad:modalCancelLoad, bulkDispatcher:modalBulkDispatcher, message:modalMessage, planDrop:modalPlanDrop, autoPlan:modalAutoPlan, postDetail:modalPostDetail, addAccessorial:modalAddAccessorial, accTemplates:modalAccTemplates, accTemplateForm:modalAccTemplateForm};
+  const builders = {filters:modalFilters, columns:modalColumns, addColumn:modalAddColumn, deleteColumn:modalDeleteColumn, customizeTabs:modalCustomizeTabs, customizeRail:modalCustomizeRail, assign:modalAssign, unassign:modalUnassign, status:modalStatus, appointment:modalAppointment, addLoad:modalAddLoad, saveView:modalSaveView, cancelLoad:modalCancelLoad, bulkDispatcher:modalBulkDispatcher, message:modalMessage, planDrop:modalPlanDrop, autoPlan:modalAutoPlan, postDetail:modalPostDetail, addAccessorial:modalAddAccessorial, accTemplates:modalAccTemplates, accTemplateForm:modalAccTemplateForm, permitRequest:modalPermitRequest, permitUpload:modalPermitUpload};
   const fn = builders[state.modal]; if(!fn) return;
   const node = fn(state.modalCtx||{}); node.classList.add('zoom-sync'); node.style.zoom = currentAppScale;
   document.body.appendChild(node);
@@ -2669,7 +2768,7 @@ function renderGantt(){
         if(dense && l.miles.deadhead && x2>x1){ const dhw=x2-x1; const dhTitle='Deadhead — '+l.miles.deadhead+' mi empty to pickup (approx '+money(Math.round(l.miles.deadhead*COST_PER_MILE))+')'; const dhLbl = dhw>44 ? '<span class="dh-lbl">'+l.miles.deadhead+' mi empty</span>' : ''; row.appendChild(el('<div class="g-dh" title="'+dhTitle+'" style="left:'+x1+'px;width:'+dhw+'px;top:'+top+'px;height:34px">'+dhLbl+'</div>')); }
         const w=Math.max(g.mode==='weeks'?g.dayPx-4:46, x3-x2);
         const sub = g.mode==='weeks' ? esc(l.customer.name) : esc(l.customer.name)+' · '+money(l.rate);
-        const bar = el('<div class="g-bar '+l.status+' sev-'+s.d.sev+(state.openLoadId===l.id?' open':'')+'" data-load="'+l.id+'" style="left:'+x2+'px;width:'+w+'px;top:'+top+'px">'+(dense?'<div class="gb-prog" style="width:'+(s.progress*100)+'%"></div>':'')+'<span class="gb-stripe"></span>'+(l.priority!=='normal'?'<span class="prio'+(l.priority==='high'?' high':'')+'">'+iconHTML(l.priority==='hot'?'local_fire_department':'priority_high',13)+'</span>':'')+'<span class="gb-label">'+l.id+' · '+esc(l.stops[0].city)+' → '+esc(l.stops[l.stops.length-1].city)+'</span>'+((dense&&w>150)?'<span class="gb-sub">'+sub+'</span>':'')+(dense?l.stops.map(st=>{ const sx=xOf(st.appt.start,g)-x2; return (sx>=6&&sx<=w-4)?'<span class="gb-stop '+st.kind+'" style="left:'+sx+'px"></span>':''; }).join(''):'')+'</div>');
+        const bar = el('<div class="g-bar '+l.status+' sev-'+s.d.sev+(state.openLoadId===l.id?' open':'')+'" data-load="'+l.id+'" style="left:'+x2+'px;width:'+w+'px;top:'+top+'px">'+(dense?'<div class="gb-prog" style="width:'+(s.progress*100)+'%"></div>':'')+'<span class="gb-stripe"></span>'+(l.priority!=='normal'?'<span class="prio'+(l.priority==='high'?' high':'')+'">'+iconHTML(l.priority==='hot'?'local_fire_department':'priority_high',13)+'</span>':'')+(s.d.special?'<span class="gb-permit '+s.d.permitSev+'" title="'+haulTypesOf(l).map(t=>HAUL_TYPES[t]).join(', ')+'">'+iconHTML(s.d.permitSev==='success'?'straighten':(s.d.permitSev==='warning'?'schedule':'priority_high'),10)+'</span>':'')+'<span class="gb-label">'+l.id+' · '+esc(l.stops[0].city)+' → '+esc(l.stops[l.stops.length-1].city)+'</span>'+((dense&&w>150)?'<span class="gb-sub">'+sub+'</span>':'')+(dense?l.stops.map(st=>{ const sx=xOf(st.appt.start,g)-x2; return (sx>=6&&sx<=w-4)?'<span class="gb-stop '+st.kind+'" style="left:'+sx+'px"></span>':''; }).join(''):'')+'</div>');
         bar.onclick=(e)=>{ if(dragState.moved || e.target.classList.contains('gb-handle')) return; openLoadPanel(l); };
         attachAlertTooltip(bar, ()=> planTooltip(l, s));
         if(isActive(l)){
@@ -2691,6 +2790,7 @@ function renderGantt(){
 function planTooltip(l, s){
   const rows=[{sev:s.d.sev, title:'Load '+l.id+' · '+STATUS_LABEL[l.status]+' · '+esc(l.customer.name), detail:money(l.rate)+' · $'+s.d.rpmAllIn.toFixed(2)+'/mi all-in · '+l.equipment}];
   if(l.miles.deadhead) rows.push({sev:s.d.dhSev, title:'Deadhead '+l.miles.deadhead+' mi empty ('+Math.round(s.d.dhRatio*100)+'%) · ≈ '+money(s.d.dhCost), detail:'from the previous drop to this pickup'});
+  if(s.d.special) rows.push({sev:s.d.permitSev, title:haulTypesOf(l).map(t=>HAUL_TYPES[t]).join(' + ')+' · '+(s.d.permit?s.d.permit.label:''), detail:s.d.permitSev==='success'?'On the permitted route, within hours':(s.d.permitSev==='warning'?'Permit pending':'Permit / route issue — open the load')});
   l.stops.forEach((st,i)=>rows.push({sev: st.departed?'success':(st.arrived?'warning':'info'), title:(st.kind==='pickup'?'PU':'DEL')+' '+(i+1)+' · '+st.city+', '+st.st+' · '+apptText(st.appt), detail:(st.arrived?'Arrived '+fmtShort(st.arrived):'')+(st.departed?' · Left '+fmtShort(st.departed):'')+(s.d.next===st&&s.d.eta?'ETA '+fmtShort(s.d.eta):'')}));
   s.d.ex.slice(0,3).forEach(e=>rows.push(e));
   rows.push({sev:'info', title:(isActive(l)?(l.stops[0].arrived?'Drag to another driver to reassign · drag the right edge to move the delivery appointment':'Drag sideways to move the load · drag an edge to change an appointment · drag to another driver to reassign')+' · click to open':'Click to open'), detail:''});
@@ -2726,7 +2826,7 @@ function renderTray(){
   if(!items.length) body.appendChild(el('<div class="no-options-hint" style="padding:12px">Every load has a driver.</div>'));
   items.forEach(({l,d})=>{
     const pu=l.stops[0], de=l.stops[l.stops.length-1]; const best=rankCandidates(l)[0];
-    const card = el('<div class="tray-card '+d.sev+'" data-load="'+l.id+'"><div class="tc-top">'+(l.priority!=='normal'?'<span class="prio'+(l.priority==='high'?' high':'')+'">'+iconHTML(l.priority==='hot'?'local_fire_department':'priority_high',14)+'</span>':'')+l.id+(l.source!=='internal'?'<span class="src-pill '+l.source+'">'+SOURCE_LABEL[l.source]+'</span>':'')+'</div><div class="tc-route">'+esc(pu.city)+', '+pu.st+' → '+esc(de.city)+', '+de.st+'</div><div class="tc-meta">PU '+esc(apptText(pu.appt))+' · '+esc(l.equipment)+' · '+l.miles.loaded+' mi</div><div class="tc-meta"><b>'+money(l.rate)+'</b> · $'+d.rpm.toFixed(2)+'/mi · '+esc(l.customer.name)+'</div>'+(best?'<div class="ai-line">'+iconHTML('auto_awesome',13)+(best.feasible?'Best: ':'Closest: ')+esc(best.dr.name.split(' ')[0])+' · '+best.dist+' mi · ETA '+fmtShort(best.eta)+'</div>':'')+'</div>');
+    const card = el('<div class="tray-card '+d.sev+'" data-load="'+l.id+'"><div class="tc-top">'+(l.priority!=='normal'?'<span class="prio'+(l.priority==='high'?' high':'')+'">'+iconHTML(l.priority==='hot'?'local_fire_department':'priority_high',14)+'</span>':'')+l.id+(l.source!=='internal'?'<span class="src-pill '+l.source+'">'+SOURCE_LABEL[l.source]+'</span>':'')+'</div><div class="tc-route">'+esc(pu.city)+', '+pu.st+' → '+esc(de.city)+', '+de.st+'</div><div class="tc-meta">PU '+esc(apptText(pu.appt))+' · '+esc(l.equipment)+' · '+l.miles.loaded+' mi</div><div class="tc-meta"><b>'+money(l.rate)+'</b> · $'+d.rpm.toFixed(2)+'/mi · '+esc(l.customer.name)+'</div>'+(d.special?'<div class="tc-permit"><span class="haul-tag">'+iconHTML(d.permitSev==='success'?'straighten':(d.permitSev==='warning'?'schedule':'priority_high'),12)+haulTypesOf(l).map(t=>HAUL_TYPES[t]).join(', ')+' · '+(d.permit?esc(d.permit.label):'')+'</span></div>':'')+(best?'<div class="ai-line">'+iconHTML('auto_awesome',13)+(best.feasible?'Best: ':'Closest: ')+esc(best.dr.name.split(' ')[0])+' · '+best.dist+' mi · ETA '+fmtShort(best.eta)+'</div>':'')+'</div>');
     card.onclick=()=>{ if(dragState.moved) return; openLoadPanel(l); };
     attachAlertTooltip(card, ()=>planTooltip(l, loadSpan(l)));
     wireDrag(card, {type:'card', loadId:l.id, driverId:null});
@@ -3234,6 +3334,111 @@ function modalAccTemplateForm(ctx){
   const cancel=el('<button class="btn">Cancel</button>'); cancel.onclick=()=>ctx.back?openModal(ctx.back.name, ctx.back.ctx):closeModal();
   const save=el('<button class="btn primary">'+(t?'Save':'Create template')+'</button>');
   save.onclick=()=>{ const x=read(); if(!x.name){ showToast('Template name is required','warning'); return; } if(t){ Object.assign(t, {calc:x.calc, unit:x.calc==='per_hour'?'hour':x.unit, amount:x.amount, inGross:x.inGross, billable:x.billable, addon:{mode:x.addonMode, value:x.addonValue}, note:x.note}); if(!t.system) t.name=x.name; showToast('Template "'+t.name+'" saved'); } else { ACC_TEMPLATES.push({id:'u_'+Date.now(), name:x.name, system:false, calc:x.calc, unit:x.calc==='per_hour'?'hour':x.unit, amount:x.amount, inGross:x.inGross, billable:x.billable, addon:{mode:x.addonMode, value:x.addonValue}, note:x.note, createdBy:CURRENT_USER.name}); showToast('Template "'+x.name+'" created'); } ctx.back?openModal(ctx.back.name, ctx.back.ctx):closeModal(); };
+  actions.appendChild(cancel); actions.appendChild(save); modal.appendChild(actions);
+  return m;
+}
+
+/* ============================================================
+   PERMITS — side-panel tab + request/upload flows + AI route
+   ============================================================ */
+function gmapsRouteUrl(l){
+  const wps=[]; (l.permits||[]).forEach(p=>{ if(p.route && p.route.waypoints) wps.push(...p.route.waypoints); });
+  if(!wps.length){ const s=l.stops[0], d=l.stops[l.stops.length-1]; return 'https://www.google.com/maps/dir/'+s.lat+','+s.lng+'/'+d.lat+','+d.lng; }
+  return 'https://www.google.com/maps/dir/'+wps.map(w=>w.lat+','+w.lng).join('/');
+}
+function renderPermitsTab(body, l, d, paint){
+  const types=haulTypesOf(l);
+  let h='';
+  // dimensions vs legal limits
+  if(l.dims){
+    const over=(v,lim)=> v>lim ? '<span style="color:var(--danger-t);font-weight:700">'+v+'</span>' : v;
+    h += '<div class="sp-section" style="margin-top:0"><div class="sp-section-title">LOAD DIMENSIONS</div><div class="fin-grid">'+
+      '<div class="sp-detail-row"><span class="sp-detail-label">Length</span><span class="sp-detail-value">'+over(l.dims.lengthFt,LEGAL.lengthFt)+' ft <span style="color:var(--text400)">/ '+LEGAL.lengthFt+' legal</span></span></div>'+
+      '<div class="sp-detail-row"><span class="sp-detail-label">Width</span><span class="sp-detail-value">'+over(l.dims.widthFt,LEGAL.widthFt)+' ft <span style="color:var(--text400)">/ '+LEGAL.widthFt+'</span></span></div>'+
+      '<div class="sp-detail-row"><span class="sp-detail-label">Height</span><span class="sp-detail-value">'+over(l.dims.heightFt,LEGAL.heightFt)+' ft <span style="color:var(--text400)">/ '+LEGAL.heightFt+'</span></span></div>'+
+      '<div class="sp-detail-row"><span class="sp-detail-label">Weight</span><span class="sp-detail-value">'+over(l.dims.weightLb,LEGAL.weightLb).toLocaleString?over(l.dims.weightLb,LEGAL.weightLb):(l.dims.weightLb>LEGAL.weightLb?'<span style="color:var(--danger-t);font-weight:700">'+l.dims.weightLb.toLocaleString()+'</span>':l.dims.weightLb.toLocaleString())+' lb <span style="color:var(--text400)">/ '+LEGAL.weightLb.toLocaleString()+'</span></span></div>'+
+      '</div><div style="margin-top:8px">'+types.map(t=>'<span class="haul-tag" style="margin-right:6px">'+iconHTML('warning',12)+HAUL_TYPES[t]+'</span>').join('')+'</div></div>';
+  }
+  // per-state permits
+  h += '<div class="sp-section"><div class="sp-section-title" style="display:flex;align-items:center">PERMITS · '+l.permits.length+' state'+(l.permits.length>1?'s':'')+'<span style="flex:1"></span><button class="link-btn" data-a="request">'+iconHTML('bolt',13)+'Request via API</button><button class="link-btn" data-a="upload">'+iconHTML('upload',13)+'Upload</button></div>';
+  l.permits.forEach(p=>{
+    const cls = p.status==='received'?'success':(p.status==='requested'?'warning':'danger');
+    let inner='';
+    if(p.status==='received' && p.route){
+      inner += '<div class="perm-route"><div class="pr-t">'+iconHTML('auto_awesome',14,'color:var(--purple)')+'AI-read permitted route</div>'+esc(p.route.summary)+(p.route.mustFollow?' <b>· must be followed exactly</b>':'')+'</div>';
+      inner += '<div class="perm-win"><span class="k">TRAVEL DAYS</span><span>'+esc(p.travel.days)+'</span><span class="k">HOURS</span><span>'+esc(p.travel.from)+' – '+esc(p.travel.to)+'</span><span class="k">SPEED</span><span>'+p.travel.speedMax+' mph max</span><span class="k">CURFEW</span><span>'+esc(p.travel.curfew)+'</span></div>';
+      if(p.restrictions && p.restrictions.length) inner += '<div class="perm-restr"><b style="font-size:11px;color:var(--text400);letter-spacing:.3px">RESTRICTIONS</b><ul style="margin:4px 0 0;padding-left:18px">'+p.restrictions.map(r=>'<li>'+esc(r)+'</li>').join('')+'</ul></div>';
+      inner += '<div class="rs-actions" style="margin-top:10px"><button class="link-btn" data-a="map" data-id="'+p.id+'">'+iconHTML('map',13)+'Show route on Google Maps</button><button class="link-btn" data-a="view" data-id="'+p.id+'">'+iconHTML('description',13)+'View permit</button></div>';
+    } else if(p.status==='requested'){
+      inner += '<div class="cell-meta" style="margin-top:6px">Requested '+relTime(p.requested)+' via '+(PERMIT_PROVIDERS.find(x=>x.id===p.provider)||{label:'API'}).label+' · ETA '+esc(p.eta||'soon')+'. The route and travel windows will be read automatically when it arrives.</div><div class="rs-actions" style="margin-top:8px"><button class="link-btn" data-a="simulate" data-id="'+p.id+'">'+iconHTML('check_circle',13)+'Simulate arrival (demo)</button><button class="link-btn" data-a="upload">Upload instead</button></div>';
+    } else {
+      inner += '<div class="cell-meta" style="margin-top:6px">Not obtained yet — request it through the permit service, or upload the PDF if you already have it.</div><div class="rs-actions" style="margin-top:8px"><button class="link-btn" data-a="request">'+iconHTML('bolt',13)+'Request</button><button class="link-btn" data-a="upload">'+iconHTML('upload',13)+'Upload</button></div>';
+    }
+    h += '<div class="perm-row"><div class="pr-head"><span class="perm-dot '+cls+'">'+iconHTML(p.status==='received'?'check':(p.status==='requested'?'schedule':'priority_high'),12)+'</span><span class="pr-state">'+p.state+' · '+HAUL_TYPES[p.type]+'</span><span class="perm-pill '+cls+' pr-badge">'+PERMIT_STATUS[p.status]+(p.number?' · '+p.number:'')+'</span></div>'+inner+'</div>';
+  });
+  h += '</div>';
+  // live compliance (only meaningful with a driver + active permits)
+  if(l.driverId && d.permit && d.permit.active>0){
+    const off=offRouteMiles(l); const win=travelWindowOf(l);
+    const routeOk = off==null || off<=25; const timeOk = !win || win.ok;
+    h += '<div class="sp-section"><div class="sp-section-title">LIVE COMPLIANCE</div>'+
+      '<div class="sp-banner '+(routeOk?'success':'danger')+'">'+iconHTML(routeOk?'check_circle':'wrong_location',18)+'<div><b>'+(routeOk?'On the permitted route':'Off the permitted route · '+off+' mi from the corridor')+'</b><div style="font-weight:400">'+(routeOk?'Driver position matches the approved corridor':'Oversize loads must stay on the permit route — call the driver now')+'</div></div>'+(routeOk?'':'<button class="link-btn" data-a="callroute">Call</button>')+'</div>'+
+      '<div class="sp-banner '+(timeOk?'success':'danger')+'">'+iconHTML(timeOk?'schedule':'nights_stay',18)+'<div><b>'+(timeOk?'Within permitted travel hours':'Outside permitted travel hours')+'</b><div style="font-weight:400">'+(timeOk?'Daylight, allowed day':(win?win.why.join(' · '):''))+'</div></div></div></div>';
+  }
+  body.innerHTML = h;
+  const on=(a,fn)=> body.querySelectorAll('[data-a="'+a+'"]').forEach(b=>b.onclick=()=>fn(b));
+  on('request', ()=>openModal('permitRequest',{loadId:l.id}));
+  on('upload', ()=>openModal('permitUpload',{loadId:l.id}));
+  on('map', (b)=>{ window.open(gmapsRouteUrl(l),'_blank'); showToast('Opening the permitted route in Google Maps'); });
+  on('view', ()=>showToast('Permit PDF opens in the lightbox'));
+  on('callroute', ()=>showToast('Calling '+(d.drv?d.drv.name:'driver')+' — bring the load back to the corridor','danger'));
+  on('simulate', (b)=>{ const p=l.permits.find(x=>x.id===b.dataset.id); simulatePermitArrival(l, p); });
+}
+function simulatePermitArrival(l, p){
+  p.status='received'; p.number=p.state+'-OS-'+(9000+Math.floor(Math.random()*999)); p.issued=NOW; p.expires=new Date(NOW.getTime()+5*86400000);
+  // AI "reads" a route + windows from the returned permit
+  const s0=l.stops[0], s1=l.stops[l.stops.length-1];
+  p.route={summary:'Permit-approved corridor '+s0.st+' → '+s1.st+' (state highways, avoids low bridges)', mustFollow:true, waypoints:[{name:s0.city,lat:s0.lat,lng:s0.lng},{name:'Mid-route checkpoint',lat:(s0.lat+s1.lat)/2,lng:(s0.lng+s1.lng)/2},{name:s1.city,lat:s1.lat,lng:s1.lng}]};
+  p.travel={days:'Mon–Sat', from:'30 min after sunrise', to:'30 min before sunset', curfew:'No travel Sun or holidays', speedMax:55};
+  p.restrictions=['Amber lights + OVERSIZE banners', p.type==='overheight'?'Height pole required · avoid posted low clearances':'Escort per state rule'];
+  logAct(l, p.state+' '+HAUL_TYPES[p.type]+' permit received ('+p.number+') — route and travel windows read by AI');
+  showToast(p.state+' permit active — AI mapped the route + travel windows', 'ai');
+  render(); if(openPanelRefresh) openPanelRefresh();
+}
+function modalPermitRequest(ctx){
+  const l=loadById(ctx.loadId); const pending=l.permits.filter(p=>p.status==='needed'||p.status==='expired'||p.status==='rejected');
+  const states=[...new Set((pending.length?pending:l.permits).map(p=>p.state))];
+  const provider = ctx.provider || 'permitservice';
+  const m = modalShell('<h2>Request permit'+(states.length>1?'s':'')+' via API</h2><p class="mdesc">Send the load dimensions to a permit service; it files with each state DOT and returns the permit with its approved route and travel windows. '+esc(HAUL_TYPES[(l.oversize.types[0])])+' · '+states.join(', ')+'.</p>');
+  const modal=m.querySelector('.modal');
+  modal.appendChild(el('<div class="field"><label>Provider</label></div>'));
+  let prov=provider; modal.querySelector('.field').appendChild(createBrandedSelect(PERMIT_PROVIDERS.filter(x=>x.id!=='manual').map(x=>({value:x.id,label:x.label})), provider, (v)=>{ prov=v; }));
+  modal.appendChild(el('<div class="field inline"><div><label>Length (ft)</label><input type="number" id="pl" value="'+(l.dims?l.dims.lengthFt:'')+'"/></div><div><label>Width (ft)</label><input type="number" id="pw" value="'+(l.dims?l.dims.widthFt:'')+'"/></div></div>'));
+  modal.appendChild(el('<div class="field inline"><div><label>Height (ft)</label><input type="number" id="ph" value="'+(l.dims?l.dims.heightFt:'')+'"/></div><div><label>Weight (lb)</label><input type="number" id="pwt" value="'+(l.dims?l.dims.weightLb:'')+'"/></div></div>'));
+  modal.appendChild(el('<div class="field"><label>States</label><input type="text" value="'+states.join(', ')+'" disabled/></div>'));
+  modal.appendChild(el('<div class="sp-banner info" style="margin-top:0">'+iconHTML('info',18)+'<div>Typical turnaround 2–4 business hours; superloads can take days. You will get a notification when each permit is active.</div></div>'));
+  const actions=el('<div class="actions"></div>');
+  const cancel=el('<button class="btn">Cancel</button>'); cancel.onclick=closeModal;
+  const send=el('<button class="btn primary">'+iconHTML('bolt',15)+'Send request</button>');
+  send.onclick=()=>{ (pending.length?pending:l.permits).forEach(p=>{ p.status='requested'; p.provider=prov; p.requested=NOW; p.eta='2–4 business hours'; }); logAct(l, 'Permit request sent to '+(PERMIT_PROVIDERS.find(x=>x.id===prov)||{label:''}).label+' for '+states.join(', ')); showToast('Request sent · '+states.length+' state'+(states.length>1?'s':'')+' pending', 'warning'); closeModal(); if(openPanelRefresh) openPanelRefresh(); };
+  actions.appendChild(cancel); actions.appendChild(send); modal.appendChild(actions);
+  return m;
+}
+function modalPermitUpload(ctx){
+  const l=loadById(ctx.loadId); const pending=l.permits.filter(p=>p.status!=='received');
+  const m = modalShell('<h2>Upload permit</h2><p class="mdesc">Attach the permit PDF you received. AI reads the approved route, travel days/hours and restrictions and puts them on the map automatically.</p>');
+  const modal=m.querySelector('.modal');
+  modal.appendChild(el('<div class="field"><label>Which permit?</label></div>'));
+  let pick = ctx.pick || (pending[0] ? pending[0].id : (l.permits[0]&&l.permits[0].id));
+  modal.querySelector('.field').appendChild(createBrandedSelect(l.permits.map(p=>({value:p.id,label:p.state+' · '+HAUL_TYPES[p.type]+' · '+PERMIT_STATUS[p.status]})), pick, (v)=>{ pick=v; }));
+  modal.appendChild(el('<div class="field"><label>Permit number</label><input type="text" id="pnum" placeholder="e.g. CO-OS-4471"/></div>'));
+  const drop=el('<div class="dropzone" style="border:1.5px dashed var(--border);border-radius:12px;padding:26px;text-align:center;color:var(--text400);cursor:pointer">'+iconHTML('upload_file',34,'color:var(--border2)')+'<div style="margin-top:8px;font-size:13px">Tap to choose the permit PDF</div></div>');
+  let uploaded=false; drop.onclick=()=>{ uploaded=true; drop.innerHTML=iconHTML('task',30,'color:var(--accent)')+'<div style="margin-top:6px;font-size:13px;color:var(--text900);font-weight:600">permit.pdf · captured</div><div class="ai-line" style="justify-content:center;margin-top:6px">'+iconHTML('auto_awesome',14)+'AI is reading the route and travel windows…</div>'; };
+  modal.appendChild(drop);
+  const actions=el('<div class="actions"></div>');
+  const cancel=el('<button class="btn">Cancel</button>'); cancel.onclick=closeModal;
+  const save=el('<button class="btn primary">Save & read with AI</button>');
+  save.onclick=()=>{ if(!uploaded){ showToast('Choose the permit file first','warning'); return; } const p=l.permits.find(x=>x.id===pick); p.number=modal.querySelector('#pnum').value.trim()||p.state+'-'+Math.floor(1000+Math.random()*8999); simulatePermitArrival(l, p); closeModal(); };
   actions.appendChild(cancel); actions.appendChild(save); modal.appendChild(actions);
   return m;
 }
