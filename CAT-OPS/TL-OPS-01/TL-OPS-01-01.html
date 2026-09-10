@@ -806,7 +806,7 @@ const HAUL_TYPES = {oversize:'Oversize', overweight:'Overweight', overheight:'Ov
 const LEGAL = {widthFt:8.5, heightFt:13.5, lengthFt:53, weightLb:80000};
 // Permit lifecycle
 const PERMIT_STATUS = {needed:'Needed', requested:'Requested', received:'Active', expired:'Expired', rejected:'Rejected'};
-const PERMIT_PROVIDERS = [{id:'manual',label:'Upload manually'},{id:'permitservice',label:'ProMiles / permit service (API)'},{id:'state_dot',label:'State DOT portal (API)'}];   // planning speed used for ETA / HOS checks (assumption, see 03)
+const PERMIT_PROVIDERS = [{id:'manual',label:'Upload it myself'},{id:'permitservice',label:'Permit service (files with the states)'},{id:'state_dot',label:'Order directly from the state'}];   // planning speed used for ETA / HOS checks (assumption, see 03)
 const COST_PER_MILE = 1.90;   // all-in operating cost per mile (company setting) — used to cost deadhead
 const DH_TARGET = 0.10;       // deadhead ratio target (industry benchmark < 10%)
 function dhPct(loaded, dh){ const tot=loaded+dh; return tot ? dh/tot : 0; }
@@ -1019,7 +1019,7 @@ let LOADS = [
   mkLoad({id:'24138', customer:{name:'Tyson Foods', type:'shipper', mc:''}, refs:{rc:'RC-902300', po:'PO 3300987'}, dispatcherId:'at', status:'unassigned', equipment:'Reefer', commodity:'Frozen poultry', weight:43800, temp:'0°F', rate:1560, miles:{loaded:220, deadhead:0}, updated:D(0,9,20),
     stops:[stop('pickup','Tyson Springdale','2210 W Oaklawn Dr','Springdale','AR',36.19,-94.13,D(1,6,0),null,'hard',{}),
            stop('delivery','Hy-Vee Distribution','1605 E 8th St','Kansas City','MO',39.10,-94.58,D(1,13,0),D(1,16,0),'window',{})],
-    activity:[{text:'Load created via customer API', by:'System', at:D(0,9,20)}], source:'api'}),
+    activity:[{text:'Load received from the customer system', by:'System', at:D(0,9,20)}], source:'api'}),
   mkLoad({id:'24139', customer:{name:'TQL', type:'broker', mc:'MC 322160'}, refs:{rc:'RC-902199', po:'PO 8801170'}, dispatcherId:'mw', driverId:'d15', truckId:'t305', trailerId:'r18', status:'at_pickup', equipment:'Reefer', commodity:'Ice cream', weight:38400, temp:'-20°F', rate:1840, miles:{loaded:298, deadhead:17}, updated:D(0,9,10),
     stops:[stop('pickup','Prairie Farms','1100 N Broadway','St. Louis','MO',38.63,-90.20,D(0,9,0),D(0,11,0),'window',{arrived:D(0,8,58)}),
            stop('delivery','Schnucks DC','11420 Lackland Rd','Springfield','IL',39.78,-89.65,D(0,16,0),null,'hard',{})],
@@ -1224,8 +1224,8 @@ function deriveLoad(l){
     // 6c. permits for special hauls
     if(isSpecialHaul(l)){
       const ps=permitSummary(l);
-      if(ps && ps.need>0) ex.push({sev:'danger', code:'permit', title:'Permit missing · '+haulTypesOf(l).map(t=>HAUL_TYPES[t]).join(' + ')+' · '+ps.need+' state'+(ps.need>1?'s':''), detail:(l.permits.filter(p=>p.status==='needed'||p.status==='expired').map(p=>p.state).join(', '))+' — upload or request before dispatch', action:'permits'});
-      else if(ps && ps.req>0) ex.push({sev:'warning', code:'permit', title:'Permit pending · '+ps.req+' request'+(ps.req>1?'s':'')+' in progress', detail:l.permits.filter(p=>p.status==='requested').map(p=>p.state).join(', ')+' · ETA '+(l.permits.find(p=>p.eta)?l.permits.find(p=>p.eta).eta:'soon'), action:'permits'});
+      if(ps && ps.need>0) ex.push({sev:'danger', code:'permit', title:'Permit missing · '+haulTypesOf(l).map(t=>HAUL_TYPES[t]).join(' + ')+' · '+ps.need+' state'+(ps.need>1?'s':''), detail:(l.permits.filter(p=>p.status==='needed'||p.status==='expired').map(p=>p.state).join(', '))+' — order or upload before dispatch', action:'permits'});
+      else if(ps && ps.req>0) ex.push({sev:'warning', code:'permit', title:'Permit pending · '+ps.req+' request'+(ps.req>1?'s':'')+' in progress', detail:l.permits.filter(p=>p.status==='requested').map(p=>p.state).join(', ')+' · ready in '+(l.permits.find(p=>p.eta)?l.permits.find(p=>p.eta).eta:'a few hours'), action:'permits'});
       // active permits: check the driver stays on the approved route + inside the travel window
       if(l.driverId && l.status!=='scheduled' && l.status!=='delivered'){
         const off=offRouteMiles(l);
@@ -3360,7 +3360,7 @@ function renderPermitsTab(body, l, d, paint){
       '</div><div style="margin-top:8px">'+types.map(t=>'<span class="haul-tag" style="margin-right:6px">'+iconHTML('warning',12)+HAUL_TYPES[t]+'</span>').join('')+'</div></div>';
   }
   // per-state permits
-  h += '<div class="sp-section"><div class="sp-section-title" style="display:flex;align-items:center">PERMITS · '+l.permits.length+' state'+(l.permits.length>1?'s':'')+'<span style="flex:1"></span><button class="link-btn" data-a="request">'+iconHTML('bolt',13)+'Request via API</button><button class="link-btn" data-a="upload">'+iconHTML('upload',13)+'Upload</button></div>';
+  h += '<div class="sp-section"><div class="sp-section-title" style="display:flex;align-items:center">PERMITS · '+l.permits.length+' state'+(l.permits.length>1?'s':'')+'<span style="flex:1"></span><button class="link-btn" data-a="request">'+iconHTML('send',13)+'Order permits</button><button class="link-btn" data-a="upload">'+iconHTML('upload',13)+'Upload</button></div>';
   l.permits.forEach(p=>{
     const cls = p.status==='received'?'success':(p.status==='requested'?'warning':'danger');
     let inner='';
@@ -3370,9 +3370,9 @@ function renderPermitsTab(body, l, d, paint){
       if(p.restrictions && p.restrictions.length) inner += '<div class="perm-restr"><b style="font-size:11px;color:var(--text400);letter-spacing:.3px">RESTRICTIONS</b><ul style="margin:4px 0 0;padding-left:18px">'+p.restrictions.map(r=>'<li>'+esc(r)+'</li>').join('')+'</ul></div>';
       inner += '<div class="rs-actions" style="margin-top:10px"><button class="link-btn" data-a="map" data-id="'+p.id+'">'+iconHTML('map',13)+'Show route on Google Maps</button><button class="link-btn" data-a="view" data-id="'+p.id+'">'+iconHTML('description',13)+'View permit</button></div>';
     } else if(p.status==='requested'){
-      inner += '<div class="cell-meta" style="margin-top:6px">Requested '+relTime(p.requested)+' via '+(PERMIT_PROVIDERS.find(x=>x.id===p.provider)||{label:'API'}).label+' · ETA '+esc(p.eta||'soon')+'. The route and travel windows will be read automatically when it arrives.</div><div class="rs-actions" style="margin-top:8px"><button class="link-btn" data-a="simulate" data-id="'+p.id+'">'+iconHTML('check_circle',13)+'Simulate arrival (demo)</button><button class="link-btn" data-a="upload">Upload instead</button></div>';
+      inner += '<div class="cell-meta" style="margin-top:6px">Ordered '+relTime(p.requested)+' · '+(PERMIT_PROVIDERS.find(x=>x.id===p.provider)||{label:'permit service'}).label+' · ready in '+esc(p.eta||'a few hours')+'. The route and travel hours will be read automatically when it arrives.</div><div class="rs-actions" style="margin-top:8px"><button class="link-btn" data-a="simulate" data-id="'+p.id+'">'+iconHTML('check_circle',13)+'Simulate arrival (demo)</button><button class="link-btn" data-a="upload">Upload instead</button></div>';
     } else {
-      inner += '<div class="cell-meta" style="margin-top:6px">Not obtained yet — request it through the permit service, or upload the PDF if you already have it.</div><div class="rs-actions" style="margin-top:8px"><button class="link-btn" data-a="request">'+iconHTML('bolt',13)+'Request</button><button class="link-btn" data-a="upload">'+iconHTML('upload',13)+'Upload</button></div>';
+      inner += '<div class="cell-meta" style="margin-top:6px">Not obtained yet — order it through a permit service, or upload the PDF if you already have it.</div><div class="rs-actions" style="margin-top:8px"><button class="link-btn" data-a="request">'+iconHTML('send',13)+'Order permit</button><button class="link-btn" data-a="upload">'+iconHTML('upload',13)+'Upload</button></div>';
     }
     h += '<div class="perm-row"><div class="pr-head"><span class="perm-dot '+cls+'">'+iconHTML(p.status==='received'?'check':(p.status==='requested'?'schedule':'priority_high'),12)+'</span><span class="pr-state">'+p.state+' · '+HAUL_TYPES[p.type]+'</span><span class="perm-pill '+cls+' pr-badge">'+PERMIT_STATUS[p.status]+(p.number?' · '+p.number:'')+'</span></div>'+inner+'</div>';
   });
@@ -3409,18 +3409,18 @@ function modalPermitRequest(ctx){
   const l=loadById(ctx.loadId); const pending=l.permits.filter(p=>p.status==='needed'||p.status==='expired'||p.status==='rejected');
   const states=[...new Set((pending.length?pending:l.permits).map(p=>p.state))];
   const provider = ctx.provider || 'permitservice';
-  const m = modalShell('<h2>Request permit'+(states.length>1?'s':'')+' via API</h2><p class="mdesc">Send the load dimensions to a permit service; it files with each state DOT and returns the permit with its approved route and travel windows. '+esc(HAUL_TYPES[(l.oversize.types[0])])+' · '+states.join(', ')+'.</p>');
+  const m = modalShell('<h2>Order permit'+(states.length>1?'s':'')+'</h2><p class="mdesc">We send the load size to a permit service — it files with each state for you and sends the permit back with its route and travel hours. '+esc(HAUL_TYPES[(l.oversize.types[0])])+' · '+states.join(', ')+'.</p>');
   const modal=m.querySelector('.modal');
-  modal.appendChild(el('<div class="field"><label>Provider</label></div>'));
+  modal.appendChild(el('<div class="field"><label>How do you want to get them?</label></div>'));
   let prov=provider; modal.querySelector('.field').appendChild(createBrandedSelect(PERMIT_PROVIDERS.filter(x=>x.id!=='manual').map(x=>({value:x.id,label:x.label})), provider, (v)=>{ prov=v; }));
   modal.appendChild(el('<div class="field inline"><div><label>Length (ft)</label><input type="number" id="pl" value="'+(l.dims?l.dims.lengthFt:'')+'"/></div><div><label>Width (ft)</label><input type="number" id="pw" value="'+(l.dims?l.dims.widthFt:'')+'"/></div></div>'));
   modal.appendChild(el('<div class="field inline"><div><label>Height (ft)</label><input type="number" id="ph" value="'+(l.dims?l.dims.heightFt:'')+'"/></div><div><label>Weight (lb)</label><input type="number" id="pwt" value="'+(l.dims?l.dims.weightLb:'')+'"/></div></div>'));
   modal.appendChild(el('<div class="field"><label>States</label><input type="text" value="'+states.join(', ')+'" disabled/></div>'));
-  modal.appendChild(el('<div class="sp-banner info" style="margin-top:0">'+iconHTML('info',18)+'<div>Typical turnaround 2–4 business hours; superloads can take days. You will get a notification when each permit is active.</div></div>'));
+  modal.appendChild(el('<div class="sp-banner info" style="margin-top:0">'+iconHTML('info',18)+'<div>Usually ready in 2–4 hours; superloads can take a day or two. You will get a notification the moment each permit is active.</div></div>'));
   const actions=el('<div class="actions"></div>');
   const cancel=el('<button class="btn">Cancel</button>'); cancel.onclick=closeModal;
-  const send=el('<button class="btn primary">'+iconHTML('bolt',15)+'Send request</button>');
-  send.onclick=()=>{ (pending.length?pending:l.permits).forEach(p=>{ p.status='requested'; p.provider=prov; p.requested=NOW; p.eta='2–4 business hours'; }); logAct(l, 'Permit request sent to '+(PERMIT_PROVIDERS.find(x=>x.id===prov)||{label:''}).label+' for '+states.join(', ')); showToast('Request sent · '+states.length+' state'+(states.length>1?'s':'')+' pending', 'warning'); closeModal(); if(openPanelRefresh) openPanelRefresh(); };
+  const send=el('<button class="btn primary">'+iconHTML('send',15)+'Order permit'+(states.length>1?'s':'')+'</button>');
+  send.onclick=()=>{ (pending.length?pending:l.permits).forEach(p=>{ p.status='requested'; p.provider=prov; p.requested=NOW; p.eta='2–4 business hours'; }); logAct(l, 'Permits ordered from '+(PERMIT_PROVIDERS.find(x=>x.id===prov)||{label:'permit service'}).label+' for '+states.join(', ')); showToast('Permits ordered · '+states.length+' state'+(states.length>1?'s':'')+' pending', 'warning'); closeModal(); if(openPanelRefresh) openPanelRefresh(); };
   actions.appendChild(cancel); actions.appendChild(send); modal.appendChild(actions);
   return m;
 }
