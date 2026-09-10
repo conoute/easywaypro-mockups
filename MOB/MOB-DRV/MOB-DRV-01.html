@@ -381,12 +381,12 @@ function scrLoads(){
 
 /* ---- Permits (driver side) ---- */
 const HAUL_LBL={oversize:'Oversize',overweight:'Overweight',overheight:'Over-height',overlength:'Over-length',overwidth:'Over-width',superload:'Superload',hazmat:'Hazmat'};
-function permitState(l){ if(!l.permit) return null; const p=l.permit; if(p.status!=='active') return {sev:'warning', txt:'Permit pending'}; if(p.offRouteMi>2 || p.onRoute===false) return {sev:'danger', txt:'Off the permitted route'}; if(p.timeBad) return {sev:'danger', txt:'Outside permitted hours'}; return {sev:'success', txt:'On route · within hours'}; }
+function permitState(l){ if(!l.permit) return null; const p=l.permit; if(p.status!=='active') return {sev:'warning', txt:'Permit on the way'}; if(p.offRouteMi>2 || p.onRoute===false) return {sev:'danger', txt:'Off the permitted route'}; if(p.timeBad) return {sev:'danger', txt:'Outside permitted hours'}; return {sev:'success', txt:'On route · within hours'}; }
 function permitCard(l){
   const p=l.permit; if(!p) return '';
   const st=permitState(l); const types=p.types.map(t=>HAUL_LBL[t]).join(' + ');
   if(p.status!=='active'){
-    return '<div class="card warn"><div style="display:flex;align-items:center;gap:10px;margin-bottom:6px"><span class="r-icon warn" style="width:40px;height:40px">'+ic('straighten',22)+'</span><div style="flex:1"><h3 style="margin:0">'+types+' load</h3><div class="sub">Permit pending · '+esc(p.states.join(', '))+' · ETA '+esc(p.eta||'soon')+'</div></div></div><div class="sub">You will get the permitted route and travel hours here as soon as the permit is active. Do not start the load until it clears.</div></div>';
+    return '<div class="card warn"><div style="display:flex;align-items:center;gap:10px;margin-bottom:6px"><span class="r-icon warn" style="width:40px;height:40px">'+ic('straighten',22)+'</span><div style="flex:1"><h3 style="margin:0">'+types+' load</h3><div class="sub">Permit on the way · '+esc(p.states.join(', '))+' · ETA '+esc(p.eta||'soon')+'</div></div></div><div class="sub">The permitted route and travel hours show up here as soon as the permit comes back. Do not start the load until it clears.</div></div>';
   }
   const cls = st.sev==='danger'?'danger':(st.sev==='warning'?'warn':'accent');
   let h='<div class="card '+cls+'"><div style="display:flex;align-items:center;gap:10px"><span class="r-icon '+(st.sev==='danger'?'bad':(st.sev==='warning'?'warn':'ok'))+'" style="width:44px;height:44px">'+ic('straighten',24)+'</span><div style="flex:1"><h3 style="margin:0">'+types+' · special route</h3><div class="sub">'+esc(p.states.join(' · '))+' · permit active</div></div><span class="pill '+(st.sev==='danger'?'danger':(st.sev==='warning'?'warning':'success'))+'">'+esc(st.txt)+'</span></div>';
