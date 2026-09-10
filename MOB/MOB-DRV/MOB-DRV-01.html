@@ -190,6 +190,11 @@ const ME = {id:'d1', name:'Sultan Suleymanov', phone:'(806) 555-0142', email:'s.
   duty:'driving', hos:{drive:522, shift:675, cycle:3130, breakIn:190}, gps:{city:'Birmingham', st:'AL', road:'I-20 E', speed:66}, payRate:0.65};
 let loads = [
   {id:'24117', status:'in_transit', accepted:true, customer:'Werner Enterprises', ref:'PO 1914553', commodity:'Paper products', weight:41200, equipment:'Dry van', miles:782, deadhead:38, pay:508, dispatcher:'Marcus Webb', notes:'Hard appt 6 PM — gate 3, lumper on site.',
+    permit:{types:['oversize','overwidth'], dims:{lengthFt:70,widthFt:12,heightFt:13,weightLb:41200}, states:['TX','LA','MS','AL','GA'], status:'active',
+      route:{summary:'I-20 E permitted corridor · Dallas → Atlanta', mapUrl:'https://www.google.com/maps/dir/32.78,-96.80/33.75,-84.39', mustFollow:true},
+      travel:{days:'Mon–Sat', from:'30 min after sunrise', to:'30 min before sunset', speedMax:55, curfew:'No travel Sun or holidays; no metro Atlanta 7–9 AM / 4–6 PM'},
+      restrictions:['1 rear escort (over 12 ft wide)','Amber lights + OVERSIZE LOAD banners','No travel in winds > 35 mph','Stay on I-20 — no alternate routing'],
+      onRoute:true, offRouteMi:0, curfewSoon:{at:D(0,16,0), text:'Atlanta metro curfew starts 4:00 PM — plan to be parked or past downtown'}},
     stops:[{kind:'pickup', name:'Georgia-Pacific DC', addr:'1450 Industrial Pkwy, Dallas, TX 75207', city:'Dallas', st:'TX', appt:{start:D(-1,13,0), end:D(-1,15,0), type:'window'}, arrived:D(-1,12,48), departed:D(-1,14,10), contact:'Dock office', phone:'(972) 555-0104', notes:''},
            {kind:'delivery', name:'Home Depot RDC', addr:'6200 Fulton Industrial Blvd, Atlanta, GA 30336', city:'Atlanta', st:'GA', appt:{start:D(0,18,0), end:null, type:'hard'}, contact:'Receiving', phone:'(404) 555-0166', notes:'Check in at gate 3, lumper on site', milesLeft:148}],
     docs:{bol:'on_file', pod:'na'}, accessorials:[], activity:[{t:'Departed Georgia-Pacific DC', at:D(-1,14,10)},{t:'Arrived at pickup', at:D(-1,12,48)},{t:'Accepted load', at:D(-2,16,40)},{t:'Dispatched by Marcus Webb', at:D(-2,16,20)}]},
@@ -198,6 +203,8 @@ let loads = [
            {kind:'delivery', name:'Publix DC Charlotte', addr:'3700 Westinghouse Blvd, Charlotte, NC 28273', city:'Charlotte', st:'NC', appt:{start:D(1,15,0), end:null, type:'hard'}, contact:'Receiving', phone:'(704) 555-0142', notes:''}],
     docs:{bol:'na', pod:'na'}, accessorials:[], activity:[{t:'Dispatched by Marcus Webb', at:D(0,8,55)}]},
   {id:'24145', status:'scheduled', accepted:true, customer:'Schneider National', ref:'PO 6120110', commodity:'Paper', weight:40800, equipment:'Dry van', miles:410, deadhead:22, pay:267, dispatcher:'Marcus Webb', notes:'',
+    permit:{types:['overheight'], dims:{lengthFt:48,widthFt:8.5,heightFt:15,weightLb:40800}, states:['NC','TN'], status:'pending', eta:'2–4 business hours',
+      restrictions:['Height pole required','Avoid posted low clearances — follow the permit route once issued']},
     stops:[{kind:'pickup', name:'International Paper', addr:'2000 Freedom Dr, Charlotte, NC 28208', city:'Charlotte', st:'NC', appt:{start:D(2,8,0), end:null, type:'hard'}, contact:'Gate', phone:'(704) 555-0177', notes:''},
            {kind:'delivery', name:'Kroger Delta', addr:'2620 Elm Hill Pike, Nashville, TN 37214', city:'Nashville', st:'TN', appt:{start:D(2,17,0), end:D(2,20,0), type:'window'}, contact:'Receiving', phone:'(615) 555-0152', notes:''}],
     docs:{bol:'na', pod:'na'}, accessorials:[], activity:[{t:'Accepted load', at:D(0,9,2)},{t:'Dispatched by Marcus Webb', at:D(0,8,58)}]},
@@ -225,6 +232,7 @@ let threads = [
   {id:'shop', name:'Shop · Mike Ferraro', sub:'Truck 2758', avatar:'MF', unread:0, msgs:[{from:'in', text:'PM service for 2758 is scheduled Sep 14 in Dallas. Plan to be at the yard by 8 AM.', at:D(-2,15,0)}]}
 ];
 let notifications = [
+  {id:'np', icon:'straighten', cls:'ai', title:'Load 24117 is an OVERSIZE special route', sub:'Permit active · follow the route and travel hours exactly', at:D(-2,16,25), go:'#/load/24117'},
   {id:'n1', icon:'route', cls:'warn', title:'New load 24142 — accept by 11:00 AM', sub:'Atlanta → Charlotte · pickup tomorrow 7:00 AM', at:D(0,8,56), go:'#/load/24142'},
   {id:'n2', icon:'chat', cls:'info', title:'Marcus Webb: "Reload for tomorrow is 24142…"', sub:'Dispatch thread', at:D(0,8,56), go:'#/thread/dispatch'},
   {id:'n3', icon:'medical_information', cls:'warn', title:'Medical card expires in 19 days', sub:'Upload the renewed card in Documents', at:D(-1,10,15), go:'#/docs'},
@@ -324,6 +332,10 @@ function scrHome(){
     (upcoming.length ? '<div class="tile amber" data-go="#/load/'+upcoming[0].id+'"><span class="t-ic">'+ic('event',22)+'</span>'+(upcoming[0].status==='dispatched'?'<span class="t-tag" style="color:var(--warning-t)">Accept</span>':'')+'<div class="t-n">'+fmtDay(upcoming[0].stops[0].appt.start)+' '+fmtTime(upcoming[0].stops[0].appt.start)+'</div><div class="t-l">Next pickup · '+esc(upcoming[0].stops[0].city)+'</div></div>' : '<div class="tile amber" data-go="#/loads"><span class="t-ic">'+ic('event',22)+'</span><div class="t-n">—</div><div class="t-l">No next pickup</div></div>')+
     '<div class="tile purple" data-go="#/pay"><span class="t-ic">'+ic('payments',22)+'</span><div class="t-n">'+money(weekPay)+'</div><div class="t-l">This week so far</div></div>'+
   '</div>';
+  // Special-route banner — most important thing for an oversize driver
+  if(cur && cur.permit && cur.permit.status==='active'){ const ps=permitState(cur); const cls=ps.sev==='danger'?'danger':(ps.sev==='warning'?'warn':'purple');
+    h += '<div class="card '+cls+' tap" data-go="#/load/'+cur.id+'" style="margin-top:6px"><div style="display:flex;align-items:center;gap:10px"><span class="r-icon '+(ps.sev==='danger'?'bad':(ps.sev==='warning'?'warn':'ai'))+'" style="width:44px;height:44px">'+ic(ps.sev==='danger'?'wrong_location':'straighten',24)+'</span><div style="flex:1"><h3 style="margin:0">'+cur.permit.types.map(t=>HAUL_LBL[t]).join(' + ')+' — special route</h3><div class="sub">'+(ps.sev==='danger'?esc(ps.txt)+' — tap for the correct route':'Stay on the permitted route · '+esc(cur.permit.travel.from)+'–'+esc(cur.permit.travel.to))+'</div></div>'+ic('chevron_right',24,'color:var(--text400)')+'</div></div>';
+  }
   // 2. Current load hero — one primary action
   if(cur){
     const dl=next.appt.end||next.appt.start; const late = eta && eta>dl;
@@ -366,13 +378,38 @@ function scrLoads(){
   b.querySelectorAll('[data-seg]').forEach(x=>x.onclick=()=>{ state.loadsSeg=x.dataset.seg; render(); });
   app.appendChild(b); bind(b); bindLoadActions(b);
 }
+
+/* ---- Permits (driver side) ---- */
+const HAUL_LBL={oversize:'Oversize',overweight:'Overweight',overheight:'Over-height',overlength:'Over-length',overwidth:'Over-width',superload:'Superload',hazmat:'Hazmat'};
+function permitState(l){ if(!l.permit) return null; const p=l.permit; if(p.status!=='active') return {sev:'warning', txt:'Permit pending'}; if(p.offRouteMi>2 || p.onRoute===false) return {sev:'danger', txt:'Off the permitted route'}; if(p.timeBad) return {sev:'danger', txt:'Outside permitted hours'}; return {sev:'success', txt:'On route · within hours'}; }
+function permitCard(l){
+  const p=l.permit; if(!p) return '';
+  const st=permitState(l); const types=p.types.map(t=>HAUL_LBL[t]).join(' + ');
+  if(p.status!=='active'){
+    return '<div class="card warn"><div style="display:flex;align-items:center;gap:10px;margin-bottom:6px"><span class="r-icon warn" style="width:40px;height:40px">'+ic('straighten',22)+'</span><div style="flex:1"><h3 style="margin:0">'+types+' load</h3><div class="sub">Permit pending · '+esc(p.states.join(', '))+' · ETA '+esc(p.eta||'soon')+'</div></div></div><div class="sub">You will get the permitted route and travel hours here as soon as the permit is active. Do not start the load until it clears.</div></div>';
+  }
+  const cls = st.sev==='danger'?'danger':(st.sev==='warning'?'warn':'accent');
+  let h='<div class="card '+cls+'"><div style="display:flex;align-items:center;gap:10px"><span class="r-icon '+(st.sev==='danger'?'bad':(st.sev==='warning'?'warn':'ok'))+'" style="width:44px;height:44px">'+ic('straighten',24)+'</span><div style="flex:1"><h3 style="margin:0">'+types+' · special route</h3><div class="sub">'+esc(p.states.join(' · '))+' · permit active</div></div><span class="pill '+(st.sev==='danger'?'danger':(st.sev==='warning'?'warning':'success'))+'">'+esc(st.txt)+'</span></div>';
+  h+='<div style="margin-top:12px"><button class="btn primary" data-act="permit-map" data-load="'+l.id+'">'+ic('navigation',22)+'Follow the permitted route</button></div>';
+  h+='<div class="btn-row"><button class="btn sm" data-act="sim-offroute" data-load="'+l.id+'">'+ic('wrong_location',18)+'Demo: go off route</button><button class="btn sm" data-act="sim-curfew" data-load="'+l.id+'">'+ic('nights_stay',18)+'Demo: hit curfew</button></div>';
+  h+='<div class="kv" style="margin-top:6px"><span class="k">Route</span><span class="v" style="text-align:right;max-width:60%">'+esc(p.route.summary)+'</span></div>';
+  h+='<div class="kv"><span class="k">Travel days</span><span class="v">'+esc(p.travel.days)+'</span></div>';
+  h+='<div class="kv"><span class="k">Hours</span><span class="v">'+esc(p.travel.from)+' – '+esc(p.travel.to)+'</span></div>';
+  h+='<div class="kv"><span class="k">Max speed</span><span class="v">'+p.travel.speedMax+' mph</span></div>';
+  h+='<div class="kv"><span class="k">Curfew</span><span class="v" style="text-align:right;max-width:60%">'+esc(p.travel.curfew)+'</span></div>';
+  h+='<div style="margin-top:10px"><div style="font-size:12px;font-weight:700;color:var(--text400);letter-spacing:.3px;margin-bottom:4px">MUST FOLLOW</div><ul style="margin:0;padding-left:20px;font-size:14px;color:var(--text900)">'+p.restrictions.map(r=>'<li style="margin:3px 0">'+esc(r)+'</li>').join('')+'</ul></div>';
+  h+='</div>';
+  return h;
+}
+
 function scrLoad(r){
   const l=loadById(r.id); if(!l){ go('#/loads'); return; }
   app.appendChild(header('Load '+l.id, {back:true, white:true, sub:esc(l.customer)+' · '+esc(l.ref), right:'<button class="icon-btn" data-go="#/thread/dispatch">'+ic('chat',24)+'</button>'}));
   const next=nextStop(l), here=currentStop(l), eta=etaOf(l); const last=l.stops[l.stops.length-1];
   let h='';
-  h += '<div class="hero" style="margin-top:8px"><div class="h-top"><span class="pill '+STATUS[l.status][1]+'">'+STATUS[l.status][0]+'</span><span style="font-size:14px;color:var(--text600)">'+l.miles+' mi · '+esc(l.equipment)+' · '+l.weight.toLocaleString()+' lb</span><span class="h-pay">'+money(l.pay)+'</span></div>'+routeStrip(l)+(l.notes?'<div class="next-box" style="background:var(--bg50)"><span class="nb-ic" style="background:var(--text400)">'+ic('sticky_note_2',22)+'</span><div class="nb-sub" style="color:var(--text900);font-size:15px">'+esc(l.notes)+'</div></div>':'')+'</div>';
+  const pstate=permitState(l); h += '<div class="hero" style="margin-top:8px"><div class="h-top"><span class="pill '+STATUS[l.status][1]+'">'+STATUS[l.status][0]+'</span>'+(l.permit?'<span class="pill '+(pstate.sev==='danger'?'danger':(pstate.sev==='warning'?'warning':'purple'))+'">'+ic('straighten',13,'vertical-align:-2px')+' '+l.permit.types.map(t=>HAUL_LBL[t]).join('+')+'</span>':'')+'<span style="font-size:14px;color:var(--text600)">'+l.miles+' mi · '+esc(l.equipment)+' · '+l.weight.toLocaleString()+' lb</span><span class="h-pay">'+money(l.pay)+'</span></div>'+routeStrip(l)+(l.notes?'<div class="next-box" style="background:var(--bg50)"><span class="nb-ic" style="background:var(--text400)">'+ic('sticky_note_2',22)+'</span><div class="nb-sub" style="color:var(--text900);font-size:15px">'+esc(l.notes)+'</div></div>':'')+'</div>';
   if(l.status==='dispatched') h += '<div class="card warn"><h3>New load from '+esc(l.dispatcher)+'</h3><div class="sub">Accept to add it to your schedule, or decline and dispatch will reassign it.</div></div>';
+  if(l.permit) h += permitCard(l);
   h += '<div class="section">Stops</div><div class="card"><div class="stops">'+l.stops.map((s,i)=>{
     const done=!!s.departed, isHere=s.arrived&&!s.departed, isNext = next===s && !s.arrived;
     const dl=s.appt.end||s.appt.start; const late = isNext && eta && eta>dl;
@@ -412,6 +449,11 @@ function bindLoadActions(node){
       else if(a==='lumper'){ openSheet('<h3>Lumper / receipt</h3><div class="sub">Paid out of pocket? Photograph the receipt — the amount is reimbursed on your next paystub.</div>'+cameraHtml('Receipt')+'<div class="field inline" style="margin-top:12px"><div><label>Type</label><select id="kind"><option>Lumper</option><option>Scale ticket</option><option>Tolls</option><option>Reefer fuel</option><option>Other</option></select></div><div><label>Amount ($)</label><input type="number" id="amt" placeholder="0.00"/></div></div><button class="btn primary" id="ok" disabled>Submit</button>', (sh)=>wireCamera(sh, ()=>{ const amt=Number(sh.querySelector('#amt').value)||0; if(!amt){ toast('Enter the amount','warning'); return; } const name=sh.querySelector('#kind').value; l.accessorials.push({name, amount:amt, addon:amt, receipt:true}); pay.addons.push({text:name+' reimbursement · load '+l.id, amount:amt, from:'receipt'}); l.activity.unshift({t:name+' receipt '+money(amt)+' submitted', at:NOW}); closeSheet(); toast(name+' '+money(amt)+' → your paystub '+pay.period); render(); })); }
       else if(a==='doc'){ const k=btn.dataset.k; if(l.docs[k]==='on_file') openSheet('<h3>'+(k==='bol'?'Bill of lading':'Proof of delivery')+' · '+l.id+'</h3><div class="sub">Uploaded · shared with dispatch and billing</div><div class="doc-thumb"><span class="stamp">RECEIVED</span>'+(k==='bol'?'BOL · '+esc(l.stops[0].name):'POD · '+esc(l.stops[l.stops.length-1].name))+'</div><div class="btn-row"><button class="btn" data-toast="Shared to dispatch chat">'+ic('share',18)+'Share</button><button class="btn" id="retake">'+ic('photo_camera',18)+'Retake</button></div>', (sh)=>{ sh.querySelector('#retake').onclick=()=>uploadSheet((k==='bol'?'Bill of lading':'Proof of delivery')+' · '+l.id, ()=>{ toast('New photo uploaded'); render(); }); }); else uploadSheet((k==='bol'?'Bill of lading':'Proof of delivery')+' · '+l.id, ()=>{ l.docs[k]='on_file'; l.activity.unshift({t:(k==='bol'?'BOL':'POD')+' uploaded', at:NOW}); toast('Uploaded · sent to dispatch'); render(); }); }
       else if(a==='upload-any'){ uploadSheet('Document', ()=>{ toast('Uploaded · dispatch will file it'); }); }
+      else if(a==='permit-map'){ const p=l.permit; window.open(p.route.mapUrl,'_blank'); toast('Opening the permitted route — stay on it'); }
+      else if(a==='permit-ack'){ toast('Acknowledged — drive safe'); closeSheet(); }
+      else if(a==='permit-back'){ closeSheet(); if(l.permit){ l.permit.onRoute=true; l.permit.offRouteMi=0; } toast('Rerouting you back to the permitted corridor'); render(); }
+      else if(a==='sim-offroute'){ l.permit.onRoute=false; l.permit.offRouteMi=8; permitAlert(l, 'offroute'); }
+      else if(a==='sim-curfew'){ l.permit.timeBad=true; permitAlert(l, 'curfew'); }
     });
   });
   // live timers
@@ -533,6 +575,24 @@ function scrTraining(){
   app.appendChild(header('Trainings', {back:true, white:true, sub:'Safety · '+ME.safety.name}));
   const b=body('<div class="card warn"><h3>Hazmat awareness</h3><div class="sub">25 min · due Sep 15 · required for placarded loads</div><button class="btn primary" style="margin-top:10px" data-toast="Training opens in the browser">'+ic('play_circle',20)+'Start training</button></div><div class="section">COMPLETED</div><div class="card" style="padding:2px 14px"><div class="row"><div class="r-icon ok">'+ic('school',24)+'</div><div class="r-main"><div class="r-title">Defensive driving</div><div class="r-sub">Completed Jun 3, 2026 · 94%</div></div></div><div class="row"><div class="r-icon ok">'+ic('school',24)+'</div><div class="r-main"><div class="r-title">Cargo securement</div><div class="r-sub">Completed Feb 18, 2026 · 100%</div></div></div></div>', true);
   app.appendChild(b); bind(b);
+}
+
+
+function permitAlert(l, kind){
+  const p=l.permit; let title, body, icon;
+  if(kind==='offroute'){ icon='wrong_location'; title='You left the permitted route'; body='Load '+l.id+' is '+p.offRouteMi+' mi off the '+p.states.join('/')+' permit corridor. Oversize loads must stay on the approved route — running off it can mean fines, an out-of-service order, or a bridge strike. Get back to the route now.'; }
+  else { icon='nights_stay'; title='Permitted travel hours are ending'; body='Your permit for load '+l.id+' allows travel '+p.travel.from+' – '+p.travel.to+', '+p.travel.days+'. '+(p.curfewSoon?p.curfewSoon.text:'Find a safe place to park before the curfew.'); }
+  // add to the notifications feed
+  notifications.unshift({id:'na'+Date.now(), icon, cls:'bad', title:title+' · load '+l.id, sub:kind==='offroute'?p.offRouteMi+' mi off the permitted corridor':'Curfew approaching', at:NOW, go:'#/load/'+l.id});
+  // vibrate if supported
+  try{ if(navigator.vibrate) navigator.vibrate([120,60,120]); }catch(e){}
+  openSheet('<div style="text-align:center;padding:4px 0 2px"><span class="r-icon bad" style="width:64px;height:64px;margin:0 auto 12px">'+ic(icon,36)+'</span><h3 style="margin:0">'+title+'</h3></div><div class="sub" style="text-align:center">'+body+'</div>'+
+    (kind==='offroute'?'<div class="kv" style="margin-top:8px"><span class="k">Correct route</span><span class="v" style="text-align:right;max-width:60%">'+esc(p.route.summary)+'</span></div>':'<div class="kv" style="margin-top:8px"><span class="k">Allowed hours</span><span class="v">'+esc(p.travel.from)+' – '+esc(p.travel.to)+'</span></div>')+
+    '<div style="margin-top:14px">'+(kind==='offroute'?'<button class="btn primary" data-act="permit-back" data-load="'+l.id+'">'+ic('navigation',22)+'Back to the route</button>':'<button class="btn primary" data-act="permit-ack">'+ic('local_parking',22)+'Find parking</button>')+'</div>'+
+    '<button class="btn ghost" data-act="permit-ack" style="margin-top:6px">Dismiss</button>',
+    (sh)=>{ sh.querySelectorAll('[data-act]').forEach(btn=>{ btn.onclick=()=>{ const a=btn.dataset.act; if(a==='permit-back'){ l.permit.onRoute=true; l.permit.offRouteMi=0; closeSheet(); toast('Rerouting to the permitted corridor'); render(); } else { l.permit.timeBad=false; closeSheet(); toast('Alert dismissed'); render(); } }; }); });
+  // also notify safety in the thread
+  threads[1].msgs.push({from:'in', text:'Automated alert: '+title.toLowerCase()+' on load '+l.id+'. Please correct and confirm.', at:NOW}); threads[1].unread++;
 }
 
 /* ---------------- Boot ---------------- */
