@@ -680,7 +680,8 @@ tbody tr:hover td.frozen-left, tbody tr:hover td.frozen-right{background:var(--b
 .g-bar .gb-label{overflow:hidden;text-overflow:ellipsis;min-width:0;} .g-bar .gb-sub{font-weight:400;color:var(--text400);overflow:hidden;text-overflow:ellipsis;}
 .g-bar .gb-stop{position:absolute;bottom:3px;width:5px;height:5px;border-radius:50%;} .gb-stop.pickup{background:var(--info);} .gb-stop.delivery{background:var(--accent);}
 .g-bar .gb-prog{position:absolute;left:0;top:0;bottom:0;background:rgba(72,200,118,.10);pointer-events:none;}
-.g-dh{position:absolute;height:10px;border-top:1px dashed var(--text400);border-bottom:none;opacity:.6;pointer-events:none;}
+.g-dh{position:absolute;border-radius:8px;background:repeating-linear-gradient(135deg,#eceded 0 5px,#f7f7f9 5px 10px);border:1px dashed var(--neutral300);display:flex;align-items:center;padding-left:6px;z-index:1;pointer-events:none;overflow:hidden;}
+.g-dh .dh-lbl{font-size:9.5px;font-weight:700;color:var(--text400);white-space:nowrap;}
 .g-hos{position:absolute;height:15px;border-radius:5px;background:var(--warning-bg);border:1px solid #f3dcb0;font-size:9.5px;font-weight:600;color:var(--warning-t);display:flex;align-items:center;padding:0 6px;white-space:nowrap;overflow:hidden;z-index:1;pointer-events:none;opacity:.9;}
 .g-off{position:absolute;height:15px;border-radius:5px;background:var(--bg50);border:1px solid var(--border2);font-size:9.5px;font-weight:600;color:var(--text400);display:flex;align-items:center;padding:0 6px;white-space:nowrap;overflow:hidden;z-index:1;pointer-events:none;}
 .g-free{position:absolute;border-left:1px dashed var(--accent);pointer-events:none;z-index:1;} .g-free span{position:absolute;top:48px;left:3px;font-size:10px;font-weight:600;color:var(--accent-dark);white-space:nowrap;background:rgba(255,255,255,.9);padding:0 4px;border-radius:4px;}
@@ -754,6 +755,9 @@ body.resizing, body.resizing *{cursor:ew-resize !important;}
 .acc-sim-grid{display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr;gap:5px 10px;font-size:12.5px;color:var(--text900);}
 .acc-sim-grid .k{font-size:10.5px;font-weight:700;letter-spacing:.3px;color:var(--text400);}
 .status-pill.na{background:var(--neutral-bg);color:var(--text600);}
+/* Deadhead */
+.dh-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;vertical-align:middle;background:var(--accent);}
+.dh-dot.warning{background:var(--warning);} .dh-dot.danger{background:var(--danger);} .dh-dot.success{background:var(--accent);}
 
 </style>
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js" crossorigin="anonymous"></script>
@@ -777,6 +781,9 @@ const DISPATCHERS = [
   {id:'vd', name:'Viktor Denyshchuk'}
 ];
 const AVG_MPH = 50;   // planning speed used for ETA / HOS checks (assumption, see 03)
+const COST_PER_MILE = 1.90;   // all-in operating cost per mile (company setting) — used to cost deadhead
+const DH_TARGET = 0.10;       // deadhead ratio target (industry benchmark < 10%)
+function dhPct(loaded, dh){ const tot=loaded+dh; return tot ? dh/tot : 0; }
 
 /* --- Trucks (alerts come from the truck profile modules) --- */
 const TRUCKS = [
@@ -1140,6 +1147,8 @@ function deriveLoad(l){
       else if(drv.gps.ageMin > 30) ex.push({sev:'warning', code:'tracking', title:'No GPS update for '+fmtDur(drv.gps.ageMin), detail:'Last: '+drv.gps.city+', '+drv.gps.st+' · '+drv.gps.road, action:'open'});
       if(drv.gps.stoppedMin && !cur && l.status==='in_transit') ex.push({sev:'warning', code:'tracking', title:'Truck stopped '+fmtDur(drv.gps.stoppedMin)+' · no scheduled stop', detail:drv.gps.city+', '+drv.gps.st+' · '+drv.gps.road, action:'open'});
     }
+    // 6b. heavy deadhead — margin risk (industry target < 10%)
+    if(l.miles.deadhead){ const r=dhPct(l.miles.loaded,l.miles.deadhead); if(r>0.25) ex.push({sev:'warning', code:'deadhead', title:'High deadhead · '+l.miles.deadhead+' mi empty ('+Math.round(r*100)+'%)', detail:'≈ '+money(Math.round(l.miles.deadhead*COST_PER_MILE))+' empty-mile cost · look for a closer driver or a backhaul', action:'open'}); }
     // 7. documents needed before dispatch
     if(l.docs.rc==='missing') ex.push({sev:'warning', code:'docs', title:'Rate confirmation missing', detail:'Request it from '+l.customer.name, action:'docs'});
     // 8. profile alerts (driver / truck / trailer modules)
@@ -1164,7 +1173,10 @@ function deriveLoad(l){
   if(!ex.length && !isActive(l)) sev = 'success';
   const top = ex[0] || (sev==='info' ? {sev:'info', code:'none', title:'Not started · pickup '+fmtDayTime(l.stops[0].appt.start), detail:''} : {sev:'success', code:'none', title: l.status==='delivered' ? 'Delivered · ready for billing' : (l.status==='cancelled' ? 'Cancelled' : 'On track'), detail: next && eta ? 'ETA '+fmtShort(eta)+' at '+next.city : ''});
   const totalMiles = l.miles.loaded + l.miles.deadhead; const fin = finOf(l);
-  return {drv, trk, trl, next, cur, ex, sev, top, distToNext, travelMin, eta, dwellMin, rpm: fin.rpm, gross: fin.gross, fin, totalMiles};
+  const dh = l.miles.deadhead, dhRatio = dhPct(l.miles.loaded, dh), dhCost = Math.round(dh*COST_PER_MILE);
+  const rpmLoaded = fin.gross/Math.max(1,l.miles.loaded), rpmAllIn = fin.gross/Math.max(1,totalMiles);
+  const dhSev = dhRatio>0.20?'danger':(dhRatio>DH_TARGET?'warning':'success');
+  return {drv, trk, trl, next, cur, ex, sev, top, distToNext, travelMin, eta, dwellMin, rpm: fin.rpm, gross: fin.gross, fin, totalMiles, dh, dhRatio, dhCost, dhSev, rpmLoaded, rpmAllIn};
 }
 
 /* ============================================================
@@ -1210,6 +1222,7 @@ function passesKpi(l, d){
   if(k==='in_transit') return l.status==='in_transit';
   if(k==='at_delivery') return l.status==='at_delivery';
   if(k==='docs') return d.ex.some(e=>e.code==='docs' && e.sev!=='info');
+  if(k==='dh') return d.dhRatio > DH_TARGET;
   if(k==='delivered') return l.status==='delivered';
   if(k==='today_pu') return inRange(l.stops[0].appt.start, TODAY, TODAY) && isActive(l);
   return true;
@@ -1247,6 +1260,8 @@ function buildRows(){
       case 'equipment': return l.equipment;
       case 'commodity': return l.commodity;
       case 'weight': return l.weight;
+      case 'deadhead': return l.miles.deadhead;
+      case 'dhpct': return d.dhRatio;
       case 'distToPu': return d.distToNext==null ? 99999 : d.distToNext;
       case 'source': return SOURCE_LABEL[l.source];
       default: return (l.customFields && l.customFields[key]) || '';
@@ -1294,16 +1309,17 @@ function rankCandidates(l){
     const hosShift = dr.hos.shift >= travel + 60;
     const dAlerts = dr.alerts.filter(a=>a.sev==='danger').length + (trk.status==='shop'?1:0) + trk.alerts.filter(a=>a.sev==='danger').length;
     const wAlerts = dr.alerts.filter(a=>a.sev==='warning').length + trk.alerts.filter(a=>a.sev==='warning').length + (trl?trl.alerts.length:0);
+    const dhCost=Math.round(dist*COST_PER_MILE);
     const facts=[
-      {ok:true, cls:'', text:dist+' mi from pickup · ETA '+fmtShort(eta)},
+      {ok:dist<=100, cls:dist>150?'bad':(dist>100?'warn':'ok'), text:dist+' mi deadhead to pickup · ≈ '+money(dhCost)+' empty · ETA '+fmtShort(eta)},
       {ok:onTime, cls:onTime?'ok':'bad', text: onTime ? 'Arrives '+fmtDur((dl-eta)/60000)+' before deadline' : 'Misses appointment by '+fmtDur((eta-dl)/60000)},
       {ok:hosDrive&&hosShift, cls:(hosDrive&&hosShift)?'ok':'bad', text:fmtDur(dr.hos.drive)+' drive · '+fmtDur(dr.hos.shift)+' shift · '+fmtDur(dr.hos.cycle)+' cycle'},
       {ok:equipOK, cls:equipOK?'ok':'bad', text: trl ? trl.type+' '+trl.unit+(equipOK?' — compatible':' — needs '+l.equipment) : 'No trailer attached'},
       {ok:!busy.length, cls:busy.length?'bad':'ok', text: busy.length ? 'On load '+busy[0].id+' until '+fmtShort(apptDeadline(busy[0].stops[busy[0].stops.length-1].appt)) : (others.length ? 'Free after load '+others[0].id : 'No active load')},
       {ok:!dAlerts, cls:dAlerts?'bad':(wAlerts?'warn':'ok'), text: dAlerts ? dAlerts+' blocking alert'+(dAlerts>1?'s':'') : (wAlerts ? wAlerts+' warning'+(wAlerts>1?'s':'')+' (see profile)' : 'No active alerts')}
     ];
-    const score = travel + (onTime?0:900) + ((hosDrive&&hosShift)?0:700) + (equipOK?0:800) + busy.length*1000 + dAlerts*1500 + wAlerts*120;
-    return {dr, trk, trl, dist, eta, facts, score, feasible: onTime && hosDrive && hosShift && equipOK && !busy.length && !dAlerts};
+    const score = dist*1.2 + travel + (onTime?0:900) + ((hosDrive&&hosShift)?0:700) + (equipOK?0:800) + busy.length*1000 + dAlerts*1500 + wAlerts*120;
+    return {dr, trk, trl, dist, dhCost, eta, facts, score, feasible: onTime && hosDrive && hosShift && equipOK && !busy.length && !dAlerts};
   }).sort((a,b)=>a.score-b.score);
 }
 
@@ -1355,14 +1371,16 @@ let columnDefs = [
   {key:'position', label:'Position', width:190, visible:false, sortable:false},
   {key:'eta', label:'ETA', width:130, visible:true, sortable:true},
   {key:'hos', label:'HOS', width:140, visible:true, sortable:true},
-  {key:'miles', label:'Miles', width:100, visible:false, sortable:true},
-  {key:'rate', label:'Rate / RPM', width:110, visible:true, sortable:true},
+  {key:'miles', label:'Loaded mi', width:100, visible:false, sortable:true},
+  {key:'rate', label:'Rate / RPM', width:120, visible:true, sortable:true},
+  {key:'deadhead', label:'Deadhead', width:130, visible:true, sortable:true},
   {key:'docs', label:'Docs', width:120, visible:true, sortable:true},
   {key:'updated', label:'Updated', width:100, visible:false, sortable:true},
   {key:'dispatcher', label:'Dispatcher', width:130, visible:false, sortable:true},
   {key:'equipment', label:'Equipment', width:110, visible:false, sortable:true},
   {key:'commodity', label:'Commodity', width:140, visible:false, sortable:true},
   {key:'weight', label:'Weight', width:90, visible:false, sortable:true},
+  {key:'dhpct', label:'Deadhead %', width:110, visible:false, sortable:true},
   {key:'distToPu', label:'Distance to next stop', width:120, visible:false, sortable:true},
   {key:'source', label:'Source', width:100, visible:false, sortable:true},
   {key:'refs', label:'References', width:170, visible:false, sortable:false},
@@ -1617,6 +1635,7 @@ function renderKpiStrip(){
     {key:'at_delivery', label:'AT DELIVERY', value:n(r=>r.l.status==='at_delivery')},
     {key:'docs', label:'MISSING DOCS', value:n(r=>r.d.ex.some(e=>e.code==='docs'&&e.sev!=='info')), cls:'warn'},
     {key:'delivered', label:'DELIVERED 24H', value:n(r=>r.l.status==='delivered')},
+    {key:'dh', label:'DEADHEAD', value:(()=>{ const L=act.reduce((s,r)=>s+r.l.miles.loaded,0), H=act.reduce((s,r)=>s+r.l.miles.deadhead,0); return (L+H)? Math.round(H/(L+H)*100)+'%':'0%'; })(), cls:(()=>{ const L=act.reduce((s,r)=>s+r.l.miles.loaded,0), H=act.reduce((s,r)=>s+r.l.miles.deadhead,0); const r=(L+H)?H/(L+H):0; return r>0.20?'danger':(r>0.10?'warn':''); })()},
     {key:null, label:'GROSS ON BOARD', value:money(act.reduce((s,r)=>s+r.d.gross,0))}
   ];
   const strip = el('<div class="week-summary"></div>');
@@ -1746,8 +1765,10 @@ function cellHtml(col, l, d){
     return '<div class="cell-primary" style="'+(buf<0?'color:var(--danger-t)':(buf<30?'color:var(--warning-t)':''))+'">'+fmtShort(d.eta)+'</div><div class="cell-meta">'+d.distToNext+' mi to '+d.next.kind+' · '+(buf<0?fmtDur(-buf)+' late':fmtDur(buf)+' buffer')+'</div>';
   }
   if(c==='hos'){ if(!d.drv) return '<span class="empty-slot">—</span>'; return '<div class="hos-cell">'+hosBar('D',d.drv.hos.drive,660)+hosBar('S',d.drv.hos.shift,840)+'</div>'; }
-  if(c==='miles') return '<div class="cell-primary">'+l.miles.loaded.toLocaleString('en-US')+' mi</div><div class="cell-meta">'+l.miles.deadhead+' DH · '+d.totalMiles.toLocaleString('en-US')+' total</div>';
-  if(c==='rate') return '<div class="cell-primary" style="color:var(--accent-dark)">'+money(d.gross)+'</div><div class="cell-meta">$'+d.rpm.toFixed(2)+'/mi'+(d.fin.inGross?' · '+money(l.rate)+' + '+money(d.fin.inGross)+' acc.':'')+'</div>';
+  if(c==='miles') return '<div class="cell-primary">'+l.miles.loaded.toLocaleString('en-US')+' mi</div><div class="cell-meta">'+d.totalMiles.toLocaleString('en-US')+' total</div>';
+  if(c==='deadhead'){ if(!l.miles.deadhead) return '<div class="cell-primary" style="color:var(--accent-dark)">0 mi</div><div class="cell-meta">loaded to loaded</div>'; return '<div class="cell-primary"><span class="dh-dot '+d.dhSev+'"></span>'+l.miles.deadhead+' mi <span style="color:var(--text400);font-weight:400">('+Math.round(d.dhRatio*100)+'%)</span></div><div class="cell-meta">≈ '+money(d.dhCost)+' empty</div>'; }
+  if(c==='dhpct') return '<span class="dh-dot '+d.dhSev+'"></span>'+Math.round(d.dhRatio*100)+'%';
+  if(c==='rate') return '<div class="cell-primary" style="color:var(--accent-dark)">'+money(d.gross)+'</div><div class="cell-meta">$'+d.rpmAllIn.toFixed(2)+'/mi all-in'+(d.dh?' · <span style="color:var(--text400)">$'+d.rpmLoaded.toFixed(2)+' loaded</span>':'')+'</div>';
   if(c==='docs'){ const k=[['rc','RC'],['bol','BOL'],['pod','POD']]; return '<div class="docs-cell" data-act="docs">'+k.map(([key,lbl])=>'<span class="doc-chip '+l.docs[key]+'">'+lbl+'</span>').join('')+'</div>'; }
   if(c==='updated') return '<div class="cell-primary" style="font-weight:600">'+relTime(l.updated)+'</div><div class="cell-meta">'+fmtShort(l.updated)+'</div>';
   if(c==='dispatcher') return esc(DSP[l.dispatcherId].name);
@@ -1802,7 +1823,7 @@ function renderTable(rows){
   // header
   const selAll = table.querySelector('#selAll'); selAll.indeterminate = someOnPage && !allOnPage;
   selAll.onchange = (e)=>{ pageRows.forEach(r=>{ if(e.target.checked) state.selected.add(r.l.id); else state.selected.delete(r.l.id); }); render(); };
-  table.querySelectorAll('thead th[data-col]').forEach(th=>{ const c=cols.find(x=>x.key===th.dataset.col); if(c.sortable) th.onclick=()=>{ if(state.sortKey===c.key) state.sortDir=-state.sortDir; else { state.sortKey=c.key; state.sortDir = c.key==='attention'?-1:1; } render(); }; });
+  table.querySelectorAll('thead th[data-col]').forEach(th=>{ const c=cols.find(x=>x.key===th.dataset.col); if(c.sortable) th.onclick=()=>{ if(state.sortKey===c.key) state.sortDir=-state.sortDir; else { state.sortKey=c.key; state.sortDir = (c.key==='attention'||c.key==='deadhead'||c.key==='dhpct'||c.key==='rate')?-1:1; } render(); }; });
   // rows (event delegation)
   table.querySelector('tbody').addEventListener('click', (e)=>{
     const gr = e.target.closest('tr.group-row'); if(gr){ const g=gr.dataset.group; if(state.collapsedGroups.has(g)) state.collapsedGroups.delete(g); else state.collapsedGroups.add(g); render(); return; }
@@ -2645,7 +2666,7 @@ function renderGantt(){
         const l=s.l; const top = s.lane*LANE_H+7;
         let x1=Math.max(0,xOf(s.dhStart,g)), x2=Math.max(0,xOf(s.start,g)), x3=Math.min(g.width,xOf(s.end,g));
         if(g.mode==='weeks'){ const ds=startOfDay(s.start), de=new Date(startOfDay(s.end).getTime()+86400000); x2=Math.max(0,xOf(ds,g)); x3=Math.min(g.width,xOf(de,g)); }
-        if(dense && l.miles.deadhead && x2>x1) row.appendChild(el('<div class="g-dh" style="left:'+x1+'px;width:'+(x2-x1)+'px;top:'+(top+11)+'px"></div>'));
+        if(dense && l.miles.deadhead && x2>x1){ const dhw=x2-x1; const dhTitle='Deadhead — '+l.miles.deadhead+' mi empty to pickup (approx '+money(Math.round(l.miles.deadhead*COST_PER_MILE))+')'; const dhLbl = dhw>44 ? '<span class="dh-lbl">'+l.miles.deadhead+' mi empty</span>' : ''; row.appendChild(el('<div class="g-dh" title="'+dhTitle+'" style="left:'+x1+'px;width:'+dhw+'px;top:'+top+'px;height:34px">'+dhLbl+'</div>')); }
         const w=Math.max(g.mode==='weeks'?g.dayPx-4:46, x3-x2);
         const sub = g.mode==='weeks' ? esc(l.customer.name) : esc(l.customer.name)+' · '+money(l.rate);
         const bar = el('<div class="g-bar '+l.status+' sev-'+s.d.sev+(state.openLoadId===l.id?' open':'')+'" data-load="'+l.id+'" style="left:'+x2+'px;width:'+w+'px;top:'+top+'px">'+(dense?'<div class="gb-prog" style="width:'+(s.progress*100)+'%"></div>':'')+'<span class="gb-stripe"></span>'+(l.priority!=='normal'?'<span class="prio'+(l.priority==='high'?' high':'')+'">'+iconHTML(l.priority==='hot'?'local_fire_department':'priority_high',13)+'</span>':'')+'<span class="gb-label">'+l.id+' · '+esc(l.stops[0].city)+' → '+esc(l.stops[l.stops.length-1].city)+'</span>'+((dense&&w>150)?'<span class="gb-sub">'+sub+'</span>':'')+(dense?l.stops.map(st=>{ const sx=xOf(st.appt.start,g)-x2; return (sx>=6&&sx<=w-4)?'<span class="gb-stop '+st.kind+'" style="left:'+sx+'px"></span>':''; }).join(''):'')+'</div>');
@@ -2668,7 +2689,8 @@ function renderGantt(){
   return wrap;
 }
 function planTooltip(l, s){
-  const rows=[{sev:s.d.sev, title:'Load '+l.id+' · '+STATUS_LABEL[l.status]+' · '+esc(l.customer.name), detail:money(l.rate)+' · $'+s.d.rpm.toFixed(2)+'/mi · '+l.miles.loaded+' mi'+(l.miles.deadhead?' + '+l.miles.deadhead+' DH':'')+' · '+l.equipment}];
+  const rows=[{sev:s.d.sev, title:'Load '+l.id+' · '+STATUS_LABEL[l.status]+' · '+esc(l.customer.name), detail:money(l.rate)+' · $'+s.d.rpmAllIn.toFixed(2)+'/mi all-in · '+l.equipment}];
+  if(l.miles.deadhead) rows.push({sev:s.d.dhSev, title:'Deadhead '+l.miles.deadhead+' mi empty ('+Math.round(s.d.dhRatio*100)+'%) · ≈ '+money(s.d.dhCost), detail:'from the previous drop to this pickup'});
   l.stops.forEach((st,i)=>rows.push({sev: st.departed?'success':(st.arrived?'warning':'info'), title:(st.kind==='pickup'?'PU':'DEL')+' '+(i+1)+' · '+st.city+', '+st.st+' · '+apptText(st.appt), detail:(st.arrived?'Arrived '+fmtShort(st.arrived):'')+(st.departed?' · Left '+fmtShort(st.departed):'')+(s.d.next===st&&s.d.eta?'ETA '+fmtShort(s.d.eta):'')}));
   s.d.ex.slice(0,3).forEach(e=>rows.push(e));
   rows.push({sev:'info', title:(isActive(l)?(l.stops[0].arrived?'Drag to another driver to reassign · drag the right edge to move the delivery appointment':'Drag sideways to move the load · drag an edge to change an appointment · drag to another driver to reassign')+' · click to open':'Click to open'), detail:''});
@@ -3000,7 +3022,7 @@ function renderBoardTable(rows){
     html+='<td>'+p.miles+' mi</td>';
     html+='<td class="cell-primary" style="color:var(--accent-dark)">'+money(p.rate)+'</td>';
     html+='<td><span class="'+(rpm>=2.5?'rpm-good':(rpm<2?'rpm-low':''))+'">$'+rpm.toFixed(2)+'</span></td>';
-    html+='<td>'+(m?'<div class="cell-primary">'+m.dh+' mi</div><div class="cell-meta">'+(m.dh?money(Math.round(m.dh*1.9))+' cost est.':'at pickup')+'</div>':'—')+'</td>';
+    html+='<td>'+(m?(()=>{ const r=m.dh/(p.miles+m.dh); const sev=r>0.2?'danger':(r>0.1?'warning':'success'); return '<div class="cell-primary"><span class="dh-dot '+sev+'"></span>'+m.dh+' mi <span style="color:var(--text400);font-weight:400">('+Math.round(r*100)+'%)</span></div><div class="cell-meta">≈ '+money(Math.round(m.dh*1.9))+' empty</div>'; })():'—')+'</td>';
     html+='<td><div class="cell-primary">'+esc(p.broker.name)+'</div><div class="cell-meta"><span class="credit '+p.broker.credit+'">Credit '+p.broker.credit.toUpperCase()+'</span> · DTP '+p.broker.dtp+' · '+esc(p.broker.mc)+'</div></td>';
     html+='<td class="'+(p.ageMin<10?'age-fresh':'')+'">'+(p.ageMin<60?p.ageMin+' min':fmtDur(p.ageMin))+'</td>';
     html+='<td><span class="src-pill '+p.source+'">'+SOURCE_LABEL[p.source]+'</span></td>';
@@ -3090,11 +3112,15 @@ function renderFinancialTab(body, l, d, paint){
   const f = finOf(l); const drv = d.drv;
   const row = (k,v,cls)=>'<div class="sp-detail-row"><span class="sp-detail-label">'+k+'</span><span class="sp-detail-value '+(cls||'')+'">'+v+'</span></div>';
   let h = '<div class="sp-section" style="margin-top:0"><div class="sp-section-title">RATE BREAKDOWN</div>';
+  const dh=l.miles.deadhead, tot=l.miles.loaded+dh, dhr=tot?dh/dh*0+dh/tot:0, dhcost=Math.round(dh*(typeof COST_PER_MILE!=='undefined'?COST_PER_MILE:1.9)), dhsev=dhr>0.2?'danger':(dhr>0.1?'warning':'success');
   h += row('Line haul', money(f.lineHaul));
+  h += row('Loaded miles', l.miles.loaded.toLocaleString('en-US')+' mi');
+  h += row('Deadhead', dh?'<span class="dh-dot '+dhsev+'"></span>'+dh+' mi ('+Math.round(dhr*100)+'%) · '+money(dhcost)+' empty':'0 mi');
   h += row('Accessorials in gross', (f.inGross?'+':'')+money(f.inGross));
   h += row('Pass-through (billed at cost)', f.pass?money(f.pass):'—');
   if(f.cost) h += row('Company cost (not billed)', '−'+money(f.cost));
-  h += '<div class="fin-total"><span>Gross</span><span style="color:var(--accent-dark)">'+money(f.gross)+' · $'+f.rpm.toFixed(2)+'/mi</span></div>';
+  h += '<div class="fin-total"><span>Gross</span><span style="color:var(--accent-dark)">'+money(f.gross)+' · $'+(f.gross/Math.max(1,tot)).toFixed(2)+'/mi all-in</span></div>';
+  if(dh) h += '<div class="fin-total" style="border-top:none;margin-top:2px;padding-top:2px;font-weight:600"><span style="color:var(--text600)">Rate per loaded mile</span><span style="color:var(--text600)">$'+(f.gross/Math.max(1,l.miles.loaded)).toFixed(2)+'/mi</span></div>';
   h += '<div class="fin-total" style="border-top:none;margin-top:2px;padding-top:2px;font-weight:600"><span>Invoice to '+esc(l.customer.name)+'</span><span>'+money(f.invoice)+'</span></div>';
   h += '<div class="fin-total" style="border-top:none;margin-top:2px;padding-top:2px;font-weight:600"><span>Driver addons → paystub</span><span style="color:var(--purple)">'+money(f.addons)+(drv&&f.addons?' <span class="cell-meta">· '+esc(drv.name.split(' ')[0])+' · '+payPeriodLabel()+'</span>':'')+'</span></div>';
   h += '</div>';
