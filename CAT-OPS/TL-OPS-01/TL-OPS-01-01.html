@@ -1062,7 +1062,7 @@ function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,
    STATE (07 §4 — one global object)
    ============================================================ */
 function defaultFilters(){
-  return { status:new Set(), attention:new Set(), dispatcher:new Set(), customer:new Set(), source:new Set(), equipment:new Set(), exception:new Set(), docs:new Set(),
+  return { status:new Set(), attention:new Set(), dispatcher:new Set(), customer:new Set(), source:new Set(), equipment:new Set(), exception:new Set(), docs:new Set(), permit:new Set(),
            needsOnly:false, pickupPreset:'', pickupFrom:null, pickupTo:null, deliveryPreset:'', deliveryFrom:null, deliveryTo:null, minRate:'' };
 }
 let state = {
@@ -1295,6 +1295,18 @@ function passesFilters(l, d){
   if(f.equipment.size && !f.equipment.has(l.equipment)) return false;
   if(f.exception.size && !d.ex.some(e=>f.exception.has(e.code))) return false;
   if(f.docs.size && ![...f.docs].some(k=> l.docs[k]==='missing' || l.docs[k]==='awaiting_upload' || (k==='pod' && l.status==='delivered' && l.docs.pod!=='on_file'))) return false;
+  if(f.permit.size){
+    const types=haulTypesOf(l); const ps=d.permit;
+    const test=(k)=>{ switch(k){
+      case 'none': return !d.special;
+      case 'special': return d.special;
+      case 'active': return d.special && d.permitSev==='success';
+      case 'pending': return d.special && ps && ps.req>0 && ps.need===0;
+      case 'missing': return d.special && d.permitSev==='danger';
+      default: return types.includes(k);   // a specific haul type
+    }};
+    if(![...f.permit].some(test)) return false;
+  }
   if(f.needsOnly && d.sev!=='danger' && d.sev!=='warning') return false;
   if(f.pickupPreset || f.pickupFrom || f.pickupTo){ const [a,b] = f.pickupPreset ? presetRange(f.pickupPreset) : [f.pickupFrom, f.pickupTo]; if(!inRange(l.stops[0].appt.start, a, b)) return false; }
   if(f.deliveryPreset || f.deliveryFrom || f.deliveryTo){ const [a,b] = f.deliveryPreset ? presetRange(f.deliveryPreset) : [f.deliveryFrom, f.deliveryTo]; if(!inRange(l.stops[l.stops.length-1].appt.start, a, b)) return false; }
@@ -2258,12 +2270,13 @@ const FILTER_FIELD_META = {
   equipment:{label:'Equipment', type:'multiselect', options:[['Dry van','Dry van'],['Reefer','Reefer'],['Flatbed','Flatbed']]},
   pickupDate:{label:'Pickup date', type:'presetRange', presetKey:'pickupPreset', fromKey:'pickupFrom', toKey:'pickupTo'},
   deliveryDate:{label:'Delivery date', type:'presetRange', presetKey:'deliveryPreset', fromKey:'deliveryFrom', toKey:'deliveryTo'},
-  exception:{label:'Exception type', type:'multiselect', options:[['unassigned','No driver'],['late','Late'],['appt_risk','Appointment risk'],['hos_risk','HOS risk'],['detention','Detention'],['tracking','Tracking issue'],['docs','Document missing'],['entity_alert','Driver / truck alert'],['conflict','Double booking']]},
+  exception:{label:'Exception type', type:'multiselect', options:[['unassigned','No driver'],['late','Late'],['appt_risk','Appointment risk'],['hos_risk','HOS risk'],['detention','Detention'],['tracking','Tracking issue'],['docs','Document missing'],['entity_alert','Driver / truck alert'],['conflict','Double booking'],['permit','Permit missing / pending'],['permit_route','Off permitted route'],['permit_time','Outside permitted hours']]},
   docs:{label:'Missing documents', type:'multiselect', options:[['rc','Rate confirmation'],['bol','BOL'],['pod','POD']]},
+  permit:{label:'Special hauls & permits', type:'multiselect', options:[['none','Standard (no permit)'],['special','Needs a permit (any)'],['active','Permits active'],['pending','Permits pending'],['missing','Permits missing'],['oversize','Oversize'],['overweight','Overweight'],['overheight','Over-height'],['overlength','Over-length'],['overwidth','Over-width'],['superload','Superload'],['hazmat','Hazmat']]},
   source:{label:'Source', type:'multiselect', options:Object.entries(SOURCE_LABEL)},
   minRate:{label:'Minimum rate ($)', type:'number'}
 };
-let filterFieldOrder = { quick:['status','attention','dispatcher'], more:['customer','equipment','pickupDate','deliveryDate','exception','docs','source','minRate'] };
+let filterFieldOrder = { quick:['status','attention','dispatcher'], more:['customer','equipment','permit','pickupDate','deliveryDate','exception','docs','source','minRate'] };
 function filterValueCount(key){
   const f=state.filters; const m=FILTER_FIELD_META[key]; if(!m) return 0;
   if(m.type==='toggle') return f[key]?1:0;
