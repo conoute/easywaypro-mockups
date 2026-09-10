@@ -190,7 +190,7 @@ const ME = {id:'d1', name:'Sultan Suleymanov', phone:'(806) 555-0142', email:'s.
   duty:'driving', hos:{drive:522, shift:675, cycle:3130, breakIn:190}, gps:{city:'Birmingham', st:'AL', road:'I-20 E', speed:66}, payRate:0.65};
 let loads = [
   {id:'24117', status:'in_transit', accepted:true, customer:'Werner Enterprises', ref:'PO 1914553', commodity:'Paper products', weight:41200, equipment:'Dry van', miles:782, deadhead:38, pay:508, dispatcher:'Marcus Webb', notes:'Hard appt 6 PM — gate 3, lumper on site.',
-    permit:{types:['oversize','overwidth'], dims:{lengthFt:70,widthFt:12,heightFt:13,weightLb:41200}, states:['TX','LA','MS','AL','GA'], status:'active',
+    permit:{types:['oversize','overwidth'], dims:{lengthFt:70,widthFt:12,heightFt:13,weightLb:41200}, status:'active',
       route:{summary:'I-20 E permitted corridor · Dallas → Atlanta', mapUrl:'https://www.google.com/maps/dir/32.78,-96.80/33.75,-84.39', mustFollow:true},
       travel:{days:'Mon–Sat', from:'30 min after sunrise', to:'30 min before sunset', speedMax:55, curfew:'No travel Sun or holidays; no metro Atlanta 7–9 AM / 4–6 PM'},
       restrictions:['1 rear escort (over 12 ft wide)','Amber lights + OVERSIZE LOAD banners','No travel in winds > 35 mph','Stay on I-20 — no alternate routing'],
@@ -203,7 +203,7 @@ let loads = [
            {kind:'delivery', name:'Publix DC Charlotte', addr:'3700 Westinghouse Blvd, Charlotte, NC 28273', city:'Charlotte', st:'NC', appt:{start:D(1,15,0), end:null, type:'hard'}, contact:'Receiving', phone:'(704) 555-0142', notes:''}],
     docs:{bol:'na', pod:'na'}, accessorials:[], activity:[{t:'Dispatched by Marcus Webb', at:D(0,8,55)}]},
   {id:'24145', status:'scheduled', accepted:true, customer:'Schneider National', ref:'PO 6120110', commodity:'Paper', weight:40800, equipment:'Dry van', miles:410, deadhead:22, pay:267, dispatcher:'Marcus Webb', notes:'',
-    permit:{types:['overheight'], dims:{lengthFt:48,widthFt:8.5,heightFt:15,weightLb:40800}, states:['NC','TN'], status:'pending', eta:'2–4 business hours',
+    permit:{types:['overheight'], dims:{lengthFt:48,widthFt:8.5,heightFt:15,weightLb:40800}, status:'pending', eta:'a few hours',
       restrictions:['Height pole required','Avoid posted low clearances — follow the permit route once issued']},
     stops:[{kind:'pickup', name:'International Paper', addr:'2000 Freedom Dr, Charlotte, NC 28208', city:'Charlotte', st:'NC', appt:{start:D(2,8,0), end:null, type:'hard'}, contact:'Gate', phone:'(704) 555-0177', notes:''},
            {kind:'delivery', name:'Kroger Delta', addr:'2620 Elm Hill Pike, Nashville, TN 37214', city:'Nashville', st:'TN', appt:{start:D(2,17,0), end:D(2,20,0), type:'window'}, contact:'Receiving', phone:'(615) 555-0152', notes:''}],
@@ -386,10 +386,10 @@ function permitCard(l){
   const p=l.permit; if(!p) return '';
   const st=permitState(l); const types=p.types.map(t=>HAUL_LBL[t]).join(' + ');
   if(p.status!=='active'){
-    return '<div class="card warn"><div style="display:flex;align-items:center;gap:10px;margin-bottom:6px"><span class="r-icon warn" style="width:40px;height:40px">'+ic('straighten',22)+'</span><div style="flex:1"><h3 style="margin:0">'+types+' load</h3><div class="sub">Permit on the way · '+esc(p.states.join(', '))+' · ETA '+esc(p.eta||'soon')+'</div></div></div><div class="sub">The permitted route and travel hours show up here as soon as the permit comes back. Do not start the load until it clears.</div></div>';
+    return '<div class="card warn"><div style="display:flex;align-items:center;gap:10px;margin-bottom:6px"><span class="r-icon warn" style="width:40px;height:40px">'+ic('straighten',22)+'</span><div style="flex:1"><h3 style="margin:0">'+types+' load</h3><div class="sub">Permit on the way · ready in '+esc(p.eta||'a few hours')+'</div></div></div><div class="sub">The permitted route and travel hours show up here as soon as the permit comes back. Do not start the load until it clears.</div></div>';
   }
   const cls = st.sev==='danger'?'danger':(st.sev==='warning'?'warn':'accent');
-  let h='<div class="card '+cls+'"><div style="display:flex;align-items:center;gap:10px"><span class="r-icon '+(st.sev==='danger'?'bad':(st.sev==='warning'?'warn':'ok'))+'" style="width:44px;height:44px">'+ic('straighten',24)+'</span><div style="flex:1"><h3 style="margin:0">'+types+' · special route</h3><div class="sub">'+esc(p.states.join(' · '))+' · permit active</div></div><span class="pill '+(st.sev==='danger'?'danger':(st.sev==='warning'?'warning':'success'))+'">'+esc(st.txt)+'</span></div>';
+  let h='<div class="card '+cls+'"><div style="display:flex;align-items:center;gap:10px"><span class="r-icon '+(st.sev==='danger'?'bad':(st.sev==='warning'?'warn':'ok'))+'" style="width:44px;height:44px">'+ic('straighten',24)+'</span><div style="flex:1"><h3 style="margin:0">'+types+' · special route</h3><div class="sub">Permit active · follow the route below</div></div><span class="pill '+(st.sev==='danger'?'danger':(st.sev==='warning'?'warning':'success'))+'">'+esc(st.txt)+'</span></div>';
   h+='<div style="margin-top:12px"><button class="btn primary" data-act="permit-map" data-load="'+l.id+'">'+ic('navigation',22)+'Follow the permitted route</button></div>';
   h+='<div class="btn-row"><button class="btn sm" data-act="sim-offroute" data-load="'+l.id+'">'+ic('wrong_location',18)+'Demo: go off route</button><button class="btn sm" data-act="sim-curfew" data-load="'+l.id+'">'+ic('nights_stay',18)+'Demo: hit curfew</button></div>';
   h+='<div class="kv" style="margin-top:6px"><span class="k">Route</span><span class="v" style="text-align:right;max-width:60%">'+esc(p.route.summary)+'</span></div>';
@@ -580,7 +580,7 @@ function scrTraining(){
 
 function permitAlert(l, kind){
   const p=l.permit; let title, body, icon;
-  if(kind==='offroute'){ icon='wrong_location'; title='You left the permitted route'; body='Load '+l.id+' is '+p.offRouteMi+' mi off the '+p.states.join('/')+' permit corridor. Oversize loads must stay on the approved route — running off it can mean fines, an out-of-service order, or a bridge strike. Get back to the route now.'; }
+  if(kind==='offroute'){ icon='wrong_location'; title='You left the permitted route'; body='Load '+l.id+' is '+p.offRouteMi+' mi off the permitted corridor. Oversize loads must stay on the approved route — running off it can mean fines, an out-of-service order, or a bridge strike. Get back to the route now.'; }
   else { icon='nights_stay'; title='Permitted travel hours are ending'; body='Your permit for load '+l.id+' allows travel '+p.travel.from+' – '+p.travel.to+', '+p.travel.days+'. '+(p.curfewSoon?p.curfewSoon.text:'Find a safe place to park before the curfew.'); }
   // add to the notifications feed
   notifications.unshift({id:'na'+Date.now(), icon, cls:'bad', title:title+' · load '+l.id, sub:kind==='offroute'?p.offRouteMi+' mi off the permitted corridor':'Curfew approaching', at:NOW, go:'#/load/'+l.id});
