@@ -21,7 +21,8 @@
      field.setValue(v);
 
    The stored value is:
-     { baked: dataURL,   // square, what every surface renders
+     { baked: dataURL,   // square, what detail surfaces render
+       thumb: dataURL,   // 96px square from the same crop, for lists and tables
        original: dataURL,// raw upload, so the crop can be reopened
        crop: {zoom,cx,cy}} // normalised — independent of frame size
    ==========================================================================*/
@@ -189,9 +190,24 @@
       octx.drawImage(src, r.sx, r.sy, r.size, r.size, 0, 0, output, output);
       const baked = format === 'png' ? out.toDataURL('image/png')
                                      : out.toDataURL('image/jpeg', 0.92);
+
+      /* Thumbnail, from the same crop. A list screen showing 50 rows would
+         otherwise pull 50 full-size images to draw 32px circles. Generated
+         here because the crop is already resolved and the second drawImage
+         is effectively free; it also avoids a server-side resize. */
+      const thumbPx = opts.thumb || 96;
+      const th = document.createElement('canvas');
+      th.width = th.height = thumbPx;
+      const tctx = th.getContext('2d');
+      if (format === 'jpeg') { tctx.fillStyle = '#ffffff'; tctx.fillRect(0, 0, thumbPx, thumbPx); }
+      tctx.imageSmoothingQuality = 'high';
+      tctx.drawImage(src, r.sx, r.sy, r.size, r.size, 0, 0, thumbPx, thumbPx);
+      const thumb = format === 'png' ? th.toDataURL('image/png')
+                                     : th.toDataURL('image/jpeg', 0.82);
       close();
       opts.onSave({
         baked: baked,
+        thumb: thumb,
         original: dataUrl,
         crop: Core.toStored(offX, offY, natW, natH, FRAME, zoom)
       });
