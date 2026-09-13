@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>COM-IMG-01 — Image Editor Module</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200">
+<link rel="stylesheet" href="_shared/image-editor.css">
+<style>
+  :root{
+    --navy:#333761;--text900:#333761;--text600:#6b7094;--text400:#9296b8;
+    --border2:#e6e8f2;--bg50:#f7f8fc;--accent:#22a06b;--info:#2e5bff;--danger:#d64545;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg50);color:var(--text900);
+       font:14px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;padding:28px 20px 60px;}
+  .wrap{max-width:1000px;margin:0 auto;}
+  h1{font-size:20px;margin:0 0 4px;}
+  .sub{color:var(--text600);font-size:13px;margin:0 0 24px;max-width:72ch;}
+  h2{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--text400);
+     margin:28px 0 12px;font-weight:700;}
+  .panel{background:#fff;border:1px solid var(--border2);border-radius:10px;padding:18px;}
+  .row{display:flex;gap:28px;flex-wrap:wrap;}
+  .demo{text-align:center;}
+  .demo .cap{font-size:12px;font-weight:600;margin-top:10px;}
+  .demo .meta{font-size:10.5px;color:var(--text400);margin-top:2px;}
+
+  /* design-system pieces the module relies on */
+  .modal-scrim{position:fixed;inset:0;background:rgba(51,55,97,.45);z-index:500;
+    display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .16s ease;}
+  .modal-scrim.open{opacity:1;pointer-events:auto;}
+  .modal{background:#fff;border-radius:14px;padding:20px;box-shadow:0 24px 64px rgba(51,55,97,.3);}
+  .modal h2{font-size:16px;margin:0 0 4px;text-transform:none;letter-spacing:0;color:var(--text900);}
+  .mdesc{font-size:12.5px;color:var(--text600);margin:0;}
+  .actions{display:flex;gap:8px;margin-top:16px;}
+  .btn{flex:1;padding:9px 14px;border-radius:8px;border:1px solid var(--border2);
+       background:#fff;color:var(--text900);font-size:12.5px;font-weight:600;cursor:pointer;
+       display:inline-flex;align-items:center;justify-content:center;gap:6px;}
+  .btn:hover{border-color:var(--text400);}
+  .btn.primary{background:var(--accent);border-color:var(--accent);color:#fff;}
+  .btn.primary:hover{filter:brightness(.95);}
+
+  /* test runner */
+  .runbar{display:flex;align-items:center;gap:10px;margin-bottom:12px;}
+  .runbar .btn{flex:0 0 auto;}
+  .score{font-size:12.5px;font-weight:700;}
+  .score.ok{color:var(--accent);} .score.bad{color:var(--danger);}
+  .results{max-height:340px;overflow-y:auto;border:1px solid var(--border2);border-radius:8px;}
+  .t{display:flex;gap:9px;padding:6px 11px;border-bottom:1px solid var(--border2);font-size:12px;align-items:flex-start;}
+  .t:last-child{border-bottom:none;}
+  .t .st{font-size:10px;font-weight:700;padding:1px 6px;border-radius:20px;flex-shrink:0;margin-top:2px;}
+  .t.p .st{background:#eaf8ef;color:#1a7a50;} .t.f .st{background:#fdecec;color:#a83232;}
+  .t .d{font-size:10.5px;color:var(--text400);margin-top:2px;
+        font-family:ui-monospace,Menlo,monospace;}
+  .grp{padding:8px 11px;background:var(--bg50);font-size:10.5px;font-weight:700;
+       text-transform:uppercase;letter-spacing:.04em;color:var(--text400);
+       border-bottom:1px solid var(--border2);}
+  .manual{margin:0;padding-left:18px;font-size:12.5px;color:var(--text600);}
+  .manual li{margin-bottom:5px;}
+  .state{font-family:ui-monospace,Menlo,monospace;font-size:11px;color:var(--text600);
+         background:var(--bg50);border:1px solid var(--border2);border-radius:8px;
+         padding:11px;white-space:pre-wrap;word-break:break-all;max-height:150px;overflow-y:auto;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>COM-IMG-01 — Image Editor Module</h1>
+  <p class="sub">Reusable image field with crop editor. One implementation for avatars, logos and
+  equipment photos. Geometry lives in a pure core module, so it is tested without a browser; this
+  page runs the same suite plus the DOM-level checks.</p>
+
+  <h2>Three consumers, one module</h2>
+  <div class="panel row">
+    <div class="demo">
+      <div id="mountAvatar"></div>
+      <div class="cap">Driver avatar</div>
+      <div class="meta">circle · 600px · JPEG</div>
+    </div>
+    <div class="demo">
+      <div id="mountLogo"></div>
+      <div class="cap">Carrier logo</div>
+      <div class="meta">rounded · 600px · PNG (alpha)</div>
+    </div>
+    <div class="demo">
+      <div id="mountTruck"></div>
+      <div class="cap">Truck photo</div>
+      <div class="meta">square · 900px · JPEG</div>
+    </div>
+  </div>
+
+  <h2>Stored value (what the record persists)</h2>
+  <div class="state" id="stateDump">nothing set</div>
+
+  <h2>Automated tests</h2>
+  <div class="panel">
+    <div class="runbar">
+      <button class="btn primary" id="runBtn">Run tests</button>
+      <span class="score" id="score"></span>
+    </div>
+    <div class="results" id="results"></div>
+  </div>
+
+  <h2>Manual checks (need a real file)</h2>
+  <div class="panel">
+    <ol class="manual">
+      <li>Upload a <b>landscape</b> photo — no empty band at any zoom, in any direction.</li>
+      <li>Upload a <b>portrait</b> photo — same.</li>
+      <li>Drag fast, leave the frame, release outside — the drag must not stick.</li>
+      <li>Zoom to 4&times; and back to 1&times; — what was centred stays centred.</li>
+      <li>Save, then <b>Adjust</b> — reopens where you left it and still zooms <b>back out</b>
+          (proves the original was kept, not the crop).</li>
+      <li>Tab to the frame, use arrow keys — image nudges; Shift makes it coarser.</li>
+      <li>Escape and clicking the scrim both close without saving.</li>
+      <li>Try a <b>PDF</b> or a <b>40MB</b> file — refused with a specific reason, no editor opens.</li>
+      <li>A phone photo taken in portrait must not bake sideways (EXIF).</li>
+    </ol>
+  </div>
+
+</div>
+
+<script src="_shared/image-editor-core.js"></script>
+<script src="_shared/image-editor.js"></script>
+<script>
+/* ---------------- demo fields ---------------- */
+const fields = {};
+function dump(){
+  const out = {};
+  Object.keys(fields).forEach(k=>{
+    const v = fields[k].getValue();
+    out[k] = v ? { baked:v.baked.slice(0,38)+'…('+Math.round(v.baked.length/1365)+'KB)',
+                   original:v.original ? 'kept ('+Math.round(v.original.length/1365)+'KB)' : null,
+                   crop:v.crop } : null;
+  });
+  document.getElementById('stateDump').textContent = JSON.stringify(out, null, 2);
+}
+fields.avatar = ImageEditor.createField({
+  shape:'circle', size:150, output:600, format:'jpeg',
+  emptyIcon:'person', label:'Profile photo', onChange:dump });
+fields.logo = ImageEditor.createField({
+  shape:'rounded', size:150, output:600, format:'png',
+  emptyIcon:'apartment', label:'Carrier logo', onChange:dump });
+fields.truck = ImageEditor.createField({
+  shape:'square', size:150, output:900, format:'jpeg',
+  emptyIcon:'local_shipping', label:'Truck photo', onChange:dump });
+
+document.getElementById('mountAvatar').appendChild(fields.avatar.el);
+document.getElementById('mountLogo').appendChild(fields.logo.el);
+document.getElementById('mountTruck').appendChild(fields.truck.el);
+dump();
+
+/* ---------------- test runner ---------------- */
+const C = ImageEditorCore;
+let P=0,F=0;
+const res = document.getElementById('results');
+const near=(a,b,e)=>Math.abs(a-b)<(e===undefined?0.5:e);
+function grp(t){ res.insertAdjacentHTML('beforeend','<div class="grp">'+t+'</div>'); }
+function ck(name,cond,detail){
+  cond?P++:F++;
+  res.insertAdjacentHTML('beforeend',
+    '<div class="t '+(cond?'p':'f')+'"><span class="st">'+(cond?'PASS':'FAIL')+'</span>'+
+    '<div><div>'+name+'</div>'+(detail&&!cond?'<div class="d">'+detail+'</div>':'')+'</div></div>');
+}
+function settle(w,h,f,z,ox,oy){
+  const disp=C.baseScale(w,h,f)*z;
+  const c=C.clampOffsets(ox,oy,w,h,f,disp);
+  return Object.assign({disp},c,C.cropRect(c.offX,c.offY,f,disp));
+}
+
+function run(){
+  res.innerHTML=''; P=0; F=0;
+  const FR=280, SHAPES={landscape:[4000,3000],portrait:[3000,4000],square:[1200,1200],panorama:[6000,1000]};
+
+  grp('cover scaling — frame never shows empty space');
+  Object.entries(SHAPES).forEach(([n,[w,h]])=>{
+    const s=C.baseScale(w,h,FR);
+    ck(n+' '+w+'×'+h+' covers the frame', w*s>=FR-0.01 && h*s>=FR-0.01);
+  });
+
+  grp('clamping — image edge can never enter the frame');
+  Object.entries(SHAPES).forEach(([n,[w,h]])=>{
+    [1,2.5,4].forEach(z=>{
+      [[9999,9999],[-9999,-9999],[9999,-9999],[-9999,9999]].forEach(([dx,dy])=>{
+        const r=settle(w,h,FR,z,dx,dy);
+        ck(n+' @'+z+'× dragged ('+(dx>0?'+':'')+dx+','+(dy>0?'+':'')+dy+')',
+           r.sx>=-0.01 && r.sy>=-0.01 && r.sx+r.size<=w+0.01 && r.sy+r.size<=h+0.01,
+           'sx='+r.sx.toFixed(1)+' sy='+r.sy.toFixed(1)+' size='+r.size.toFixed(1));
+      });
+    });
+  });
+
+  grp('zoom keeps the frame centre in place');
+  (()=>{
+    const [w,h]=SHAPES.landscape, bs=C.baseScale(w,h,FR);
+    let {offX,offY}=C.centredOffsets(w,h,FR,bs), zoom=1;
+    const before=C.toStored(offX,offY,w,h,FR,zoom);
+    [1.5,2.4,4,2,1].forEach(z=>{
+      const m=C.zoomAboutCentre(offX,offY,FR,bs*zoom,bs*z);
+      const c=C.clampOffsets(m.offX,m.offY,w,h,FR,bs*z);
+      offX=c.offX; offY=c.offY; zoom=z;
+    });
+    const after=C.toStored(offX,offY,w,h,FR,zoom);
+    ck('centre survives a 1→4→1 zoom round trip',
+       near(before.cx,after.cx,0.002)&&near(before.cy,after.cy,0.002),
+       before.cx.toFixed(4)+','+before.cy.toFixed(4)+' → '+after.cx.toFixed(4)+','+after.cy.toFixed(4));
+  })();
+  ck('zoom clamps below 1×', C.clampZoom(0.2)===C.MIN_ZOOM);
+  ck('zoom clamps above 4×', C.clampZoom(99)===C.MAX_ZOOM);
+  ck('NaN zoom falls back to 1×', C.clampZoom(NaN)===C.MIN_ZOOM);
+
+  grp('crop matches the preview');
+  (()=>{
+    const [w,h]=SHAPES.portrait;
+    ck('crop side = short edge at 1×', near(settle(w,h,FR,1,-40,-120).size, Math.min(w,h), 1));
+    ck('crop side halves at 2×',       near(settle(w,h,FR,2,-40,-120).size, Math.min(w,h)/2, 1));
+  })();
+
+  grp('stored crop reopens identically');
+  Object.entries(SHAPES).forEach(([n,[w,h]])=>{
+    [1,1.6,3.2].forEach(z=>{
+      const s=settle(w,h,FR,z,-137,-88);
+      const st=C.toStored(s.offX,s.offY,w,h,FR,z);
+      const b=C.fromStored(st,w,h,FR);
+      ck(n+' @'+z+'×', near(b.offX,s.offX,1)&&near(b.offY,s.offY,1),
+         'offX '+s.offX.toFixed(1)+'→'+b.offX.toFixed(1)+'  offY '+s.offY.toFixed(1)+'→'+b.offY.toFixed(1));
+    });
+  });
+
+  grp('stored crop is independent of frame size');
+  Object.entries(SHAPES).forEach(([n,[w,h]])=>{
+    const s=settle(w,h,280,2,-200,-150);
+    const st=C.toStored(s.offX,s.offY,w,h,280,2);
+    [200,280,360,440].forEach(f=>{
+      const b=C.fromStored(st,w,h,f);
+      const r=C.cropRect(b.offX,b.offY,f,C.baseScale(w,h,f)*b.zoom);
+      const cx=(r.sx+r.size/2)/w, cy=(r.sy+r.size/2)/h;
+      ck(n+' reopens at the same centre in a '+f+'px frame',
+         near(cx,st.cx,0.002)&&near(cy,st.cy,0.002),
+         'want '+st.cx.toFixed(4)+','+st.cy.toFixed(4)+' got '+cx.toFixed(4)+','+cy.toFixed(4));
+    });
+  });
+
+  grp('upload validation');
+  ck('accepts JPEG', C.validateFile({type:'image/jpeg',size:2e6}).ok);
+  ck('accepts PNG',  C.validateFile({type:'image/png',size:1e6}).ok);
+  ck('accepts WebP', C.validateFile({type:'image/webp',size:1e6}).ok);
+  ck('rejects PDF',  !C.validateFile({type:'application/pdf',size:1e5}).ok);
+  ck('rejects SVG',  !C.validateFile({type:'image/svg+xml',size:1e4}).ok);
+  ck('rejects a 40MB file', !C.validateFile({type:'image/jpeg',size:40e6}).ok);
+  ck('refusal names the limit', /12MB/.test(C.validateFile({type:'image/jpeg',size:40e6}).reason));
+  ck('rejects no file', !C.validateFile(null).ok);
+  ck('rejects a 120×90 image', !C.validateDimensions(120,90).ok);
+  ck('accepts a 1200×900 image', C.validateDimensions(1200,900).ok);
+
+  grp('field behaviour (DOM)');
+  (()=>{
+    const f=ImageEditor.createField({shape:'circle',size:120,label:'Test'});
+    ck('starts empty', f.getValue()===null);
+    ck('shows an empty state', !!f.el.querySelector('.ie-empty'));
+    ck('upload control always present', !!f.el.querySelector('.ie-upload'));
+    ck('no Adjust while empty', !f.el.querySelector('.ie-adjust'));
+    ck('no Remove while empty', !f.el.querySelector('.ie-remove'));
+
+    const fake={baked:'data:image/jpeg;base64,X',original:'data:image/jpeg;base64,Y',crop:{zoom:1,cx:.5,cy:.5}};
+    f.setValue(fake);
+    ck('renders the image once set', !!f.el.querySelector('.ie-img'));
+    ck('Adjust appears with a value', !!f.el.querySelector('.ie-adjust'));
+    ck('Remove appears with a value', !!f.el.querySelector('.ie-remove'));
+    ck('keeps the original for re-cropping', f.getValue().original===fake.original);
+
+    f.el.querySelector('.ie-remove').click();
+    ck('Remove clears the whole value', f.getValue()===null);
+    ck('empty state returns after Remove', !!f.el.querySelector('.ie-empty'));
+  })();
+
+  grp('accessibility');
+  (()=>{
+    const f=ImageEditor.createField({shape:'circle',size:120,label:'Avatar'});
+    const s=f.el.querySelector('.ie-surface');
+    ck('surface is keyboard reachable', s.getAttribute('tabindex')==='0');
+    ck('surface has an accessible name', !!s.getAttribute('aria-label'));
+    ck('controls are real buttons', f.el.querySelector('.ie-upload').tagName==='BUTTON');
+    f.setValue({baked:'data:image/jpeg;base64,X',original:null,crop:null});
+    ck('Adjust has an accessible name', !!f.el.querySelector('.ie-adjust').getAttribute('aria-label'));
+    ck('Remove has an accessible name', !!f.el.querySelector('.ie-remove').getAttribute('aria-label'));
+  })();
+
+  const sc=document.getElementById('score');
+  sc.className='score '+(F===0?'ok':'bad');
+  sc.textContent = F===0 ? ('ALL PASS — '+P+' assertions') : (P+' passed, '+F+' FAILED');
+}
+document.getElementById('runBtn').onclick=run;
+run();
+</script>
+</body>
+</html>
