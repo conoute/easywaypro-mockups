@@ -1,0 +1,80 @@
+/* IMAGE EDITOR — styles.
+   Four rules here are load-bearing geometry, not styling taste, and are marked
+   as such. Changing them silently breaks the crop. */
+
+.ie-field{display:inline-block;}
+
+.ie-surface{
+  position:relative;
+  background:linear-gradient(160deg,#eef0f7 0%,#dfe3f0 55%,#d3dbe8 100%);
+  border:1px solid var(--border2,#e6e8f2);
+  overflow:hidden;                /* LOAD-BEARING: makes the surface a crop window */
+  cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  transition:border-color .12s ease,box-shadow .12s ease;
+}
+.ie-surface:hover{border-color:var(--accent,#22a06b);}
+.ie-surface:focus-visible{outline:2px solid var(--accent,#22a06b);outline-offset:2px;}
+
+.ie-img{width:100%;height:100%;object-fit:cover;display:block;user-select:none;}
+.ie-empty{color:#aab0cc;display:flex;align-items:center;justify-content:center;}
+
+/* --- the three controls ------------------------------------------------- */
+.ie-btn{
+  position:absolute;width:28px;height:28px;border-radius:50%;
+  background:rgba(255,255,255,.94);border:1px solid var(--border2,#e6e8f2);
+  color:var(--text400,#9296b8);
+  display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0;
+  box-shadow:0 1px 4px rgba(51,55,97,.12);transition:all .12s ease;z-index:2;
+}
+.ie-upload{top:8px;right:8px;}
+.ie-upload:hover{color:var(--accent,#22a06b);border-color:var(--accent,#22a06b);}
+.ie-adjust{top:8px;right:42px;}
+.ie-adjust:hover{color:var(--info,#2e5bff);border-color:var(--info,#2e5bff);}
+
+/* Remove is deliberately the least reachable: hover-only, opposite corner,
+   smaller. Destructive actions never sit under a casual click. */
+.ie-remove{top:8px;left:8px;width:24px;height:24px;display:none;}
+.ie-surface:hover .ie-remove,
+.ie-surface:focus-within .ie-remove{display:flex;}
+.ie-remove:hover{color:var(--danger,#d64545);border-color:var(--danger,#d64545);}
+
+/* --- editor modal ------------------------------------------------------- */
+.ie-modal{width:340px;}
+
+.ie-frame{
+  width:280px;height:280px;              /* must match ImageEditor.FRAME */
+  border-radius:16px;
+  overflow:hidden;                        /* LOAD-BEARING */
+  position:relative;margin:12px auto 0;
+  background:#eef0f7;
+  cursor:grab;
+  touch-action:none;                      /* LOAD-BEARING: stops the page scrolling mid-drag */
+  user-select:none;
+}
+.ie-frame:focus-visible{outline:2px solid var(--accent,#22a06b);outline-offset:2px;}
+.ie-canvas{display:block;width:280px;height:280px;}
+
+/* Rule-of-thirds guide, purely visual */
+.ie-grid{position:absolute;inset:0;pointer-events:none;opacity:.28;
+  background:
+    linear-gradient(to right ,transparent 33.33%,#fff 33.33%,#fff calc(33.33% + 1px),transparent calc(33.33% + 1px),
+                              transparent 66.66%,#fff 66.66%,#fff calc(66.66% + 1px),transparent calc(66.66% + 1px)),
+    linear-gradient(to bottom,transparent 33.33%,#fff 33.33%,#fff calc(33.33% + 1px),transparent calc(33.33% + 1px),
+                              transparent 66.66%,#fff 66.66%,#fff calc(66.66% + 1px),transparent calc(66.66% + 1px));
+}
+
+.ie-zoom-row{display:flex;align-items:center;gap:10px;margin:14px 6px 4px;color:var(--text400,#9296b8);}
+.ie-zoom{flex:1;accent-color:var(--accent,#22a06b);cursor:pointer;}
+
+/* --- toast -------------------------------------------------------------- */
+.ie-toast{
+  position:fixed;bottom:24px;left:50%;transform:translateX(-50%);
+  background:var(--text900,#333761);color:#fff;padding:11px 16px;border-radius:10px;
+  font-size:12.5px;font-weight:600;box-shadow:0 8px 20px rgba(0,0,0,.25);
+  z-index:600;display:flex;align-items:center;gap:8px;
+  animation:ie-toast-in .18s ease;
+}
+.ie-toast.error{background:var(--danger,#d64545);}
+.ie-toast.out{opacity:0;transition:opacity .25s ease;}
+@keyframes ie-toast-in{from{opacity:0;transform:translate(-50%,8px);}to{opacity:1;transform:translate(-50%,0);}}
