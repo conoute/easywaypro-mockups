@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>COM-IMG-01 — Image Editor Module</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200">
-<link rel="stylesheet" href="_shared/image-editor.css">
+<link rel="stylesheet" href="../_shared/image-editor.css">
 <style>
   :root{
     --navy:#333761;--text900:#333761;--text600:#6b7094;--text400:#9296b8;
@@ -119,8 +119,8 @@
 
 </div>
 
-<script src="_shared/image-editor-core.js"></script>
-<script src="_shared/image-editor.js"></script>
+<script src="../_shared/image-editor-core.js"></script>
+<script src="../_shared/image-editor.js"></script>
 <script>
 /* ---------------- demo fields ---------------- */
 const fields = {};
@@ -291,6 +291,33 @@ function run(){
 }
 document.getElementById('runBtn').onclick=run;
 run();
+</script>
+<script>
+/* If the shared module failed to load, say so loudly. A silent dead button is
+   the worst possible failure for a page whose whole job is to prove the module
+   works. */
+(function(){
+  const missing = [];
+  if (typeof ImageEditorCore !== 'object') missing.push('_shared/image-editor-core.js');
+  if (typeof ImageEditor    !== 'object') missing.push('_shared/image-editor.js');
+  if (!missing.length) return;
+
+  const say = (sel, html)=>{ const n=document.querySelector(sel); if(n) n.innerHTML=html; };
+  const box = '<div style="border:1px solid #f3c9c9;background:#fdecec;border-radius:8px;' +
+              'padding:14px 16px;color:#a83232;font-size:12.5px;">' +
+              '<b>Module failed to load</b><br>Could not fetch: ' + missing.join(', ') +
+              '<br><span style="color:#6b7094;">The page is served from /COM-IMG/, so the ' +
+              'shared files must resolve to /_shared/ — check the paths and that the files ' +
+              'are deployed.</span></div>';
+  say('#results', box);
+  say('#stateDump', 'module not loaded');
+  ['mountAvatar','mountLogo','mountTruck'].forEach(id=>say('#'+id,
+    '<div style="width:150px;height:150px;border:1px dashed #f3c9c9;border-radius:12px;' +
+    'display:flex;align-items:center;justify-content:center;color:#a83232;font-size:11px;' +
+    'text-align:center;padding:10px;">module<br>not loaded</div>'));
+  const s=document.getElementById('score'); if(s){ s.className='score bad'; s.textContent='module not loaded'; }
+  const b=document.getElementById('runBtn'); if(b) b.disabled=true;
+})();
 </script>
 </body>
 </html>
