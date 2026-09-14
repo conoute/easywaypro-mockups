@@ -83,42 +83,69 @@
 
   /* ---- CABINET LAYOUT ---- */
   .cabinet{display:flex;gap:0;flex:1;min-height:0;margin:-20px -24px -24px;}
-  .cab-left{width:296px;flex-shrink:0;padding:20px;border-right:1px solid var(--border2);overflow-y:auto;transition:width .18s ease,padding .18s ease;}
-  .cab-left.collapsed{width:44px;padding:20px 0;display:flex;justify-content:center;overflow:hidden;}
-  .cab-show-btn{display:flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:8px;color:var(--text400);cursor:pointer;}
-  .cab-show-btn:hover{background:var(--bg50);color:var(--text900);}
+  .cab-left{width:25%;min-width:280px;max-width:360px;flex-shrink:0;border-right:1px solid var(--border2);padding:16px 18px 20px;overflow-y:auto;display:flex;flex-direction:column;transition:width .18s ease,min-width .18s ease,padding .18s ease;}
+  .cab-left.collapsed{width:44px;min-width:44px;padding:16px 0;overflow:hidden;align-items:center;}
   .cab-collapsed-btn{display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer;padding:10px 6px;border-radius:10px;width:100%;}
   .cab-collapsed-btn:hover{background:var(--bg50);}
   .cab-collapsed-btn:hover .cab-collapsed-chevron{color:var(--text900);}
   .cab-avatar-sm{width:30px;height:30px;border-radius:50%;background:#dbeafe;color:#3b82c4;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:11px;flex-shrink:0;}
+  .cab-avatar-sm-img{width:30px;height:30px;border-radius:50%;object-fit:cover;display:block;flex-shrink:0;}
   .cab-collapsed-chevron{display:flex;color:var(--text400);transition:color .12s ease;}
   .cab-right{flex:1;min-width:0;display:flex;flex-direction:column;padding:0;overflow:hidden;}
 
-  .cab-topline{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
-  .cab-topline .hide-link{color:var(--text400);font-size:12.5px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:2px;}
-  .cab-topline .kebab{color:var(--text900);cursor:pointer;}
-  .cab-header{display:flex;align-items:center;gap:14px;margin-bottom:14px;}
-  .cab-avatar{width:56px;height:56px;border-radius:50%;background:#dbeafe;color:#3b82c4;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:16px;flex-shrink:0;}
-  .cab-name{font-weight:700;font-size:16px;color:var(--text900);}
-  .cab-type{font-size:12.5px;color:var(--text400);margin-top:2px;}
-  .cab-pill{display:inline-block;padding:4px 10px;border-radius:6px;font-size:11px;font-weight:700;letter-spacing:.3px;margin-bottom:14px;background:var(--warning-bg);color:var(--warning-t);}
-  .cab-toggle-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
-  .cab-toggle-row .tlabel{font-size:13px;color:var(--text900);}
-  .cab-toggle-row .tsub{font-size:11px;color:var(--text400);}
+  .panel-top-icons{display:flex;justify-content:space-between;margin-bottom:4px;}
+  .panel-top-group{display:flex;gap:2px;}
+  .panel-icon-btn{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--text400);cursor:pointer;}
+  .panel-icon-btn:hover{background:var(--bg50);color:var(--text900);}
+
+  .panel-ident{display:flex;flex-direction:column;align-items:center;text-align:center;padding-bottom:16px;border-bottom:1px solid var(--border2);}
+  .photo-card{position:relative;width:100%;aspect-ratio:1/1.02;border-radius:20px;background:linear-gradient(160deg,#eef2f6 0%,#e6ecf1 55%,#e2f3e9 100%);overflow:hidden;}
+  .photo-card-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:top center;}
+  .photo-card-placeholder{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--neutral200);}
+  .photo-upload-btn{position:absolute;top:10px;right:10px;width:28px;height:28px;border-radius:50%;background:rgba(255,255,255,.92);border:1px solid var(--border2);color:var(--text400);display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 1px 4px rgba(51,55,97,.12);transition:all .12s ease;z-index:2;}
+  .photo-upload-btn:hover{color:var(--accent-dark,#1e8e5a);border-color:var(--accent);}
+  .photo-remove-btn{position:absolute;top:10px;left:10px;width:24px;height:24px;border-radius:50%;background:rgba(255,255,255,.92);border:1px solid var(--border2);color:var(--text400);display:none;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 1px 4px rgba(51,55,97,.12);z-index:2;}
+  .photo-card:hover .photo-remove-btn{display:flex;}
+  .photo-remove-btn:hover{color:var(--danger);border-color:var(--danger);}
+  .photo-overlay{position:absolute;left:0;right:0;bottom:0;padding:46px 14px 12px;background:linear-gradient(180deg,rgba(46,42,92,0) 0%,rgba(46,42,92,.55) 45%,rgba(46,42,92,.82) 100%);color:#fff;}
+  .po-name{font-weight:700;font-size:15px;}
+  .po-meta{font-size:11.5px;opacity:.8;margin-top:1px;}
+  .po-qa{display:flex;gap:8px;margin-top:10px;}
+  .po-btn{width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,.18);backdrop-filter:blur(4px);color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background .12s ease;}
+  .po-btn:hover{background:var(--accent);}
+  .panel-ident .cab-pill{margin-top:8px;}
+
+  .panel-section{padding-top:14px;margin-top:14px;border-top:1px solid var(--border2);}
+  .panel-section:first-of-type{border-top:none;margin-top:0;}
+  .profile-section-title{font-weight:700;font-size:11.5px;color:var(--text900);letter-spacing:.3px;margin-bottom:6px;}
+  .attach-row{display:flex;align-items:center;gap:10px;padding:9px 12px;border:1.5px dashed var(--neutral200);border-radius:9px;margin-top:8px;font-size:12.5px;font-weight:600;color:var(--text400);cursor:pointer;transition:all .12s ease;}
+  .attach-row:hover{border-color:var(--accent);color:var(--accent-dark,#1e8e5a);}
+  .attach-row .material-symbols-outlined:last-child{margin-left:auto;}
+  .ssn-eye{color:var(--text400);cursor:pointer;display:flex;margin-left:6px;flex-shrink:0;}
+  .ssn-eye:hover{color:var(--text900);}
+  .panel-comments{display:flex;flex-direction:column;}
+  .pcomment{padding:8px 0;border-top:1px solid var(--bg100,#eeeef2);}
+  .pcomment:first-of-type{border-top:none;}
+  .pc-head{display:flex;justify-content:space-between;font-size:11px;color:var(--text400);}
+  .pc-head b{color:var(--text900);font-size:12px;}
+  .pc-text{font-size:12.5px;color:var(--text900);margin-top:3px;line-height:1.45;}
+  .pcomment-input{border:1px solid var(--border2);border-radius:9px;padding:9px 12px;font-family:inherit;font-size:12.5px;color:var(--text900);margin-top:10px;outline:none;width:100%;box-sizing:border-box;}
+  .pcomment-input:focus{border-color:var(--info);}
+  .panel-empty{padding:24px 10px;text-align:center;font-size:12.5px;color:var(--text400);line-height:1.6;}
+
   .switch{width:36px;height:20px;border-radius:10px;background:var(--border2);position:relative;cursor:pointer;flex-shrink:0;transition:background .15s;}
   .switch.on{background:var(--accent);}
   .switch .knob{position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:#fff;transition:left .15s;}
   .switch.on .knob{left:18px;}
-  .cab-info-row{display:flex;align-items:center;gap:10px;font-size:12.5px;color:var(--text400);padding:7px 0;}
-  .cab-contact-row{display:flex;justify-content:space-between;font-size:12.5px;padding:6px 0;}
+  .cab-pill{display:inline-block;padding:4px 10px;border-radius:6px;font-size:11px;font-weight:700;letter-spacing:.3px;background:var(--warning-bg);color:var(--warning-t);}
+  .cab-pill.onhold{background:var(--neutral-bg);color:var(--neutral-t,#666989);}
+  .cab-toggle-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:7px 0;}
+  .cab-toggle-row .tlabel{font-size:12.5px;font-weight:600;color:var(--text900);}
+  .cab-toggle-row .tsub{font-size:10.5px;color:var(--text400);margin-top:1px;}
+  .cab-contact-row{display:flex;align-items:center;gap:8px;font-size:12.5px;padding:6px 0;}
+  .cab-contact-row .material-symbols-outlined{color:var(--text400);flex-shrink:0;}
   .cab-contact-row .k{color:var(--text400);}
-  .cab-contact-row .v{color:var(--text900);}
-  .cab-section-title{font-weight:700;font-size:14px;color:var(--text900);margin:16px 0 10px;padding-top:14px;border-top:1px solid var(--border2);}
-  .screen-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;font-size:12.5px;}
-  .screen-pill{padding:3px 9px;border-radius:6px;font-size:10.5px;font-weight:700;}
-  .screen-pill.pending{background:var(--warning-bg);color:var(--warning-t);}
-  .screen-pill.clean{background:var(--success-bg);color:var(--success-t);}
-  .screen-pill.na{background:var(--neutral-bg);color:var(--text400);}
+  .cab-contact-row .v{color:var(--text900);margin-left:auto;font-weight:600;text-align:right;}
 
   /* ---- TABS ---- */
   .tabs-bar{display:flex;align-items:center;gap:6px;padding:0 20px;border-bottom:1px solid var(--border2);flex-shrink:0;}
@@ -632,6 +659,42 @@ function positionFlyout(menu, anchor){
 // whether "Send to Driver's Mobile App" is offered as a delivery option.
 const DRIVER_HAS_MOBILE_APP = true;
 const DRIVER_EMAIL = 'mgerasimov@gmail.com';
+
+// ---- Left info panel (ported from ENT-DRV-01-CAB-13's rethought shell) ----
+let INFO_MODULES = [
+  {key:'toggles', label:'Status Toggles (On Hold / D&A)', visible:true},
+  {key:'attachments', label:'Attachments (Truck / Trailer / Dispatcher)', visible:true},
+  {key:'personalData', label:'Personal Data', visible:true},
+  {key:'comments', label:'Comments', visible:true},
+];
+let daConsortium = false;
+let attachedTruck = {name:'Freightliner Cascadia', plate:'NC-88213'};
+let attachedTrailer = null;
+let attachedDispatcher = {name:'Angela Torres'};
+let driverPhoto = null;
+// Mirrors the driver's Edit menu 1:1 — the panel shows a chosen subset; a
+// field-picker (not built in this pass) would add more from here later.
+let DRIVER_FIELD_CATALOG = [
+  {key:'phone', label:'Phone', icon:'call', value:'+1 (252) 322-5222', group:'Contact'},
+  {key:'email', label:'Email', icon:'mail', value:DRIVER_EMAIL, group:'Contact'},
+  {key:'address', label:'Address', icon:'location_on', value:'Charlotte, NC 28202', group:'Contact'},
+  {key:'emergency', label:'Emergency Contact', icon:'e911_emergency', value:'Elena G. — +1 (252) 310-8841', group:'Contact'},
+  {key:'dob', label:'Date of Birth', icon:'cake', value:'Mar 14, 1991', group:'Identity'},
+  {key:'ssn', label:'SSN', icon:'lock', value:'514-22-4921', masked:true, group:'Identity'},
+  {key:'cdl', label:'CDL Number', icon:'badge', value:'NC-8842213', group:'Licensing'},
+  {key:'cdlClass', label:'CDL Class', icon:'badge', value:'Class A', group:'Licensing'},
+  {key:'cdlExp', label:'CDL Expiration', icon:'event', value:'Jun 30, 2028', group:'Licensing'},
+  {key:'endorsements', label:'Endorsements', icon:'verified', value:'Hazmat, Tanker', group:'Licensing'},
+  {key:'medCardExp', label:'Medical Card Exp.', icon:'medical_services', value:'Oct 3, 2026', group:'Licensing'},
+  {key:'position', label:'Position', icon:'work', value:'Company driver', group:'Employment'},
+  {key:'hireDate', label:'Hire Date', icon:'event_available', value:'Jan 12, 2025', group:'Employment'},
+  {key:'recruiter', label:'Recruiter', icon:'headset_mic', value:'Marcus Webb', group:'Employment'},
+];
+let VISIBLE_FIELD_KEYS = ['phone','email','address','cdl','ssn'];
+let PANEL_COMMENTS = [
+  {author:'Angela Torres', time:'Sep 5, 3:20 PM', text:'Confirmed available for the Charlotte–Atlanta lane next week.'},
+];
+let ssnRevealed = false;
 function fakeUploadLink(doc){ return `https://app.easywaypro.com/upload/${doc.id}-${Math.random().toString(36).slice(2,8)}`; }
 function copyToClipboard(text){
   if(navigator.clipboard && navigator.clipboard.writeText){
@@ -1276,60 +1339,178 @@ function renderCabinet(){
   return wrap;
 }
 
+// Collapse/expand toggles the class on the EXISTING element and swaps
+// content in place — a full render() would create a new element and kill
+// the width transition (06_Reusable_UI_Patterns.md, and the exact defect
+// this replaces: the old version below called render() on every toggle).
+function toggleInfoPanel(){
+  state.leftPanelCollapsed = !state.leftPanelCollapsed;
+  const node = document.querySelector('.cab-left');
+  if(!node){ render(); return; }
+  node.classList.toggle('collapsed', state.leftPanelCollapsed);
+  const fresh = renderLeftPanel();
+  node.innerHTML = '';
+  [...fresh.childNodes].forEach(c=> node.appendChild(c));
+}
 function renderLeftPanel(){
+  const p = el(`<div class="cab-left${state.leftPanelCollapsed?' collapsed':''}"></div>`);
+
   if(state.leftPanelCollapsed){
-    const p = el('<div class="cab-left collapsed"></div>');
-    // Showing the driver's own avatar here (not just a bare arrow) is the
-    // whole point — it reads as "this collapsed strip IS the driver's
-    // info," which is a much stronger hint that clicking it brings that
-    // info back than an arrow icon alone would ever be. The whole strip is
-    // clickable, not just a small button, so there's a generous target for
-    // someone who isn't yet sure exactly what to click.
     const collapsedBtn = el(`<div class="cab-collapsed-btn">
-      <div class="cab-avatar-sm">MG</div>
+      ${driverPhoto ? `<img class="cab-avatar-sm-img" src="${driverPhoto}">` : `<div class="cab-avatar-sm">MG</div>`}
       <span class="cab-collapsed-chevron">${iconHTML('chevron_right',16)}</span>
     </div>`);
-    collapsedBtn.onclick = ()=>{ state.leftPanelCollapsed = false; render(); };
+    collapsedBtn.onclick = ()=> toggleInfoPanel();
     attachTooltip(collapsedBtn, 'Show Maksim Gerasimov\'s info');
     p.appendChild(collapsedBtn);
     return p;
   }
 
-  const p = el('<div class="cab-left"></div>');
-  const hideLink = el(`<span class="hide-link">${iconHTML('chevron_left',14)} Hide</span>`);
-  hideLink.onclick = ()=>{ state.leftPanelCollapsed = true; render(); };
-  const topline = el('<div class="cab-topline"></div>');
-  topline.appendChild(hideLink);
-  topline.appendChild(el(`<span class="kebab">${iconHTML('more_vert',18)}</span>`));
-  p.appendChild(topline);
-  p.appendChild(el(`<div class="cab-header"><div class="cab-avatar">MG</div><div><div class="cab-name">MAKSIM GERASIMOV</div><div class="cab-type">Company driver</div></div></div>`));
-  p.appendChild(el('<div class="cab-pill">PENDING</div>'));
+  const topIcons = el('<div class="panel-top-icons"></div>');
+  const leftGroup = el('<div class="panel-top-group"></div>');
+  const hideBtn = el(`<span class="panel-icon-btn">${iconHTML('chevron_left',18)}</span>`);
+  attachTooltip(hideBtn, 'Hide panel');
+  hideBtn.onclick = ()=> toggleInfoPanel();
+  const tuneBtn = el(`<span class="panel-icon-btn">${iconHTML('tune',18)}</span>`);
+  attachTooltip(tuneBtn, 'Customize panel');
+  tuneBtn.onclick = ()=> openModal('customizeInfoPanel');
+  leftGroup.appendChild(hideBtn); leftGroup.appendChild(tuneBtn);
+  const kebabBtn = el(`<span class="panel-icon-btn">${iconHTML('more_vert',18)}</span>`);
+  attachTooltip(kebabBtn, 'Actions');
+  kebabBtn.onclick = (e)=>{ e.stopPropagation(); showToast('Driver actions — not wired in this mock'); };
+  topIcons.appendChild(leftGroup); topIcons.appendChild(kebabBtn);
+  p.appendChild(topIcons);
 
-  const onHoldRow = el(`<div class="cab-toggle-row"><div><div class="tlabel">On Hold</div><div class="tsub">Onboarding process</div></div><div class="switch ${state.onHold?'on':''}"><div class="knob"></div></div></div>`);
-  onHoldRow.querySelector('.switch').onclick = ()=>{ state.onHold=!state.onHold; render(); };
-  p.appendChild(onHoldRow);
-  p.appendChild(el(`<div class="cab-toggle-row"><div class="tlabel">Drug and alcohol pool</div><div class="switch"><div class="knob"></div></div></div>`));
-
-  p.appendChild(el(`<div class="cab-info-row">${iconHTML('local_shipping',18)} No Truck</div>`));
-  p.appendChild(el(`<div class="cab-info-row">${iconHTML('rv_hookup',18)} No Trailer</div>`));
-  p.appendChild(el(`<div class="cab-info-row">${iconHTML('headset_mic',18)} No Dispatcher</div>`));
-
-  p.appendChild(el(`<div class="cab-contact-row"><span class="k">Email:</span><span class="v">${DRIVER_EMAIL}</span></div>`));
-  p.appendChild(el(`<div class="cab-contact-row"><span class="k">Phone:</span><span class="v">+1 (252) 322-5222</span></div>`));
-  p.appendChild(el(`<div class="cab-contact-row"><span class="k">Other Info:</span><span class="v">—</span></div>`));
-
-  p.appendChild(el('<div class="cab-section-title">Screening</div>'));
-  const screenItems = [
-    ['MVR','pending','Pending'], ['Background Check','clean','Clean'], ['Drug Test','pending','Pending'],
-    ['DOT Physical','na','—'], ['PSP','na','—']
-  ];
-  screenItems.forEach(([label,cls,txt])=>{
-    p.appendChild(el(`<div class="screen-row"><span>${label}</span><span class="screen-pill ${cls}">${txt}</span></div>`));
+  // Identity header — fixed, not customizable (structural), matching
+  // 16_ENT-DRV-CAB_Shell_Implementation_Spec.md §3.1.
+  const ident = el('<div class="panel-ident"></div>');
+  const photoCard = el('<div class="photo-card"></div>');
+  if(driverPhoto){
+    photoCard.appendChild(el(`<img class="photo-card-img" src="${driverPhoto}">`));
+    const removeBtn = el(`<span class="photo-remove-btn">${iconHTML('close',14)}</span>`);
+    attachTooltip(removeBtn, 'Remove photo');
+    removeBtn.onclick = (e)=>{ e.stopPropagation(); driverPhoto = null; showToast('Profile photo removed'); toggleInfoPanel(); toggleInfoPanel(); };
+    photoCard.appendChild(removeBtn);
+  } else {
+    photoCard.appendChild(el(`<div class="photo-card-placeholder">${iconHTML('person',64)}</div>`));
+  }
+  const uploadBtn = el(`<span class="photo-upload-btn">${iconHTML('photo_camera',15)}</span>`);
+  attachTooltip(uploadBtn, driverPhoto ? 'Change photo' : 'Upload photo');
+  uploadBtn.onclick = (e)=>{ e.stopPropagation(); showToast('Photo upload — not wired in this mock'); };
+  photoCard.appendChild(uploadBtn);
+  const overlay = el(`<div class="photo-overlay">
+    <div class="po-name">Maksim Gerasimov</div>
+    <div class="po-meta">Company driver</div>
+    <div class="po-qa"></div>
+  </div>`);
+  [['call','Call'],['forum','Chat'],['mail','Email'],['map','Map']].forEach(([icon,label])=>{
+    const b = el(`<span class="po-btn">${iconHTML(icon,16)}</span>`);
+    attachTooltip(b, label);
+    b.onclick = (e)=>{ e.stopPropagation(); showToast(`${label} — not wired in this mock`); };
+    overlay.querySelector('.po-qa').appendChild(b);
   });
-  p.appendChild(el(`<div class="cab-contact-row" style="margin-top:8px;"><span class="k">Next Step:</span><span class="v">MVR pull — Sep 8</span></div>`));
-  p.appendChild(el(`<div class="cab-contact-row"><span class="k">Recruiter:</span><span class="v">Marcus Webb</span></div>`));
+  photoCard.appendChild(overlay);
+  ident.appendChild(photoCard);
+  ident.appendChild(el(`<div class="cab-pill${state.onHold?' onhold':''}">${state.onHold?'ACTIVE — ON HOLD':'ACTIVE'}</div>`));
+  p.appendChild(ident);
+
+  // Customizable modules, in user-defined order (spec §3.3/§3.4).
+  const visibleModules = INFO_MODULES.filter(m=>m.visible);
+  if(visibleModules.length === 0){
+    p.appendChild(el(`<div class="panel-empty">All panel modules are hidden.<br>Use the ${iconHTML('tune',14)} icon above to bring them back.</div>`));
+  }
+  visibleModules.forEach(mod=>{
+    if(mod.key==='toggles'){
+      const sec = el('<div class="panel-section"></div>');
+      const onHoldRow = el(`<div class="cab-toggle-row"><div><div class="tlabel">On Hold</div><div class="tsub">Pauses active dispatch</div></div><div class="switch ${state.onHold?'on':''}"><div class="knob"></div></div></div>`);
+      onHoldRow.querySelector('.switch').onclick = ()=>{ state.onHold=!state.onHold; render(); };
+      sec.appendChild(onHoldRow);
+      const daRow = el(`<div class="cab-toggle-row"><div><div class="tlabel">Drug &amp; Alcohol Consortium</div><div class="tsub">Enrolled in the D&amp;A pool</div></div><div class="switch ${daConsortium?'on':''}"><div class="knob"></div></div></div>`);
+      daRow.querySelector('.switch').onclick = ()=>{ daConsortium=!daConsortium; render(); };
+      sec.appendChild(daRow);
+      p.appendChild(sec);
+    }
+    if(mod.key==='attachments'){
+      const sec = el('<div class="panel-section"></div>');
+      sec.appendChild(el('<div class="profile-section-title">ATTACHMENTS</div>'));
+      const truckRow = el(`<div class="attach-row">${iconHTML('local_shipping',16)}<div style="flex:1;"><div style="font-size:12px;font-weight:600;color:var(--text900);">${attachedTruck?attachedTruck.name:'Attach Truck'}</div>${attachedTruck?`<div style="font-size:10px;color:var(--text400);">${attachedTruck.plate}</div>`:''}</div>${iconHTML(attachedTruck?'chevron_right':'add',16)}</div>`);
+      truckRow.onclick = ()=> showToast('Truck picker — not wired in this mock');
+      sec.appendChild(truckRow);
+      const trailerRow = el(`<div class="attach-row">${iconHTML('rv_hookup',16)}<div style="flex:1;"><div style="font-size:12px;font-weight:600;color:var(--text900);">${attachedTrailer?attachedTrailer.name:'Attach Trailer'}</div>${attachedTrailer?`<div style="font-size:10px;color:var(--text400);">${attachedTrailer.plate}</div>`:''}</div>${iconHTML(attachedTrailer?'chevron_right':'add',16)}</div>`);
+      trailerRow.onclick = ()=> showToast('Trailer picker — not wired in this mock');
+      sec.appendChild(trailerRow);
+      const dispatchRow = el(`<div class="attach-row">${iconHTML('support_agent',16)}<div style="flex:1;min-width:0;"><div style="font-size:12px;font-weight:600;color:var(--text900);">${attachedDispatcher?attachedDispatcher.name:'Assign Dispatcher'}</div>${attachedDispatcher?`<div style="font-size:10px;color:var(--text400);margin-top:2px;">Administers</div>`:''}</div>${iconHTML(attachedDispatcher?'chevron_right':'add',16)}</div>`);
+      dispatchRow.onclick = ()=> showToast('Dispatcher access — not wired in this mock');
+      sec.appendChild(dispatchRow);
+      p.appendChild(sec);
+    }
+    if(mod.key==='personalData'){
+      const sec = el('<div class="panel-section"></div>');
+      sec.appendChild(el('<div class="profile-section-title">PERSONAL DATA</div>'));
+      VISIBLE_FIELD_KEYS.forEach(k=>{
+        const f = DRIVER_FIELD_CATALOG.find(x=>x.key===k);
+        if(!f) return;
+        const shown = f.masked && !ssnRevealed ? '•••-••-'+f.value.slice(-4) : f.value;
+        const row = el(`<div class="cab-contact-row">${iconHTML(f.icon,15)}<span class="k">${f.label}</span><span class="v">${shown}</span>${f.masked?`<span class="ssn-eye">${iconHTML(ssnRevealed?'visibility_off':'visibility',15)}</span>`:''}</div>`);
+        if(f.masked){
+          const eye = row.querySelector('.ssn-eye');
+          eye.onclick = (e)=>{ e.stopPropagation(); ssnRevealed = !ssnRevealed; render(); };
+          attachTooltip(eye, ssnRevealed ? 'Hide SSN' : 'Show SSN');
+        }
+        sec.appendChild(row);
+      });
+      p.appendChild(sec);
+    }
+    if(mod.key==='comments'){
+      const sec = el('<div class="panel-section panel-comments"></div>');
+      sec.appendChild(el('<div class="profile-section-title">COMMENTS</div>'));
+      if(PANEL_COMMENTS.length===0) sec.appendChild(el('<div class="no-options-hint">No comments yet.</div>'));
+      PANEL_COMMENTS.forEach(c=>{
+        sec.appendChild(el(`<div class="pcomment"><div class="pc-head"><b>${c.author}</b><span>${c.time}</span></div><div class="pc-text">${c.text}</div></div>`));
+      });
+      const input = el('<input class="pcomment-input" placeholder="Write a comment…">');
+      input.onkeydown = (ev)=>{
+        if(ev.key==='Enter' && input.value.trim()){
+          PANEL_COMMENTS.unshift({author:'Jon Doe', time:'Sep 6, now', text:input.value.trim()});
+          render();
+        }
+      };
+      sec.appendChild(input);
+      p.appendChild(sec);
+    }
+  });
+
   return p;
 }
+// Checkbox + drag-reorder list, same established pattern as Manage Columns
+// (proven working elsewhere in this mockup) — not a new interaction to design.
+function modalCustomizeInfoPanel(){
+  const m = modalShell('<h2>Customize Panel</h2><p class="mdesc">Show, hide, or reorder the panel\'s modules. The identity header above is always shown.</p>');
+  const modal = m.querySelector('.modal');
+  const list = el('<div id="infoModuleList"></div>');
+  function renderList(){
+    list.innerHTML = '';
+    INFO_MODULES.forEach(mod=>{
+      const row = el(`<div class="colpanel-row"><span class="drag-handle">${iconHTML('drag_indicator',18)}</span><input type="checkbox" ${mod.visible?'checked':''}/><span class="name">${mod.label}</span></div>`);
+      row.querySelector('input').onchange = (e)=>{ mod.visible = e.target.checked; };
+      list.appendChild(row);
+    });
+  }
+  renderList();
+  safeSortable(list, { handle:'.drag-handle', animation:150, onEnd:(evt)=>{
+    if(evt.oldIndex===evt.newIndex) return;
+    const moved = INFO_MODULES.splice(evt.oldIndex,1)[0];
+    INFO_MODULES.splice(evt.newIndex,0,moved);
+  }});
+  modal.appendChild(list);
+  const actions = el('<div class="actions"></div>');
+  const doneBtn = el('<button class="btn primary">Done</button>');
+  doneBtn.onclick = ()=>{ closeModal(); };
+  actions.appendChild(doneBtn);
+  modal.appendChild(actions);
+  return m;
+}
+
 
 function renderRightPanel(){
   const p = el('<div class="cab-right"></div>');
@@ -2710,6 +2891,7 @@ function renderModal(){
   else if(type==='createEmptyDoc') node = modalCreateEmptyDoc(payload);
   else if(type==='createFolder') node = modalCreateFolder();
   else if(type==='columns') node = modalColumns();
+  else if(type==='customizeInfoPanel') node = modalCustomizeInfoPanel();
   else if(type==='filters') node = modalFilters();
   else if(type==='rename') node = modalRename(payload);
   else if(type==='move') node = modalMove([payload]);
