@@ -146,6 +146,10 @@
   .cab-contact-row .material-symbols-outlined{color:var(--text400);flex-shrink:0;}
   .cab-contact-row .k{color:var(--text400);}
   .cab-contact-row .v{color:var(--text900);margin-left:auto;font-weight:600;text-align:right;}
+  .pe-frame{width:280px;height:280px;border-radius:16px;overflow:hidden;position:relative;margin:12px auto 0;background:var(--neutral-bg);cursor:grab;touch-action:none;}
+  .pe-img{position:absolute;left:0;top:0;transform-origin:top left;user-select:none;pointer-events:none;max-width:none;}
+  .pe-zoom-row{display:flex;align-items:center;gap:10px;margin:14px 6px 4px;color:var(--text400);}
+  .pe-zoom{flex:1;accent-color:var(--accent);cursor:pointer;}
 
   /* ---- TABS ---- */
   .tabs-bar{display:flex;align-items:center;gap:6px;padding:0 20px;border-bottom:1px solid var(--border2);flex-shrink:0;}
@@ -668,10 +672,52 @@ let INFO_MODULES = [
   {key:'comments', label:'Comments', visible:true},
 ];
 let daConsortium = false;
-let attachedTruck = {name:'Freightliner Cascadia', plate:'NC-88213'};
+// Dispatcher access is a matrix, not a single link. Exactly ONE dispatcher
+// owns the driver (radio) — that is who administers them and who the driver
+// counts toward in statistics. Any number of others can be granted read or
+// read+write access. Shape: { [dispatcherId]: {view:bool, edit:bool} }
+let dispatcherAccess = {};
+
+// A truck/trailer is an EXCLUSIVE resource — attaching one already taken
+// detaches it from the other driver first (with a warning). A dispatcher is
+// NOT exclusive, so dispatchers carry no assignedTo and never trigger that warning.
+const AVAILABLE_TRUCKS = [
+  {id:'T001', name:'Freightliner Cascadia 1', plate:'NC-88213', vin:'1FUJGLDR8CLBP8834', assignedTo:null},
+  {id:'T002', name:'Freightliner Cascadia 2', plate:'NY-2024-002', vin:'1FUJGLDR5CLBP8721', assignedTo:'Robert Klein', since:'Mar 2, 2026'},
+  {id:'T003', name:'Volvo VNL 760', plate:'NY-2024-003', vin:'4V4NC9EH7LN229184', assignedTo:null},
+  {id:'T004', name:'Peterbilt 579', plate:'NY-2024-004', vin:'1XPBDP9X1MD745012', assignedTo:'Dmitri Volkov', since:'Jan 18, 2026'},
+  {id:'T005', name:'Kenworth T680', plate:'NC-2023-118', vin:'1XKYDP9X6NJ418866', assignedTo:null},
+  {id:'T006', name:'International LT625', plate:'NC-2023-119', vin:'3HSDZAPR8LN663401', assignedTo:'Andre Wilson', since:'Aug 4, 2026'},
+  {id:'T007', name:'Mack Anthem', plate:'TX-2024-441', vin:'1M1AN07Y3KM019273', assignedTo:null},
+];
+const AVAILABLE_TRAILERS = [
+  {id:'TR001', name:'53ft Dry Van 1', plate:'NY-TR-001', vin:'1JJV532D4LL201884', assignedTo:null},
+  {id:'TR002', name:'53ft Dry Van 2', plate:'NY-TR-002', vin:'1JJV532D9LL201990', assignedTo:'Robert Klein', since:'Mar 2, 2026'},
+  {id:'TR003', name:'Flatbed 48ft', plate:'NY-TR-003', vin:'1UYFS2486MA662017', assignedTo:null},
+  {id:'TR004', name:'Reefer 53ft', plate:'NY-TR-004', vin:'1UYVS2537NU334205', assignedTo:'Dmitri Volkov', since:'Jan 18, 2026'},
+  {id:'TR005', name:'53ft Dry Van 3', plate:'NC-TR-118', vin:'1JJV532D1NL445612', assignedTo:null},
+];
+const AVAILABLE_DISPATCHERS = [
+  {id:'D001', name:'Sarah Johnson'},
+  {id:'D002', name:'Marcus Webb'},
+  {id:'D003', name:'Angela Torres'},
+  {id:'D004', name:'David Chen'},
+  {id:'D005', name:'Priya Raman'},
+];
+let attachedTruck = AVAILABLE_TRUCKS[0];
 let attachedTrailer = null;
-let attachedDispatcher = {name:'Angela Torres'};
+let attachedDispatcher = AVAILABLE_DISPATCHERS[2];
+dispatcherAccess[AVAILABLE_DISPATCHERS[2].id] = {view:true, edit:true};
 let driverPhoto = null;
+let driverPhotoOriginal = null;  // raw upload, kept so the crop can be re-adjusted
+let driverPhotoParams = null;    // last editor params {zoom, offX, offY}
+// Driver-level activity (photo/attach/dispatcher changes) — separate from
+// per-document logActivity(doc, text) above; kept even though Documents has
+// no Activity-tab surface for it yet, so nothing here silently no-ops.
+let DRIVER_ACTIVITY_LOG = [];
+function logDriverActivity(action, details, type='action'){
+  DRIVER_ACTIVITY_LOG.unshift({action, details, type, date:'Sep 6, 2026, '+new Date().toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'})});
+}
 // Mirrors the driver's Edit menu 1:1 — the panel shows a chosen subset; a
 // field-picker (not built in this pass) would add more from here later.
 let DRIVER_FIELD_CATALOG = [
@@ -1343,6 +1389,461 @@ function renderCabinet(){
 // content in place — a full render() would create a new element and kill
 // the width transition (06_Reusable_UI_Patterns.md, and the exact defect
 // this replaces: the old version below called render() on every toggle).
+function avatarUploadInput(){
+  const input = el('<input type="file" accept="image/*" style="display:none;">');
+  input.onchange = ()=>{
+    const file = input.files && input.files[0];
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload = ()=>{ openPhotoEditor(reader.result, null); };
+    reader.readAsDataURL(file);
+  };
+  return input;
+}
+
+// Classic avatar editor — drag to reposition, slider to zoom, crop baked into
+// a square canvas on Save so every consumer (photo card, collapsed
+// mini-avatar) just shows the final image with no per-surface transform math.
+function openPhotoEditor(srcDataUrl, params){
+  const FRAME = 280;
+  const scrim = el('<div class="modal-scrim open" style="z-index:300;"></div>');
+  const modal = el(`<div class="modal" style="width:340px;">
+    <h2>Adjust photo</h2>
+    <p class="mdesc">Drag to reposition, zoom to frame it right.</p>
+    <div class="pe-frame"><img class="pe-img" draggable="false"></div>
+    <div class="pe-zoom-row">${iconHTML('zoom_out',16)}<input type="range" class="pe-zoom" min="1" max="3" step="0.01" value="1">${iconHTML('zoom_in',16)}</div>
+    <div class="actions">
+      <button class="btn" data-a="cancel">Cancel</button>
+      <button class="btn primary" data-a="save">Save</button>
+    </div>
+  </div>`);
+  scrim.appendChild(modal);
+  document.body.appendChild(scrim);
+
+  const img = modal.querySelector('.pe-img');
+  const frame = modal.querySelector('.pe-frame');
+  const zoomEl = modal.querySelector('.pe-zoom');
+  let baseScale=1, zoom=1, offX=0, offY=0, natW=0, natH=0;
+
+  function clamp(){
+    const dispW = natW*baseScale*zoom, dispH = natH*baseScale*zoom;
+    offX = Math.min(0, Math.max(FRAME-dispW, offX));
+    offY = Math.min(0, Math.max(FRAME-dispH, offY));
+  }
+  function apply(){
+    clamp();
+    img.style.transform = `translate(${offX}px, ${offY}px) scale(${baseScale*zoom})`;
+  }
+  img.onload = ()=>{
+    natW = img.naturalWidth; natH = img.naturalHeight;
+    baseScale = Math.max(FRAME/natW, FRAME/natH);
+    if(params){ zoom = params.zoom; offX = params.offX; offY = params.offY; zoomEl.value = zoom; }
+    else { zoom = 1; offX = (FRAME-natW*baseScale)/2; offY = (FRAME-natH*baseScale)/2; }
+    apply();
+  };
+  img.src = srcDataUrl;
+
+  zoomEl.oninput = ()=>{
+    const old = baseScale*zoom;
+    zoom = parseFloat(zoomEl.value);
+    const neu = baseScale*zoom;
+    const cx = FRAME/2 - offX, cy = FRAME/2 - offY;
+    offX = FRAME/2 - cx*(neu/old);
+    offY = FRAME/2 - cy*(neu/old);
+    apply();
+  };
+  let dragging=false, sx=0, sy=0;
+  frame.onpointerdown = (e)=>{ dragging=true; sx=e.clientX-offX; sy=e.clientY-offY; frame.setPointerCapture(e.pointerId); frame.style.cursor='grabbing'; };
+  frame.onpointermove = (e)=>{ if(!dragging) return; offX=e.clientX-sx; offY=e.clientY-sy; apply(); };
+  frame.onpointerup = ()=>{ dragging=false; frame.style.cursor='grab'; };
+
+  function close(){ scrim.remove(); document.removeEventListener('keydown', onKey); }
+  function onKey(e){ if(e.key==='Escape') close(); }
+  document.addEventListener('keydown', onKey);
+  scrim.onclick = (e)=>{ if(e.target===scrim) close(); };
+  modal.querySelector('[data-a="cancel"]').onclick = close;
+  modal.querySelector('[data-a="save"]').onclick = ()=>{
+    const OUT = 600;
+    const canvas = document.createElement('canvas');
+    canvas.width = OUT; canvas.height = OUT;
+    const ctx = canvas.getContext('2d');
+    const disp = baseScale*zoom;
+    ctx.drawImage(img, (-offX)/disp, (-offY)/disp, FRAME/disp, FRAME/disp, 0, 0, OUT, OUT);
+    driverPhoto = canvas.toDataURL('image/jpeg', 0.92);
+    driverPhotoOriginal = srcDataUrl;
+    driverPhotoParams = {zoom, offX, offY};
+    close(); logDriverActivity('Profile photo', 'Avatar uploaded and cropped', 'avatar'); toggleInfoPanel(); toggleInfoPanel(); showToast('Profile photo updated');
+  };
+}
+
+// ============ GENERIC ENTITY PICKER (reusable across the product) ============
+// Searchable single-select for choosing one record (trucks, trailers,
+// dispatchers...). modalShell pattern: search bar, scrollable filtered list
+// with radio selection, empty state, explicit Cancel/Confirm — never
+// auto-closes on click.
+// ============================================================================
+let entityPickerState = { query:'', selectedId:null };
+function openEntityPicker(cfg){
+  const m = modalShell('<h2>'+cfg.title+'</h2><p class="mdesc">'+(cfg.subtitle||'Search and select one item.')+'</p>');
+  const modal = m.querySelector('.modal');
+
+  const search = el('<div class="search" style="width:100%;margin-bottom:10px;">'+iconHTML('search',15,'color:var(--text400);')+'<input type="text" id="entityPickerSearch" placeholder="'+(cfg.searchPlaceholder||'Search...')+'"/></div>');
+  const searchInput = search.querySelector('input');
+  searchInput.value = entityPickerState.query;
+  searchInput.oninput = (e)=>{ entityPickerState.query = e.target.value; renderList(); };
+  modal.appendChild(search);
+
+  const clearBtn = el('<span class="search-clear-btn" style="display:none;">'+iconHTML('close',15)+'</span>');
+  clearBtn.onclick = ()=>{ entityPickerState.query=''; searchInput.value=''; renderList(); searchInput.focus(); };
+  search.appendChild(clearBtn);
+
+  const countLine = el('<div style="font-size:11px;color:var(--text400);margin-bottom:6px;"></div>');
+  if(cfg.headerFn){ const h = cfg.headerFn(); if(h) modal.appendChild(h); }
+  modal.appendChild(countLine);
+
+  const list = el('<div style="max-height:300px;overflow-y:auto;border:1px solid var(--border2);border-radius:8px;"></div>');
+  modal.appendChild(list);
+
+  function matches(item){
+    const q = entityPickerState.query.trim().toLowerCase();
+    if(!q) return true;
+    return (cfg.searchFields||[cfg.primaryKey]).some(k=> String(item[k]||'').toLowerCase().includes(q));
+  }
+  function secondaryOf(item){
+    if(!cfg.secondaryKey) return '';
+    return typeof cfg.secondaryKey === 'function' ? (cfg.secondaryKey(item) || '') : (item[cfg.secondaryKey] || '');
+  }
+  function renderList(){
+    const filtered = cfg.items.filter(matches);
+    clearBtn.style.display = entityPickerState.query ? '' : 'none';
+    countLine.textContent = filtered.length + ' of ' + cfg.items.length + ' shown';
+    list.innerHTML = '';
+    if(filtered.length === 0){
+      list.appendChild(el('<div style="padding:28px 16px;text-align:center;color:var(--text400);font-size:12px;">'+
+        iconHTML('search_off',22,'display:block;margin:0 auto 8px;opacity:.6;')+
+        'No matches for "'+entityPickerState.query+'"</div>'));
+      return;
+    }
+    filtered.forEach(item=>{
+      const isSel = entityPickerState.selectedId === item.id;
+      const badge = cfg.badgeFn ? cfg.badgeFn(item) : '';
+      const sec = secondaryOf(item);
+      const row = el('<div class="colpanel-row" style="cursor:pointer;align-items:flex-start;padding:9px 12px;border-radius:0;'+(isSel?'background:var(--bg50);':'')+'">'+
+        '<input type="radio" name="entityPick" '+(isSel?'checked':'')+' style="margin-top:2px;"/>'+
+        (cfg.icon ? '<span style="color:var(--text400);flex-shrink:0;margin-top:1px;">'+iconHTML(cfg.icon,16)+'</span>' : '')+
+        '<div style="flex:1;min-width:0;">'+
+          '<div style="font-size:12px;font-weight:600;color:var(--text900);">'+item[cfg.primaryKey]+'</div>'+
+          (sec ? '<div style="font-size:10px;color:var(--text400);margin-top:2px;">'+sec+'</div>' : '')+
+          badge+
+        '</div>'+
+      '</div>');
+      row.onclick = ()=>{ entityPickerState.selectedId = item.id; renderList(); };
+      list.appendChild(row);
+    });
+  }
+  renderList();
+
+  const actions = el('<div class="actions"></div>');
+  const cancelBtn = el('<button class="btn">Cancel</button>');
+  cancelBtn.onclick = ()=>{ entityPickerState = {query:'', selectedId:null}; closeModal(); };
+  const confirmBtn = el('<button class="btn primary">Confirm</button>');
+  confirmBtn.onclick = ()=>{
+    const picked = cfg.items.find(x=>x.id === entityPickerState.selectedId);
+    if(!picked){ showToast('Please select an item first'); return; }
+    if(cfg.confirmGuard && !cfg.confirmGuard(picked)) return;
+    entityPickerState = {query:'', selectedId:null};
+    closeModal();
+    cfg.onConfirm(picked);
+  };
+  actions.appendChild(cancelBtn);
+  actions.appendChild(confirmBtn);
+  modal.appendChild(actions);
+  setTimeout(()=>{ const s = document.getElementById('entityPickerSearch'); if(s){ s.focus(); s.setSelectionRange(s.value.length, s.value.length); } }, 0);
+  return m;
+}
+
+// Thin wrapper: attachments (truck / trailer / dispatcher) on the driver panel
+function openAttachmentPicker(type){
+  if(type === 'dispatcher') return modalDispatcherAccess();
+  const CFG = {
+    truck: {
+      title:'Select Truck', subtitle:'Attach a truck to this driver. Search by unit name, plate, VIN or the driver currently holding it.',
+      items:AVAILABLE_TRUCKS, current:attachedTruck, icon:'local_shipping', exclusive:true,
+      searchPlaceholder:'Search by unit, plate, VIN or driver...',
+      commit:(item)=>{ attachedTruck = item; logDriverActivity('Truck attached','Assigned '+item.name+' ('+item.plate+')','action'); }
+    },
+    trailer: {
+      title:'Select Trailer', subtitle:'Attach a trailer to this driver. Search by unit name, plate, VIN or the driver currently holding it.',
+      items:AVAILABLE_TRAILERS, current:attachedTrailer, icon:'rv_hookup', exclusive:true,
+      searchPlaceholder:'Search by unit, plate, VIN or driver...',
+      commit:(item)=>{ attachedTrailer = item; logDriverActivity('Trailer attached','Assigned '+item.name+' ('+item.plate+')','action'); }
+    }
+  }[type];
+  if(entityPickerState.selectedId === null && CFG.current) entityPickerState.selectedId = CFG.current.id;
+  const isUnit = CFG.exclusive;
+  return openEntityPicker({
+    title: CFG.title, subtitle: CFG.subtitle, items: CFG.items, icon: CFG.icon, searchPlaceholder: CFG.searchPlaceholder,
+    headerFn: ()=>{
+      if(!CFG.current) return null;
+      const box = el('<div style="display:flex;align-items:center;gap:10px;border:1px solid var(--border2);border-radius:8px;padding:10px 12px;margin-bottom:10px;background:var(--bg50);"></div>');
+      box.appendChild(el('<span style="color:var(--text400);flex-shrink:0;">'+iconHTML(CFG.icon,16)+'</span>'));
+      box.appendChild(el('<div style="flex:1;min-width:0;">'
+        + '<div style="font-size:10px;font-weight:700;color:var(--text400);letter-spacing:.03em;">CURRENTLY ATTACHED</div>'
+        + '<div style="font-size:12px;font-weight:600;color:var(--text900);margin-top:2px;">'+CFG.current.name+'</div>'
+        + '<div style="font-size:10px;color:var(--text400);margin-top:1px;">'+CFG.current.plate+'</div>'
+        + '</div>'));
+      const detachBtn = el('<button class="btn" style="flex-shrink:0;">'+iconHTML('link_off',15)+'Detach</button>');
+      detachBtn.onclick = ()=> openModal('detachWarning', type);
+      box.appendChild(detachBtn);
+      return box;
+    },
+    searchFields: isUnit ? ['name','plate','vin','assignedTo'] : ['name'],
+    primaryKey: 'name',
+    secondaryKey: isUnit
+      ? (item)=> item.plate + ' &nbsp;·&nbsp; VIN <span style="font-family:ui-monospace,monospace;letter-spacing:.02em;">' + item.vin + '</span>'
+      : null,
+    badgeFn: CFG.exclusive ? (item)=>{
+      if(CFG.current && item.id === CFG.current.id)
+        return '<div style="display:inline-flex;align-items:center;gap:4px;margin-top:5px;padding:2px 7px;border-radius:20px;background:#EAF0FF;color:#2E5BFF;font-size:10px;font-weight:600;">'
+          + iconHTML('person',12) + 'Attached to this driver</div>';
+      if(item.assignedTo)
+        return '<div style="display:inline-flex;align-items:center;gap:4px;margin-top:5px;padding:2px 7px;border-radius:20px;background:#FFF4E6;color:#8a5a00;font-size:10px;font-weight:600;">'
+          + iconHTML('link',12) + 'Attached to ' + item.assignedTo + '</div>';
+      return '<div style="display:inline-flex;align-items:center;gap:4px;margin-top:5px;padding:2px 7px;border-radius:20px;background:#EAF8EF;color:#2c7a4b;font-size:10px;font-weight:600;">'
+        + iconHTML('check_circle',12) + 'Available</div>';
+    } : null,
+    confirmGuard: CFG.exclusive ? (picked)=>{
+      if(!picked.assignedTo) return true;
+      openModal('reassignWarning', {type, item:picked});
+      return false;
+    } : null,
+    onConfirm: (item)=>{
+      CFG.commit(item);
+      showToast(CFG.title.replace('Select ','').replace('Assign ','') + ' attached');
+      toggleInfoPanel(); toggleInfoPanel();
+    }
+  });
+}
+
+// Reassignment warning — shown when the picked truck/trailer is currently
+// attached to another driver. States plainly what breaks, and what is lost.
+function modalReassignWarning(payload){
+  const {type, item} = payload;
+  const label = type==='truck' ? 'truck' : 'trailer';
+  const other = item.assignedTo;
+  const m = modalShell('<h2>'+other+' will lose this '+label+'</h2>'
+    + '<p class="mdesc">'+item.name+' ('+item.plate+') has been attached to '+other
+    + (item.since ? ' since '+item.since : '') + '. Attaching it here detaches it from them immediately.</p>');
+  const modal = m.querySelector('.modal');
+  const warn = el('<div style="background:#FFF4E6;border-left:3px solid var(--warning);border-radius:8px;padding:12px 14px;margin:4px 0 12px;"></div>');
+  warn.appendChild(el('<div style="font-size:11.5px;font-weight:700;color:var(--text900);margin-bottom:6px;">What this breaks for '+other+'</div>'));
+  const lossList = el('<div></div>');
+  [
+    'Their current '+label+' assignment ends — they are left with no '+label+' until one is attached again',
+    'Scheduled loads relying on this unit need to be re-planned in the dispatch board',
+    'Inspections, maintenance and fuel records stay with the '+label+', not with the driver',
+  ].forEach(t=>{
+    lossList.appendChild(el('<div style="display:flex;gap:7px;align-items:flex-start;font-size:11.5px;color:var(--text600);margin-bottom:5px;">'
+      + '<span style="color:var(--warning);flex-shrink:0;margin-top:1px;">'+iconHTML('remove_circle_outline',13)+'</span>'
+      + '<span>'+t+'</span></div>'));
+  });
+  warn.appendChild(lossList);
+  modal.appendChild(warn);
+  modal.appendChild(el('<p class="mdesc" style="margin-top:0;">Both drivers and their dispatchers are notified, and the change is recorded in the activity log of each record.</p>'));
+  const actions = el('<div class="actions"></div>');
+  const backBtn = el('<button class="btn">Back to list</button>');
+  backBtn.onclick = ()=> openModal('attachPicker', type);
+  const goBtn = el('<button class="btn danger">Detach from '+other+'</button>');
+  goBtn.onclick = ()=>{
+    const prevOwner = item.assignedTo;
+    item.assignedTo = null; item.since = null;
+    if(type==='truck'){ attachedTruck = item; logDriverActivity('Truck reassigned', item.name+' ('+item.plate+') taken from '+prevOwner, 'action'); }
+    else { attachedTrailer = item; logDriverActivity('Trailer reassigned', item.name+' ('+item.plate+') taken from '+prevOwner, 'action'); }
+    entityPickerState = {query:'', selectedId:null};
+    closeModal();
+    showToast(label.charAt(0).toUpperCase()+label.slice(1)+' attached — '+prevOwner+' notified');
+    toggleInfoPanel(); toggleInfoPanel();
+  };
+  actions.appendChild(backBtn); actions.appendChild(goBtn);
+  modal.appendChild(actions);
+  return m;
+}
+
+// Detach confirmation — same shape as the reassignment warning, aimed at
+// THIS driver instead of another one.
+function modalDetachWarning(type){
+  const label = type==='truck' ? 'truck' : 'trailer';
+  const unit = type==='truck' ? attachedTruck : attachedTrailer;
+  if(!unit){ closeModal(); return el('<div></div>'); }
+  const m = modalShell('<h2>Detach this '+label+'?</h2>'
+    + '<p class="mdesc">'+unit.name+' ('+unit.plate+') will be released from Maksim Gerasimov '
+    + 'and becomes available for any other driver.</p>');
+  const modal = m.querySelector('.modal');
+  const warn = el('<div style="background:#FFF4E6;border-left:3px solid var(--warning);border-radius:8px;padding:12px 14px;margin:4px 0 12px;"></div>');
+  warn.appendChild(el('<div style="font-size:11.5px;font-weight:700;color:var(--text900);margin-bottom:6px;">What this changes</div>'));
+  [
+    'The driver is left with no '+label+' until another one is attached',
+    'Scheduled loads relying on this unit need to be re-planned in the dispatch board',
+    'Inspections, maintenance and fuel records stay with the '+label+' — they do not follow the driver',
+  ].forEach(t=>{
+    warn.appendChild(el('<div style="display:flex;gap:7px;align-items:flex-start;font-size:11.5px;color:var(--text600);margin-bottom:5px;">'
+      + '<span style="color:var(--warning);flex-shrink:0;margin-top:1px;">'+iconHTML('remove_circle_outline',13)+'</span>'
+      + '<span>'+t+'</span></div>'));
+  });
+  modal.appendChild(warn);
+  modal.appendChild(el('<p class="mdesc" style="margin-top:0;">The driver and their dispatcher are notified, and the change is recorded in the activity log.</p>'));
+  const actions = el('<div class="actions"></div>');
+  const backBtn = el('<button class="btn">Back</button>');
+  backBtn.onclick = ()=> openModal('attachPicker', type);
+  const goBtn = el('<button class="btn danger">Detach '+label+'</button>');
+  goBtn.onclick = ()=>{
+    if(type==='truck'){ attachedTruck = null; logDriverActivity('Truck detached', unit.name+' ('+unit.plate+') released from this driver', 'action'); }
+    else { attachedTrailer = null; logDriverActivity('Trailer detached', unit.name+' ('+unit.plate+') released from this driver', 'action'); }
+    entityPickerState = {query:'', selectedId:null};
+    showToast(label.charAt(0).toUpperCase()+label.slice(1)+' detached — pick another one');
+    openModal('attachPicker', type);
+  };
+  actions.appendChild(backBtn); actions.appendChild(goBtn);
+  modal.appendChild(actions);
+  return m;
+}
+
+// ============ DISPATCHER ACCESS ============
+// Not a plain picker: ownership and access are two different things.
+//   Radio = the ONE dispatcher who administers this driver.
+//   Can view / Can edit = shared access, any number of dispatchers.
+// Rules: the owner always keeps view+edit (locked, not merely pre-ticked);
+// edit implies view; "All dispatchers" is a live master toggle per column.
+// ============================================================================
+let dispatcherPickerState = { query:'', ownerId:null, access:null };
+function modalDispatcherAccess(){
+  if(dispatcherPickerState.access === null){
+    dispatcherPickerState.ownerId = attachedDispatcher ? attachedDispatcher.id : null;
+    dispatcherPickerState.access = {};
+    AVAILABLE_DISPATCHERS.forEach(d=>{
+      const a = dispatcherAccess[d.id] || {};
+      dispatcherPickerState.access[d.id] = { view: !!a.view, edit: !!a.edit };
+    });
+  }
+  const S = dispatcherPickerState;
+  const m = modalShell('<h2>Dispatcher Access</h2>'
+    + '<p class="mdesc">One dispatcher administers this driver and carries them in statistics. '
+    + 'Others can be given access to the driver\'s loads without taking over ownership.</p>');
+  const modal = m.querySelector('.modal');
+  const search = el('<div class="search" style="width:100%;margin-bottom:10px;">'+iconHTML('search',15,'color:var(--text400);')+'<input type="text" id="dispSearch" placeholder="Search dispatchers by name..."/></div>');
+  const searchInput = search.querySelector('input');
+  searchInput.value = S.query;
+  searchInput.oninput = (e)=>{ S.query = e.target.value; renderRows(); };
+  const clearBtn = el('<span class="search-clear-btn" style="display:none;">'+iconHTML('close',15)+'</span>');
+  clearBtn.onclick = ()=>{ S.query=''; searchInput.value=''; renderRows(); searchInput.focus(); };
+  search.appendChild(clearBtn);
+  modal.appendChild(search);
+  modal.appendChild(el('<div style="display:flex;align-items:flex-end;gap:10px;padding:0 12px 6px;">'
+    + '<div style="width:13px;flex-shrink:0;"></div>'
+    + '<div style="flex:1;font-size:10px;font-weight:700;color:var(--text400);letter-spacing:.03em;">ADMINISTERS</div>'
+    + '<div style="width:62px;text-align:center;font-size:10px;font-weight:700;color:var(--text400);letter-spacing:.03em;">CAN VIEW</div>'
+    + '<div style="width:62px;text-align:center;font-size:10px;font-weight:700;color:var(--text400);letter-spacing:.03em;">CAN EDIT</div>'
+    + '</div>'));
+  const listBox = el('<div style="border:1px solid var(--border2);border-radius:8px;overflow:hidden;"></div>');
+  const allRow = el('<div></div>');
+  const rows = el('<div style="max-height:260px;overflow-y:auto;"></div>');
+  listBox.appendChild(allRow); listBox.appendChild(rows);
+  modal.appendChild(listBox);
+  const note = el('<p class="mdesc" style="margin:10px 0 0;"></p>');
+  modal.appendChild(note);
+
+  function matches(d){ const q = S.query.trim().toLowerCase(); return !q || d.name.toLowerCase().includes(q); }
+  function isOwner(d){ return S.ownerId === d.id; }
+  function setView(d, on){ if(isOwner(d)) return; S.access[d.id].view = on; if(!on) S.access[d.id].edit = false; }
+  function setEdit(d, on){ if(isOwner(d)) return; S.access[d.id].edit = on; if(on) S.access[d.id].view = true; }
+  function effView(d){ return isOwner(d) || S.access[d.id].view; }
+  function effEdit(d){ return isOwner(d) || S.access[d.id].edit; }
+  function cell(checked, locked, onChange){
+    const wrapEl = el('<div style="width:62px;display:flex;justify-content:center;"></div>');
+    const cb = el('<input type="checkbox"'+(checked?' checked':'')+(locked?' disabled':'')+'>');
+    if(locked){ cb.style.opacity = '.55'; cb.style.cursor = 'not-allowed'; }
+    else { cb.onchange = (e)=>{ onChange(e.target.checked); renderRows(); }; }
+    wrapEl.appendChild(cb);
+    if(locked) attachTooltip(wrapEl, 'The administering dispatcher always has full access');
+    return wrapEl;
+  }
+  function renderRows(){
+    clearBtn.style.display = S.query ? '' : 'none';
+    const visible = AVAILABLE_DISPATCHERS.filter(matches);
+    allRow.innerHTML = '';
+    const grantable = AVAILABLE_DISPATCHERS.filter(d=>!isOwner(d));
+    const allView = grantable.length>0 && grantable.every(d=>S.access[d.id].view);
+    const allEdit = grantable.length>0 && grantable.every(d=>S.access[d.id].edit);
+    const ar = el('<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--bg50);border-bottom:1px solid var(--border2);"></div>');
+    ar.appendChild(el('<div style="width:13px;flex-shrink:0;"></div>'));
+    ar.appendChild(el('<div style="flex:1;min-width:0;">'
+      + '<div style="font-size:12px;font-weight:700;color:var(--text900);">All dispatchers</div>'
+      + '<div style="font-size:10px;color:var(--text400);margin-top:2px;">Applies to everyone except the administering dispatcher</div>'
+      + '</div>'));
+    ar.appendChild(cell(allView, false, (on)=>{ grantable.forEach(d=>setView(d,on)); }));
+    ar.appendChild(cell(allEdit, false, (on)=>{ grantable.forEach(d=>setEdit(d,on)); }));
+    allRow.appendChild(ar);
+    rows.innerHTML = '';
+    if(visible.length === 0){
+      rows.appendChild(el('<div style="padding:26px 16px;text-align:center;color:var(--text400);font-size:12px;">'
+        + iconHTML('search_off',22,'display:block;margin:0 auto 8px;opacity:.6;')
+        + 'No dispatchers match "'+S.query+'"</div>'));
+    }
+    visible.forEach(d=>{
+      const owner = isOwner(d);
+      const r = el('<div class="colpanel-row" style="align-items:center;gap:10px;padding:9px 12px;border-radius:0;'+(owner?'background:var(--bg50);':'')+'"></div>');
+      const radio = el('<input type="radio" name="dispOwner"'+(owner?' checked':'')+' style="flex-shrink:0;cursor:pointer;">');
+      radio.onchange = ()=>{ S.ownerId = d.id; renderRows(); };
+      r.appendChild(radio);
+      const nameWrap = el('<div style="flex:1;min-width:0;cursor:pointer;"></div>');
+      nameWrap.appendChild(el('<div style="font-size:12px;font-weight:600;color:var(--text900);">'+d.name
+        + (owner?' <span style="display:inline-flex;align-items:center;gap:3px;margin-left:4px;padding:1px 6px;border-radius:20px;background:#EAF8EF;color:#2c7a4b;font-size:9.5px;font-weight:700;vertical-align:1px;">ADMIN</span>':'')
+        + '</div>'));
+      if(owner) nameWrap.appendChild(el('<div style="font-size:10px;color:var(--text400);margin-top:2px;">Driver counts toward this dispatcher in statistics</div>'));
+      nameWrap.onclick = ()=>{ S.ownerId = d.id; renderRows(); };
+      r.appendChild(nameWrap);
+      r.appendChild(cell(effView(d), owner, (on)=>setView(d,on)));
+      r.appendChild(cell(effEdit(d), owner, (on)=>setEdit(d,on)));
+      rows.appendChild(r);
+    });
+    const viewers = AVAILABLE_DISPATCHERS.filter(d=>!isOwner(d) && S.access[d.id].view && !S.access[d.id].edit).length;
+    const editors = AVAILABLE_DISPATCHERS.filter(d=>!isOwner(d) && S.access[d.id].edit).length;
+    const ownerName = S.ownerId ? AVAILABLE_DISPATCHERS.find(x=>x.id===S.ownerId).name : null;
+    note.innerHTML = ownerName
+      ? '<b>'+ownerName+'</b> administers this driver. '
+        + (editors||viewers ? 'Shared access: '+editors+' can edit, '+viewers+' view-only.' : 'No other dispatcher has access.')
+      : 'Select the dispatcher who will administer this driver.';
+  }
+  renderRows();
+  const actions = el('<div class="actions"></div>');
+  const cancelBtn = el('<button class="btn">Cancel</button>');
+  cancelBtn.onclick = ()=>{ dispatcherPickerState = {query:'', ownerId:null, access:null}; closeModal(); };
+  const saveBtn = el('<button class="btn primary">Save access</button>');
+  saveBtn.onclick = ()=>{
+    if(!S.ownerId){ showToast('Select the administering dispatcher first'); return; }
+    const owner = AVAILABLE_DISPATCHERS.find(d=>d.id===S.ownerId);
+    const prevOwner = attachedDispatcher;
+    attachedDispatcher = owner;
+    dispatcherAccess = {};
+    AVAILABLE_DISPATCHERS.forEach(d=>{
+      dispatcherAccess[d.id] = d.id===S.ownerId ? {view:true, edit:true} : {view:S.access[d.id].view, edit:S.access[d.id].edit};
+    });
+    if(!prevOwner || prevOwner.id !== owner.id){
+      logDriverActivity('Dispatcher assigned', (prevOwner ? 'Administration moved from '+prevOwner.name+' to '+owner.name : 'Assigned '+owner.name), 'action');
+    }
+    const shared = AVAILABLE_DISPATCHERS.filter(d=>d.id!==S.ownerId && (dispatcherAccess[d.id].view||dispatcherAccess[d.id].edit)).length;
+    logDriverActivity('Dispatcher access updated', shared ? shared+' other dispatcher'+(shared!==1?'s':'')+' granted access' : 'Shared access cleared', 'action');
+    dispatcherPickerState = {query:'', ownerId:null, access:null};
+    closeModal();
+    showToast('Dispatcher access saved');
+    toggleInfoPanel(); toggleInfoPanel();
+  };
+  actions.appendChild(cancelBtn); actions.appendChild(saveBtn);
+  modal.appendChild(actions);
+  setTimeout(()=>{ const s = document.getElementById('dispSearch'); if(s){ s.focus(); s.setSelectionRange(s.value.length, s.value.length); } }, 0);
+  return m;
+}
+
 function toggleInfoPanel(){
   state.leftPanelCollapsed = !state.leftPanelCollapsed;
   const node = document.querySelector('.cab-left');
@@ -1385,18 +1886,20 @@ function renderLeftPanel(){
   // 16_ENT-DRV-CAB_Shell_Implementation_Spec.md §3.1.
   const ident = el('<div class="panel-ident"></div>');
   const photoCard = el('<div class="photo-card"></div>');
+  const fileInput = avatarUploadInput();
+  photoCard.appendChild(fileInput);
   if(driverPhoto){
     photoCard.appendChild(el(`<img class="photo-card-img" src="${driverPhoto}">`));
     const removeBtn = el(`<span class="photo-remove-btn">${iconHTML('close',14)}</span>`);
     attachTooltip(removeBtn, 'Remove photo');
-    removeBtn.onclick = (e)=>{ e.stopPropagation(); driverPhoto = null; showToast('Profile photo removed'); toggleInfoPanel(); toggleInfoPanel(); };
+    removeBtn.onclick = (e)=>{ e.stopPropagation(); driverPhoto = null; driverPhotoOriginal = null; driverPhotoParams = null; logDriverActivity('Profile photo', 'Avatar removed', 'avatar'); showToast('Profile photo removed'); toggleInfoPanel(); toggleInfoPanel(); };
     photoCard.appendChild(removeBtn);
   } else {
     photoCard.appendChild(el(`<div class="photo-card-placeholder">${iconHTML('person',64)}</div>`));
   }
   const uploadBtn = el(`<span class="photo-upload-btn">${iconHTML('photo_camera',15)}</span>`);
   attachTooltip(uploadBtn, driverPhoto ? 'Change photo' : 'Upload photo');
-  uploadBtn.onclick = (e)=>{ e.stopPropagation(); showToast('Photo upload — not wired in this mock'); };
+  uploadBtn.onclick = (e)=>{ e.stopPropagation(); fileInput.click(); };
   photoCard.appendChild(uploadBtn);
   const overlay = el(`<div class="photo-overlay">
     <div class="po-name">Maksim Gerasimov</div>
@@ -1434,13 +1937,13 @@ function renderLeftPanel(){
       const sec = el('<div class="panel-section"></div>');
       sec.appendChild(el('<div class="profile-section-title">ATTACHMENTS</div>'));
       const truckRow = el(`<div class="attach-row">${iconHTML('local_shipping',16)}<div style="flex:1;"><div style="font-size:12px;font-weight:600;color:var(--text900);">${attachedTruck?attachedTruck.name:'Attach Truck'}</div>${attachedTruck?`<div style="font-size:10px;color:var(--text400);">${attachedTruck.plate}</div>`:''}</div>${iconHTML(attachedTruck?'chevron_right':'add',16)}</div>`);
-      truckRow.onclick = ()=> showToast('Truck picker — not wired in this mock');
+      truckRow.onclick = ()=> openModal('attachPicker', 'truck');
       sec.appendChild(truckRow);
       const trailerRow = el(`<div class="attach-row">${iconHTML('rv_hookup',16)}<div style="flex:1;"><div style="font-size:12px;font-weight:600;color:var(--text900);">${attachedTrailer?attachedTrailer.name:'Attach Trailer'}</div>${attachedTrailer?`<div style="font-size:10px;color:var(--text400);">${attachedTrailer.plate}</div>`:''}</div>${iconHTML(attachedTrailer?'chevron_right':'add',16)}</div>`);
-      trailerRow.onclick = ()=> showToast('Trailer picker — not wired in this mock');
+      trailerRow.onclick = ()=> openModal('attachPicker', 'trailer');
       sec.appendChild(trailerRow);
       const dispatchRow = el(`<div class="attach-row">${iconHTML('support_agent',16)}<div style="flex:1;min-width:0;"><div style="font-size:12px;font-weight:600;color:var(--text900);">${attachedDispatcher?attachedDispatcher.name:'Assign Dispatcher'}</div>${attachedDispatcher?`<div style="font-size:10px;color:var(--text400);margin-top:2px;">Administers</div>`:''}</div>${iconHTML(attachedDispatcher?'chevron_right':'add',16)}</div>`);
-      dispatchRow.onclick = ()=> showToast('Dispatcher access — not wired in this mock');
+      dispatchRow.onclick = ()=> openModal('attachPicker', 'dispatcher');
       sec.appendChild(dispatchRow);
       p.appendChild(sec);
     }
@@ -2892,6 +3395,9 @@ function renderModal(){
   else if(type==='createFolder') node = modalCreateFolder();
   else if(type==='columns') node = modalColumns();
   else if(type==='customizeInfoPanel') node = modalCustomizeInfoPanel();
+  else if(type==='attachPicker') node = openAttachmentPicker(payload);
+  else if(type==='detachWarning') node = modalDetachWarning(payload);
+  else if(type==='reassignWarning') node = modalReassignWarning(payload);
   else if(type==='filters') node = modalFilters();
   else if(type==='rename') node = modalRename(payload);
   else if(type==='move') node = modalMove([payload]);
