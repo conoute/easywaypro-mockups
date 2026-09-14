@@ -557,6 +557,24 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js" crossorigin="anonymous"></script>
 <script>
+/* ============================================================================
+ * API MAPPING — read before refactoring this mockup into Angular
+ * Full detail: 18_ENT-DRV-CAB-01_Documents_Implementation_Spec.md
+ * Endpoint reference: 17_API_Surface_Reference.md
+ *
+ * Every simulated write below (fake data mutation, no real network call) is
+ * tagged inline with → VERB endpoint/path — CONFIRMED / VERIFY / GAP.
+ *   CONFIRMED — the endpoint exists per 17_API_Surface_Reference.md §5
+ *   VERIFY    — endpoint exists, but exact fields/behavior are unconfirmed;
+ *               read the real model/controller before wiring (spec §2–§4)
+ *   GAP       — no matching endpoint found; spec §10 proposes a contract,
+ *               needs backend work + a PO decision before it's real
+ *
+ * Do not port this file's code 1:1 — it's vanilla-JS state (`files` array,
+ * direct DOM rebuilds via render()). Angular gets its own service layer per
+ * spec §7. This tagging exists so the *behavior* maps cleanly to a *call*,
+ * not so the implementation does.
+ * ============================================================================ */
 const SORTABLE_DEFAULTS = { handle: ".drag-handle", forceFallback: true, fallbackOnBody: true, fallbackClass: "sortable-fallback", ghostClass: "sortable-ghost", chosenClass: "sortable-chosen", dragClass: "sortable-drag", animation: 150 };
 function safeSortable(el, options){
   if(typeof Sortable === "undefined"){ console.error("SortableJS did not load — drag-to-reorder disabled."); return null; }
@@ -634,6 +652,10 @@ let did = 1;
 // Shared status logic — used everywhere a document's attachments or
 // expiration date change, so "uploaded, no expiration to track" always reads
 // as a clear positive state ("On File") rather than a blank dash.
+// STATUS ENUM — VERIFY. The 8 values below (missing/on_file/valid/soon/
+// expired/pending_approval/awaiting_upload/awaiting_signature) are the
+// mockup's own invention — no confirmed real enum (spec §3). Read the real
+// Document model before building this as an Angular enum 1:1.
 function computeStatus(doc){
   if(doc.attachments.length === 0) return 'missing';
   if(doc.exp){
@@ -712,6 +734,10 @@ function simulatedPreviewUrl(doc){
   const blob = new Blob([html], {type:'text/html'});
   return URL.createObjectURL(blob);
 }
+// GET document/activities — CONFIRMED, server-side, same pattern as the
+// driver's own confirmed audit trail (16 §6). Read and render it in Angular;
+// do NOT port this client-side log — every call site below that pushes to
+// doc.activity is mockup-only bookkeeping with no real write counterpart.
 function logActivity(doc, text){
   doc.activity = doc.activity || [];
   doc.activity.push({ actor: 'Jon Doe', date: 'Sep 6, 2026, ' + new Date().toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'}), text });
@@ -1038,6 +1064,9 @@ function openNotificationsFlyout(anchor, pendingApprovals){
 // Cancels an outstanding request (awaiting_upload/awaiting_signature) —
 // reverts to whatever the document's status would be with no request in
 // flight at all, clearing the request's own state (channel/link/signStatus).
+// → POST document/cancel-request — GAP (spec §10.3). No named endpoint
+// found; verify it doesn't already exist under document/update or similar
+// before building this.
 function cancelRequest(doc){
   doc.deliveryChannel = null;
   doc.deliveryLink = null;
@@ -1046,6 +1075,7 @@ function cancelRequest(doc){
   logActivity(doc, 'Cancelled the outstanding request');
   showToast(`Request for "${doc.name}" cancelled`);
 }
+// → POST document/operator-accept — CONFIRMED (17 §5 `document`).
 function approveDoc(doc){
   doc.status = computeStatus(doc);
   doc.approvedBy = 'Jon Doe';
@@ -1053,6 +1083,11 @@ function approveDoc(doc){
   showToast(`"${doc.name}" approved`);
   render();
 }
+// → POST document/operator-deny — CONFIRMED endpoint, but VERIFY it
+// actually reproduces this exact behavior (spec §10.4): does denying on the
+// real backend restore the same channel/link itself, or does the frontend
+// need to re-call request-upload/request-signature after? Decide before
+// building — it changes whether this is a backend or frontend fix.
 // ---- Reject a signed document: it must go back to exactly the state it was
 // in before signing — same request, same channel, same link if one was
 // generated — not back to a blank slot. The driver only has to try again,
@@ -1821,6 +1856,8 @@ const FOLDER_COLORS = [
 const CSS_VAR_HEX = {'var(--accent)':'#48C876','var(--info)':'#56a8dd','var(--warning)':'#FFAD20','var(--danger)':'#E24B4A','var(--text400)':'#9a9ab0'};
 function resolveColor(v){ return CSS_VAR_HEX[v] || v; }
 
+// Folder actions below → document-folder/update (rename, change color) and
+// document-folder/delete — both CONFIRMED (17 §5 `document-folder`).
 function openFolderFlyout(anchor, folder){
   document.querySelectorAll('.flyout').forEach(m=>m.remove());
   const menu = el(`<div class="flyout">
@@ -2216,6 +2253,8 @@ function openDocumentPanel(doc){
 
   function detailRow(label, valueHtml){ return el(`<div class="sp-detail-row"><span class="sp-detail-label">${label}</span><span class="sp-detail-value">${valueHtml}</span></div>`); }
 
+  // Archive → POST file/archive — CONFIRMED (17 §5 `file`).
+  // Delete  → DELETE file/delete — CONFIRMED (17 §5 `file`).
   function attachmentRow(a, i, archived){
     const row = el(`<div class="sp-attachment-row">
       ${fileIcon({attachments:[a]}, 30)}
@@ -2294,6 +2333,10 @@ function openDocumentPanel(doc){
       });
     };
     detailsSection.appendChild(expRow);
+    // → likely POST document/update (a visibleToDriver field) — VERIFY.
+    // GET document/visible-to-driver confirms the CONCEPT exists server-side
+    // (17 §5 `document`), but whether that's the read, the write, or both,
+    // and whether it's a stored column vs. computed, is unconfirmed (spec §2).
     const visRow = el(`<div class="sp-detail-row"><span class="sp-detail-label">Visible to Driver</span><span class="visible-driver-pill toggleable ${doc.visibleToDriver?'on':''}">${iconHTML(doc.visibleToDriver?'visibility':'visibility_off',12)}${doc.visibleToDriver?'Visible':'Hidden'}</span></div>`);
     visRow.querySelector('.visible-driver-pill').onclick = ()=>{
       doc.visibleToDriver = !doc.visibleToDriver;
@@ -2463,6 +2506,10 @@ function openDocumentPanel(doc){
     createBtn.onclick = ()=> openNestedModal(modalCreateTask(doc, ()=>{ renderPanel(); render(); }));
     body.appendChild(createBtn);
   }
+  // GAP/VERIFY (spec §5, §10.5) — no confirmed comment model on Document.
+  // 17 §4b rules this out for Driver specifically; Document is unconfirmed
+  // either way (a file-centric entity is at least a plausible fit) — read
+  // the real model before assuming this tab is buildable as-is.
   function renderCommentsTab(body){
     const feed = el('<div class="sp-comment-feed"></div>');
     if(doc.comments.length===0) feed.appendChild(el('<div class="no-options-hint">No comments yet.</div>'));
@@ -2836,6 +2883,9 @@ function modalUploadChoice(){
 
 // Shared by "Create Empty Document" and "Request from Driver" — the only
 // difference is what happens right after the slot is created.
+// → POST document/create — CONFIRMED (17 §5 `document`). "Reserve the
+// slot" (name + folder, no file yet) and "Reserve + immediately request"
+// are the same call; the request-side follow-up is spec §10.3 (GAP).
 function modalCreateEmptyDoc(opts){
   const immediateRequest = opts && opts.immediateRequest;
   const m = modalShell(`<h2>${immediateRequest?'Request from Driver':'Create Empty Document'}</h2>
@@ -2913,6 +2963,11 @@ function modalCreateEmptyDoc(opts){
   return m;
 }
 
+// PC upload → POST document/create (+ the attached file). "Upload Files
+// Now" for several loose files is the same call, once per file/group.
+// VERIFY the multi-attachment-per-document ("envelope") shape (spec §2) —
+// document/create's real payload for several files under one document name
+// is unconfirmed.
 function modalUpload(){
   const wrap = modalShell('');
   const modal = wrap.querySelector('.modal');
@@ -3043,6 +3098,7 @@ function formatBytes(b){
 }
 
 // ---- Create Folder ----
+// → POST document-folder/create — CONFIRMED (17 §5 `document-folder`).
 function modalCreateFolder(){
   const m = modalShell(`<h2>Create Folder</h2><p class="mdesc">Folders help organize documents. Only one level deep — no subfolders.</p>
     <div class="field"><label>Folder name</label><input type="text" id="folderNameInput" placeholder="e.g. Vehicle Inspections"/></div>`);
@@ -3093,6 +3149,12 @@ function templateFullyApplied(tpl){
     return tf.docs.every(d=> isTplDocExcluded(tpl, tf.name, d.name) || files.some(x=>x.folder===folder.id && x.name.toLowerCase()===d.name.toLowerCase()));
   });
 }
+// Built-in suggestions (DQ File, Policies & Procedures) → almost certainly
+// suggested-document-folder/copy-ew + suggested-document/copy-ew — VERIFY
+// (spec §4). User-created suggestions → the plain (non-ew) equivalents.
+// TWO PARALLEL SYSTEMS EXIST (ew-suggested-document* vs suggested-document*)
+// — confirm which is which before wiring; using the wrong one risks writing
+// into the shared platform library instead of the company's own.
 function applyTemplate(tpl){
   let foldersCreated = 0, slotsCreated = 0, skipped = 0;
   tpl.folders.forEach(tf=>{
@@ -3326,6 +3388,13 @@ function formatRelativeExpiry(ts){
   const days = Math.round(hours/24);
   return `in ${days} day${days!==1?'s':''}`;
 }
+// GAP (spec §10.1) — no share-link endpoint exists anywhere in the real API.
+// Proposed real contract: POST document/generate-share-link (id,
+// expires_in_seconds) → {share_token, share_url, expires_at}; revoke via
+// POST document/revoke-share-link; the public view via
+// GET document/view-shared?token=... (no auth). Expiry MUST be checked
+// server-side — this function's client-side fake is cosmetic only, never
+// port it as the real check.
 function fakeShareLink(doc){ return `https://app.easywaypro.com/view/${doc.id}-${Math.random().toString(36).slice(2,8)}`; }
 
 // Sharing a document is a deliberate, one-way trust decision — always confirm
@@ -3470,6 +3539,11 @@ function modalBulkCreateTask(docs){
   return m;
 }
 
+// GAP (spec §10.3) — no request-upload/request-signature endpoint found.
+// Proposed: POST document/request-upload (id, channel) and
+// POST document/request-signature (id, file_template_id, channel), channel
+// ∈ link|mobile_app. Check first whether operator-accept/-deny's siblings
+// already cover this under a different name before building it new.
 function modalDeliveryChoice(doc, mode){
   const isSign = mode === 'sign';
   const fileTpl = isSign ? FILE_TEMPLATES.find(t=>t.id===doc.fileTemplateId) : null;
@@ -3548,6 +3622,10 @@ const FIELD_TYPE_META = {
 // ---- Task (simulated): Task Manager (TL-OPS-03) isn't a built tool in this
 // mock — these two modals simulate enough of it (create a linked task, view
 // its brief details) to demonstrate the connection from a document. ----
+// task/create, task/update, task/delete, task/activities all CONFIRMED
+// (17 §5 `task`) — real. The document↔task LINK (does a task row carry a
+// document_id, or is the association client-side only in this mockup) is
+// unconfirmed — verify before assuming task/create's payload takes one.
 function modalCreateTask(doc, onDone){
   const wrap = el('<div class="modal-wrap"></div>');
   const modal = el('<div class="modal"></div>');
@@ -3596,6 +3674,13 @@ function modalTaskDetail(doc, t){
   return wrap;
 }
 
+// GAP for user-created forms (spec §10.2) — GET file-template/view and
+// GET file-templates (list) are CONFIRMED, but no create/update/delete
+// action exists for file-template anywhere in the real API. This entire
+// field-editor's Save has nowhere real to write to yet. Built-in templates
+// (isBuiltIn/forceReadOnly below) are correctly read-only by product
+// decision regardless — don't add write support for those even once
+// create/update exists for user-created ones.
 function modalFileTemplateEditor(existingFt, opts){
   opts = opts || {};
   const isNew = !existingFt;
@@ -4559,6 +4644,7 @@ function modalFilters(){
 }
 
 // ---- Rename ----
+// → POST document/update — CONFIRMED (17 §5 `document`).
 function modalRename(file){
   const m = modalShell(`<h2>Rename File</h2><div class="field"><label>File name</label><input type="text" id="renameInput" value="${file.name}"/></div>`);
   const modal = m.querySelector('.modal');
@@ -4617,6 +4703,9 @@ function protectedStatusReason(status){
   if(status==='awaiting_signature') return "has a signature request out to the driver — cancel it first";
   return null;
 }
+// → DELETE document/delete — CONFIRMED (17 §5 `document`). PROTECTED_STATUSES
+// guard below (pending_approval/awaiting_*) is product logic to keep either
+// way, once §3's real status enum is confirmed.
 function modalDelete(fileList){
   const blocked = fileList.filter(f=> PROTECTED_STATUSES.includes(f.status));
   const deletable = fileList.filter(f=> !PROTECTED_STATUSES.includes(f.status));
