@@ -2613,10 +2613,23 @@ let paymentSetup = {
 // this one is payment-only (e.g. "PayPal Business Account ID"), so the two
 // don't mix on either surface.
 let PAYMENT_CUSTOM_FIELDS = [];
+// A partner is a person from the company's own Team — the same underlying
+// pool as Dispatcher, just a different role — not a separate outside entity
+// and not something whose banking details get typed in here. Each partner
+// keeps their OWN bank accounts on their OWN profile (future screen); this
+// driver's Payment Setup only SELECTS which of those accounts pays them.
 const AVAILABLE_PARTNERS = [
-  {id:'P001', name:'Silver Arrow Logistics LLC', commission:'88%'},
-  {id:'P002', name:'Redline Freight Partners', commission:'85%'},
-  {id:'P003', name:'Continental Carrier Group', commission:'90%'},
+  {id:'P001', name:'Silver Arrow Logistics LLC', commission:'88%', bankAccounts:[
+    {id:'b1', label:'Chase Business Checking •••1234'},
+    {id:'b2', label:'Bank of America Checking •••5678'},
+  ]},
+  {id:'P002', name:'Redline Freight Partners', commission:'85%', bankAccounts:[
+    {id:'b1', label:'Wells Fargo Business •••9012'},
+  ]},
+  {id:'P003', name:'Continental Carrier Group', commission:'90%', bankAccounts:[
+    {id:'b1', label:'Chase Business •••3344'},
+    {id:'b2', label:'Citibank Business •••7788'},
+  ]},
 ];
 let linkedPartnerId = null;
 const CARRIER_NAME = 'Hussar LLC'; // this carrier — matches the example used elsewhere in the project
@@ -2629,19 +2642,24 @@ const CARRIER_NAME = 'Hussar LLC'; // this carrier — matches the example used 
 // what those other screens should read, rather than each inventing its own
 // answer to the same question.
 let partnerLink = {
-  enabled: false,        // does this driver have a partner relationship at all
-  whoPays: 'carrier',    // 'carrier' | 'partner'
-  recordPaymentAnyway: false, // only meaningful when whoPays==='partner'
+  enabled: false,             // does this driver have a partner relationship at all
+  whoPays: 'carrier',         // 'carrier' | 'partner'
+  partnerBankAccountId: null, // which of the PARTNER's own accounts pays this driver
 };
 
 function openPartnerPicker(){
   entityPickerState.selectedId = linkedPartnerId;
   return openEntityPicker({
-    title:'Link Partner Contract',
-    subtitle:'The commission percentage on the linked contract feeds Payroll for this driver.',
+    title:'Link Partner',
+    subtitle:'Partners are people from your own Team — same pool as Dispatcher, a different role.',
     items:AVAILABLE_PARTNERS, icon:'handshake', searchPlaceholder:'Search partners by name...',
     searchFields:['name'], primaryKey:'name', secondaryKey:(it)=>'Commission '+it.commission,
-    onConfirm:(item)=>{ linkedPartnerId = item.id; showToast('Linked to '+item.name); render(); }
+    onConfirm:(item)=>{
+      linkedPartnerId = item.id;
+      partnerLink.partnerBankAccountId = item.bankAccounts[0] ? item.bankAccounts[0].id : null;
+      showToast('Linked to '+item.name);
+      openModal('editDriver', {tab:'payment'});
+    }
   });
 }
 
@@ -3021,21 +3039,29 @@ function renderEditPaymentTab(){
 
   const partnerPaysDirectly = partnerLink.enabled && partnerLink.whoPays === 'partner';
 
-  if(partnerPaysDirectly && !partnerLink.recordPaymentAnyway){
+  if(partnerPaysDirectly){
+    const linkedForBank = AVAILABLE_PARTNERS.find(p=>p.id===linkedPartnerId);
     methodSection.appendChild(el('<div class="emod-note">'+iconHTML('info',13)+
-      ' The partner pays this driver directly — '+CARRIER_NAME+' does not execute this payment, so a method is not required here.</div>'));
-    const recordAnywayBtn = el('<button class="emod-add-field-btn">'+iconHTML('add',15)+'Record a payment method anyway</button>');
-    recordAnywayBtn.onclick = ()=>{ partnerLink.recordPaymentAnyway = true; render(); };
-    methodSection.appendChild(recordAnywayBtn);
+      ' The partner pays this driver directly — pick which of the partner\'s own bank accounts is used. '+
+      'Their banking details live on their own profile, not here.</div>'));
+
+    if(!linkedForBank){
+      methodSection.appendChild(el('<div class="emod-note">'+iconHTML('warning',13)+' Select a partner above first.</div>'));
+    } else if(linkedForBank.bankAccounts.length === 0){
+      methodSection.appendChild(el('<div class="emod-note">'+iconHTML('warning',13)+
+        ' '+linkedForBank.name+' has no bank account on file yet — add one on their own profile.</div>'));
+    } else {
+      const acctRow = el('<div class="emod-field-row"></div>');
+      acctRow.appendChild(el('<div class="emod-field-label">Partner\'s Bank Account</div>'));
+      const acctOptions = linkedForBank.bankAccounts.map(a=>({value:a.id, label:a.label}));
+      const acctWrap = el(styledSelectHTML(acctOptions, partnerLink.partnerBankAccountId));
+      const acctSel = acctWrap.querySelector('select');
+      acctSel.onchange = ()=>{ partnerLink.partnerBankAccountId = acctSel.value; };
+      acctRow.appendChild(acctWrap);
+      methodSection.appendChild(acctRow);
+    }
     wrap.appendChild(methodSection);
   } else {
-    if(partnerPaysDirectly){
-      const undoRow = el('<div class="emod-note">'+iconHTML('info',13)+
-        ' Recorded for reference only — the partner still executes the actual payment. '+
-        '<span class="emod-doclink">Remove this record</span></div>');
-      undoRow.querySelector('.emod-doclink').onclick = ()=>{ partnerLink.recordPaymentAnyway = false; render(); };
-      methodSection.appendChild(undoRow);
-    }
     const methodRow = el('<div class="emod-field-row"></div>');
     methodRow.appendChild(el('<div class="emod-field-label">Method</div>'));
     const methodOptions = PAYMENT_METHODS.map(m=>({value:m.key, label:m.label}));
