@@ -793,6 +793,8 @@
   .emod-builder-actions .btn{flex:1;padding:8px;}
 
   .emod-partner-btn{width:100%;display:flex;align-items:center;justify-content:space-between;padding:9px 12px;font-size:12.5px;}
+  .emod-toggle-row{display:flex;align-items:flex-start;gap:9px;font-size:12px;color:var(--text600);cursor:pointer;line-height:1.5;}
+  .emod-toggle-row input{margin-top:2px;flex-shrink:0;}
   .emod-doclink{cursor:pointer;}
 </style>
 </head>
@@ -2617,6 +2619,20 @@ const AVAILABLE_PARTNERS = [
   {id:'P003', name:'Continental Carrier Group', commission:'90%'},
 ];
 let linkedPartnerId = null;
+const CARRIER_NAME = 'Hussar LLC'; // this carrier — matches the example used elsewhere in the project
+
+// A partner is its own financial entity — separate from Dispatcher and from
+// Team Members — that a driver may have a financial relationship with,
+// independent of Employment Type. What actually matters downstream (Paystub,
+// Addons, Deductions) is not just WHICH partner, but WHO PAYS the driver:
+// the partner directly, or this carrier. That choice is stored here and is
+// what those other screens should read, rather than each inventing its own
+// answer to the same question.
+let partnerLink = {
+  enabled: false,        // does this driver have a partner relationship at all
+  whoPays: 'carrier',    // 'carrier' | 'partner'
+  recordPaymentAnyway: false, // only meaningful when whoPays==='partner'
+};
 
 function openPartnerPicker(){
   entityPickerState.selectedId = linkedPartnerId;
@@ -2916,6 +2932,55 @@ function renderBankSubForm(){
   return wrap;
 }
 
+function renderPartnerRelationshipSection(entityType){
+  const wrap = el('<div class="emod-group"></div>');
+  wrap.appendChild(el('<div class="emod-group-title">PARTNER RELATIONSHIP</div>'));
+
+  const hintRow = el('<label class="emod-toggle-row"></label>');
+  const checkbox = el('<input type="checkbox"'+(partnerLink.enabled?' checked':'')+'>');
+  checkbox.onchange = ()=>{ partnerLink.enabled = checkbox.checked; render(); };
+  hintRow.appendChild(checkbox);
+  const hintText = entityType === 'Company Driver'
+    ? 'This driver has a financial relationship with a partner (e.g. factoring, referral)'
+    : 'This driver has a financial relationship with a partner — typical for Owner-Operator / Self-Employed';
+  hintRow.appendChild(el('<span>'+hintText+'</span>'));
+  wrap.appendChild(hintRow);
+
+  if(!partnerLink.enabled) return wrap;
+
+  const partnerRow = el('<div class="emod-field-row" style="margin-top:12px;"></div>');
+  partnerRow.appendChild(el('<div class="emod-field-label">Partner</div>'));
+  const linked = AVAILABLE_PARTNERS.find(p=>p.id===linkedPartnerId);
+  const partnerBtn = el('<button class="btn emod-partner-btn">'+
+    (linked ? linked.name+' · '+linked.commission+' commission' : 'Select partner')+
+    iconHTML('chevron_right',15)+'</button>');
+  partnerBtn.onclick = ()=> openModal('partnerPicker');
+  partnerRow.appendChild(partnerBtn);
+  wrap.appendChild(partnerRow);
+
+  const whoPaysRow = el('<div class="emod-field-row"></div>');
+  whoPaysRow.appendChild(el('<div class="emod-field-label">Who Pays This Driver</div>'));
+  const whoPaysWrap = el(styledSelectHTML(
+    [{value:'carrier', label:CARRIER_NAME+' (this carrier)'}, {value:'partner', label:'The partner pays directly'}],
+    partnerLink.whoPays
+  ));
+  const whoPaysSel = whoPaysWrap.querySelector('select');
+  whoPaysSel.onchange = ()=>{ partnerLink.whoPays = whoPaysSel.value; render(); };
+  whoPaysRow.appendChild(whoPaysWrap);
+  wrap.appendChild(whoPaysRow);
+
+  wrap.appendChild(el('<div class="emod-note">'+iconHTML('info',13)+
+    ' This decision feeds Payroll: it determines whether this driver\'s Paystub, Addons and Deductions '+
+    'are generated against '+CARRIER_NAME+' or against the partner\'s own ledger.</div>'));
+
+  if(linked){
+    wrap.appendChild(el('<div class="emod-note">'+iconHTML('percent',13)+
+      ' Commission '+linked.commission+' is read from '+linked.name+'\'s contract and is not edited here.</div>'));
+  }
+
+  return wrap;
+}
+
 function renderEditPaymentTab(){
   const wrap = el('<div class="emod-tab-content"></div>');
   const entityTypeField = DRIVER_FIELD_CATALOG.find(f=>f.key==='entityType');
@@ -2944,46 +3009,57 @@ function renderEditPaymentTab(){
     rateRow.appendChild(rateInput);
     section.appendChild(rateRow);
   } else {
-    const partnerRow = el('<div class="emod-field-row"></div>');
-    partnerRow.appendChild(el('<div class="emod-field-label">Linked Partner Contract</div>'));
-    const linked = AVAILABLE_PARTNERS.find(p=>p.id===linkedPartnerId);
-    const partnerBtn = el('<button class="btn emod-partner-btn">'+
-      (linked ? linked.name+' · '+linked.commission+' commission' : 'Select partner contract')+
-      iconHTML('chevron_right',15)+'</button>');
-    partnerBtn.onclick = ()=> openModal('partnerPicker');
-    partnerRow.appendChild(partnerBtn);
-    section.appendChild(partnerRow);
     section.appendChild(el('<div class="emod-note">'+iconHTML('info',13)+
-      ' Commission % is read from the linked partner contract (see 01_Primary_Schema §4) and is not edited here. '+
-      '<b>Open question:</b> the schema documents Partner as living inside Company, not Team — the list below is a placeholder pending confirmation of where partner records actually come from.</div>'));
+      ' Commission-based pay runs through the Partner Relationship set up below — link a partner there rather than here.</div>'));
   }
   wrap.appendChild(section);
 
+  wrap.appendChild(renderPartnerRelationshipSection(entityType));
+
   const methodSection = el('<div class="emod-group"></div>');
   methodSection.appendChild(el('<div class="emod-group-title">PAYMENT METHOD</div>'));
-  const methodRow = el('<div class="emod-field-row"></div>');
-  methodRow.appendChild(el('<div class="emod-field-label">Method</div>'));
-  const methodOptions = PAYMENT_METHODS.map(m=>({value:m.key, label:m.label}));
-  const methodWrap = el(styledSelectHTML(methodOptions, paymentSetup.methodKey));
-  const methodSel = methodWrap.querySelector('select');
-  methodSel.onchange = ()=>{ paymentSetup.methodKey = methodSel.value; render(); };
-  methodRow.appendChild(methodWrap);
-  methodSection.appendChild(methodRow);
 
-  const activeMethod = PAYMENT_METHODS.find(m=>m.key===paymentSetup.methodKey);
+  const partnerPaysDirectly = partnerLink.enabled && partnerLink.whoPays === 'partner';
 
-  if(activeMethod && activeMethod.kind === 'bank'){
-    methodSection.appendChild(renderBankSubForm());
-  } else if(activeMethod && activeMethod.kind === 'handle'){
-    const hRow = el('<div class="emod-field-row"></div>');
-    hRow.appendChild(el('<div class="emod-field-label">'+activeMethod.handleLabel+'</div>'));
-    const hVal = paymentSetup.handles[activeMethod.key] || '';
-    const hInp = el('<input class="emod-input" placeholder="'+activeMethod.placeholder+'" value="'+hVal.replace(/"/g,'&quot;')+'">');
-    hInp.oninput = ()=>{ paymentSetup.handles[activeMethod.key] = hInp.value; };
-    hRow.appendChild(hInp);
-    methodSection.appendChild(hRow);
+  if(partnerPaysDirectly && !partnerLink.recordPaymentAnyway){
+    methodSection.appendChild(el('<div class="emod-note">'+iconHTML('info',13)+
+      ' The partner pays this driver directly — '+CARRIER_NAME+' does not execute this payment, so a method is not required here.</div>'));
+    const recordAnywayBtn = el('<button class="emod-add-field-btn">'+iconHTML('add',15)+'Record a payment method anyway</button>');
+    recordAnywayBtn.onclick = ()=>{ partnerLink.recordPaymentAnyway = true; render(); };
+    methodSection.appendChild(recordAnywayBtn);
+    wrap.appendChild(methodSection);
+  } else {
+    if(partnerPaysDirectly){
+      const undoRow = el('<div class="emod-note">'+iconHTML('info',13)+
+        ' Recorded for reference only — the partner still executes the actual payment. '+
+        '<span class="emod-doclink">Remove this record</span></div>');
+      undoRow.querySelector('.emod-doclink').onclick = ()=>{ partnerLink.recordPaymentAnyway = false; render(); };
+      methodSection.appendChild(undoRow);
+    }
+    const methodRow = el('<div class="emod-field-row"></div>');
+    methodRow.appendChild(el('<div class="emod-field-label">Method</div>'));
+    const methodOptions = PAYMENT_METHODS.map(m=>({value:m.key, label:m.label}));
+    const methodWrap = el(styledSelectHTML(methodOptions, paymentSetup.methodKey));
+    const methodSel = methodWrap.querySelector('select');
+    methodSel.onchange = ()=>{ paymentSetup.methodKey = methodSel.value; render(); };
+    methodRow.appendChild(methodWrap);
+    methodSection.appendChild(methodRow);
+
+    const activeMethod = PAYMENT_METHODS.find(m=>m.key===paymentSetup.methodKey);
+
+    if(activeMethod && activeMethod.kind === 'bank'){
+      methodSection.appendChild(renderBankSubForm());
+    } else if(activeMethod && activeMethod.kind === 'handle'){
+      const hRow = el('<div class="emod-field-row"></div>');
+      hRow.appendChild(el('<div class="emod-field-label">'+activeMethod.handleLabel+'</div>'));
+      const hVal = paymentSetup.handles[activeMethod.key] || '';
+      const hInp = el('<input class="emod-input" placeholder="'+activeMethod.placeholder+'" value="'+hVal.replace(/"/g,'&quot;')+'">');
+      hInp.oninput = ()=>{ paymentSetup.handles[activeMethod.key] = hInp.value; };
+      hRow.appendChild(hInp);
+      methodSection.appendChild(hRow);
+    }
+    wrap.appendChild(methodSection);
   }
-  wrap.appendChild(methodSection);
 
   // Payment-specific custom fields — same builder as the Info tab, separate array
   const customSection = el('<div class="emod-group"></div>');
