@@ -785,6 +785,10 @@
   .emod-option-remove{color:var(--text400);cursor:pointer;flex-shrink:0;}
   .emod-option-remove:hover{color:var(--danger);}
   .emod-option-add{display:inline-flex;align-items:center;gap:4px;font-size:11.5px;font-weight:700;color:var(--accent);cursor:pointer;margin-top:2px;}
+  .emod-routing-list{width:100%;}
+  .emod-routing-row{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
+  .emod-routing-label{flex:0 0 40%;}
+  .emod-routing-value{flex:1;}
   .emod-builder-actions{display:flex;gap:8px;margin-top:14px;}
   .emod-builder-actions .btn{flex:1;padding:8px;}
 
@@ -2556,20 +2560,57 @@ function openQuickInfoActionsFlyout(anchor){
 let editModeTab = 'info';
 let fieldBuilderOpen = false;
 let fieldBuilderDraft = null; // {label, type, options:[...], required}
+let fieldBuilderTarget = 'info'; // 'info' -> DRIVER_FIELD_CATALOG · 'payment' -> PAYMENT_CUSTOM_FIELDS
 
 // Payment Setup — kept OUTSIDE DRIVER_FIELD_CATALOG on purpose. Unlike the
 // Info tab (reconciled against real `driver` API fields, 17_API_Surface_
 // Reference §4), no fields() list exists for `paystub-setting` in that
 // reference — only its endpoint paths do. This shape is a proposal, not a
 // confirmed schema. Said again, visibly, inside the tab itself.
+// Payment methods — an extensible catalogue, not a hardcoded switch. `kind`
+// decides which sub-form shows:
+//   'bank'   — Direct Deposit / ACH / Wire all read/write the SAME bank
+//              sub-object below. They are the same account; only the rail
+//              differs, which is exactly why routing numbers are a labelled
+//              LIST (e.g. "ACH Routing" + "Wire Routing" as two rows on one
+//              account) rather than a single field duplicated per method.
+//   'handle' — a single identifier field (phone/email/username), kept per
+//              method in `paymentSetup.handles` so switching methods and
+//              back does not lose what was typed.
+//   'none'   — no extra fields (Check, Cash).
+const PAYMENT_METHODS = [
+  {key:'direct_deposit', label:'Direct Deposit', kind:'bank'},
+  {key:'ach', label:'ACH Transfer', kind:'bank'},
+  {key:'wire', label:'Wire Transfer', kind:'bank'},
+  {key:'check', label:'Check', kind:'none'},
+  {key:'cash', label:'Cash', kind:'none'},
+  {key:'zelle', label:'Zelle', kind:'handle', handleLabel:'Zelle Phone or Email', placeholder:'e.g. (555) 123-4567 or name@email.com'},
+  {key:'venmo', label:'Venmo', kind:'handle', handleLabel:'Venmo Username', placeholder:'@username'},
+  {key:'paypal', label:'PayPal', kind:'handle', handleLabel:'PayPal Email', placeholder:'name@email.com'},
+  {key:'cashapp', label:'Cash App', kind:'handle', handleLabel:'Cashtag', placeholder:'$cashtag'},
+];
+
 let paymentSetup = {
   payType: 'Per Mile',
   rate: '0.58',
-  paymentMethod: 'Direct Deposit',
-  bankName: '',
-  routingNumber: '',
-  accountNumber: '',
+  methodKey: 'direct_deposit',
+  bank: {
+    accountType: 'Checking',      // Checking · Savings
+    holderType: 'Personal',       // Personal · Business
+    businessName: '',
+    businessAddress: '',
+    bankName: '',
+    accountNumber: '',
+    routingNumbers: [{label:'ACH Routing', value:''}],
+  },
+  handles: {}, // {zelle:'', venmo:'', ...} — filled lazily per method
 };
+
+// Payment-specific custom fields — deliberately a SEPARATE array from
+// DRIVER_FIELD_CATALOG. Info tab's catalog is driver identity/employment;
+// this one is payment-only (e.g. "PayPal Business Account ID"), so the two
+// don't mix on either surface.
+let PAYMENT_CUSTOM_FIELDS = [];
 const AVAILABLE_PARTNERS = [
   {id:'P001', name:'Silver Arrow Logistics LLC', commission:'88%'},
   {id:'P002', name:'Redline Freight Partners', commission:'85%'},
@@ -2701,6 +2742,7 @@ function renderEditInfoTab(){
       if(!fieldBuilderOpen){
         const addBtn = el('<button class="emod-add-field-btn">'+iconHTML('add',15)+'Add custom field</button>');
         addBtn.onclick = ()=>{
+          fieldBuilderTarget = 'info';
           fieldBuilderDraft = {label:'', type:'text', options:['']}; fieldBuilderOpen = true; render();
           const builder = document.querySelector('.emod-field-builder');
           if(builder) builder.scrollIntoView({block:'nearest', behavior:'smooth'});
@@ -2772,18 +2814,106 @@ function renderFieldBuilder(){
     }
     const key = 'c'+Math.random().toString(36).slice(2,7);
     const defaultValue = d.type==='multiselect' ? [] : (d.type==='checkbox' ? false : '');
-    DRIVER_FIELD_CATALOG.push({
+    const newField = {
       key, label, value:defaultValue, icon:'sell', group:'Custom',
       type:d.type, options:cleanOptions.length?cleanOptions:undefined, source:'custom'
-    });
-    VISIBLE_FIELD_KEYS.push(key);
+    };
+    if(fieldBuilderTarget === 'payment'){
+      PAYMENT_CUSTOM_FIELDS.push(newField);
+    } else {
+      DRIVER_FIELD_CATALOG.push(newField);
+      VISIBLE_FIELD_KEYS.push(key);
+    }
     fieldBuilderOpen = false; fieldBuilderDraft = null;
-    showToast('Custom field added — choose it in the Quick Info Panel to surface it there too');
+    showToast(fieldBuilderTarget === 'payment'
+      ? 'Custom payment field added'
+      : 'Custom field added — choose it in the Quick Info Panel to surface it there too');
     render();
   };
   actions.appendChild(cancelBtn); actions.appendChild(saveBtn);
   box.appendChild(actions);
   return box;
+}
+
+function renderRoutingNumbersList(){
+  const wrap = el('<div class="emod-routing-list"></div>');
+  paymentSetup.bank.routingNumbers.forEach((r,i)=>{
+    const row = el('<div class="emod-routing-row"></div>');
+    const labelInp = el('<input class="emod-input emod-routing-label" placeholder="Label (e.g. ACH Routing)" value="'+r.label.replace(/"/g,'&quot;')+'">');
+    labelInp.oninput = ()=>{ r.label = labelInp.value; };
+    const valueInp = el('<input class="emod-input emod-routing-value" placeholder="9-digit routing number" value="'+r.value.replace(/"/g,'&quot;')+'">');
+    valueInp.oninput = ()=>{ r.value = valueInp.value; };
+    row.appendChild(labelInp); row.appendChild(valueInp);
+    if(paymentSetup.bank.routingNumbers.length > 1){
+      const rm = el('<span class="emod-option-remove">'+iconHTML('close',14)+'</span>');
+      rm.onclick = ()=>{ paymentSetup.bank.routingNumbers.splice(i,1); render(); };
+      row.appendChild(rm);
+    }
+    wrap.appendChild(row);
+  });
+  const addLink = el('<span class="emod-option-add">'+iconHTML('add',13)+'Add another routing number</span>');
+  addLink.onclick = ()=>{ paymentSetup.bank.routingNumbers.push({label:'', value:''}); render(); };
+  wrap.appendChild(addLink);
+  return wrap;
+}
+
+function renderBankSubForm(){
+  const wrap = el('<div></div>');
+  const b = paymentSetup.bank;
+
+  const row1 = el('<div class="emod-field-row"></div>');
+  row1.appendChild(el('<div class="emod-field-label">Account Type</div>'));
+  const acctTypeWrap = el(styledSelectHTML(['Checking','Savings'], b.accountType));
+  acctTypeWrap.querySelector('select').onchange = (e)=>{ b.accountType = e.target.value; };
+  row1.appendChild(acctTypeWrap);
+  wrap.appendChild(row1);
+
+  const row2 = el('<div class="emod-field-row"></div>');
+  row2.appendChild(el('<div class="emod-field-label">Account Holder</div>'));
+  const holderWrap = el(styledSelectHTML(['Personal','Business'], b.holderType));
+  const holderSel = holderWrap.querySelector('select');
+  holderSel.onchange = ()=>{ b.holderType = holderSel.value; render(); };
+  row2.appendChild(holderWrap);
+  wrap.appendChild(row2);
+
+  if(b.holderType === 'Business'){
+    const bnRow = el('<div class="emod-field-row"></div>');
+    bnRow.appendChild(el('<div class="emod-field-label">Business Name</div>'));
+    const bnInp = el('<input class="emod-input" value="'+b.businessName.replace(/"/g,'&quot;')+'">');
+    bnInp.oninput = ()=>{ b.businessName = bnInp.value; };
+    bnRow.appendChild(bnInp);
+    wrap.appendChild(bnRow);
+
+    const baRow = el('<div class="emod-field-row"></div>');
+    baRow.appendChild(el('<div class="emod-field-label">Business Address</div>'));
+    const baInp = el('<input class="emod-input" value="'+b.businessAddress.replace(/"/g,'&quot;')+'">');
+    baInp.oninput = ()=>{ b.businessAddress = baInp.value; };
+    baRow.appendChild(baInp);
+    wrap.appendChild(baRow);
+  }
+
+  const bankRow = el('<div class="emod-field-row"></div>');
+  bankRow.appendChild(el('<div class="emod-field-label">Bank Name</div>'));
+  const bankInp = el('<input class="emod-input" value="'+b.bankName.replace(/"/g,'&quot;')+'">');
+  bankInp.oninput = ()=>{ b.bankName = bankInp.value; };
+  bankRow.appendChild(bankInp);
+  wrap.appendChild(bankRow);
+
+  const routingBlock = el('<div class="emod-field-row" style="align-items:flex-start;"></div>');
+  routingBlock.appendChild(el('<div class="emod-field-label" style="padding-top:8px;">Routing Number(s)</div>'));
+  const routingCol = el('<div style="flex:1;"></div>');
+  routingCol.appendChild(renderRoutingNumbersList());
+  routingBlock.appendChild(routingCol);
+  wrap.appendChild(routingBlock);
+
+  const acctRow = el('<div class="emod-field-row"></div>');
+  acctRow.appendChild(el('<div class="emod-field-label">Account Number</div>'));
+  const acctInp = el('<input class="emod-input" type="password" value="'+b.accountNumber.replace(/"/g,'&quot;')+'">');
+  acctInp.oninput = ()=>{ b.accountNumber = acctInp.value; };
+  acctRow.appendChild(acctInp);
+  wrap.appendChild(acctRow);
+
+  return wrap;
 }
 
 function renderEditPaymentTab(){
@@ -2795,7 +2925,7 @@ function renderEditPaymentTab(){
     ' Proposed layout — no confirmed field list exists yet for payroll settings on the backend (only its endpoints do). Do not treat this tab\'s fields as final.</div>'));
 
   const section = el('<div class="emod-group"></div>');
-  section.appendChild(el('<div class="emod-group-title">'+(entityType === 'Company Driver' ? 'COMPANY DRIVER PAY' : 'CONTRACT PAY').toUpperCase()+'</div>'));
+  section.appendChild(el('<div class="emod-group-title">'+(entityType === 'Company Driver' ? 'COMPANY DRIVER PAY' : 'CONTRACT PAY')+'</div>')); // already uppercase literal
 
   if(entityType === 'Company Driver'){
     const payTypeRow = el('<div class="emod-field-row"></div>');
@@ -2824,7 +2954,8 @@ function renderEditPaymentTab(){
     partnerRow.appendChild(partnerBtn);
     section.appendChild(partnerRow);
     section.appendChild(el('<div class="emod-note">'+iconHTML('info',13)+
-      ' Commission % is read from the linked partner contract (see 01_Primary_Schema §4) and is not edited here.</div>'));
+      ' Commission % is read from the linked partner contract (see 01_Primary_Schema §4) and is not edited here. '+
+      '<b>Open question:</b> the schema documents Partner as living inside Company, not Team — the list below is a placeholder pending confirmation of where partner records actually come from.</div>'));
   }
   wrap.appendChild(section);
 
@@ -2832,23 +2963,54 @@ function renderEditPaymentTab(){
   methodSection.appendChild(el('<div class="emod-group-title">PAYMENT METHOD</div>'));
   const methodRow = el('<div class="emod-field-row"></div>');
   methodRow.appendChild(el('<div class="emod-field-label">Method</div>'));
-  const methodWrap = el(styledSelectHTML(['Direct Deposit','Check','Cash'], paymentSetup.paymentMethod));
+  const methodOptions = PAYMENT_METHODS.map(m=>({value:m.key, label:m.label}));
+  const methodWrap = el(styledSelectHTML(methodOptions, paymentSetup.methodKey));
   const methodSel = methodWrap.querySelector('select');
-  methodSel.onchange = ()=>{ paymentSetup.paymentMethod = methodSel.value; render(); };
+  methodSel.onchange = ()=>{ paymentSetup.methodKey = methodSel.value; render(); };
   methodRow.appendChild(methodWrap);
   methodSection.appendChild(methodRow);
 
-  if(paymentSetup.paymentMethod === 'Direct Deposit'){
-    [['bankName','Bank Name'],['routingNumber','Routing Number'],['accountNumber','Account Number']].forEach(([k,lbl])=>{
-      const row = el('<div class="emod-field-row"></div>');
-      row.appendChild(el('<div class="emod-field-label">'+lbl+'</div>'));
-      const inp = el('<input class="emod-input" type="'+(k==='accountNumber'?'password':'text')+'" value="'+paymentSetup[k]+'">');
-      inp.oninput = ()=>{ paymentSetup[k] = inp.value; };
-      row.appendChild(inp);
-      methodSection.appendChild(row);
-    });
+  const activeMethod = PAYMENT_METHODS.find(m=>m.key===paymentSetup.methodKey);
+
+  if(activeMethod && activeMethod.kind === 'bank'){
+    methodSection.appendChild(renderBankSubForm());
+  } else if(activeMethod && activeMethod.kind === 'handle'){
+    const hRow = el('<div class="emod-field-row"></div>');
+    hRow.appendChild(el('<div class="emod-field-label">'+activeMethod.handleLabel+'</div>'));
+    const hVal = paymentSetup.handles[activeMethod.key] || '';
+    const hInp = el('<input class="emod-input" placeholder="'+activeMethod.placeholder+'" value="'+hVal.replace(/"/g,'&quot;')+'">');
+    hInp.oninput = ()=>{ paymentSetup.handles[activeMethod.key] = hInp.value; };
+    hRow.appendChild(hInp);
+    methodSection.appendChild(hRow);
   }
   wrap.appendChild(methodSection);
+
+  // Payment-specific custom fields — same builder as the Info tab, separate array
+  const customSection = el('<div class="emod-group"></div>');
+  customSection.appendChild(el('<div class="emod-group-title">CUSTOM PAYMENT FIELDS</div>'));
+  PAYMENT_CUSTOM_FIELDS.forEach(f=>{
+    const row = el('<div class="emod-field-row"></div>');
+    row.appendChild(el('<div class="emod-field-label">'+f.label+'</div>'));
+    row.appendChild(el(fieldTypeInputHTML(f)));
+    const delBtn = el('<span class="emod-field-delete" title="Remove custom field">'+iconHTML('delete',15)+'</span>');
+    delBtn.onclick = ()=>{ PAYMENT_CUSTOM_FIELDS = PAYMENT_CUSTOM_FIELDS.filter(x=>x.key!==f.key); showToast('Custom payment field removed'); render(); };
+    row.appendChild(delBtn);
+    customSection.appendChild(row);
+    wireFieldInput(row, f);
+  });
+  if(!fieldBuilderOpen || fieldBuilderTarget !== 'payment'){
+    const addPayFieldBtn = el('<button class="emod-add-field-btn">'+iconHTML('add',15)+'Add custom payment field</button>');
+    addPayFieldBtn.onclick = ()=>{
+      fieldBuilderTarget = 'payment';
+      fieldBuilderDraft = {label:'', type:'text', options:['']}; fieldBuilderOpen = true; render();
+      const builder = document.querySelector('.emod-field-builder');
+      if(builder) builder.scrollIntoView({block:'nearest', behavior:'smooth'});
+    };
+    customSection.appendChild(addPayFieldBtn);
+  } else {
+    customSection.appendChild(renderFieldBuilder());
+  }
+  wrap.appendChild(customSection);
 
   const docsSection = el('<div class="emod-group"></div>');
   docsSection.appendChild(el('<div class="emod-group-title">TAX FORMS</div>'));
@@ -2866,6 +3028,7 @@ function renderEditPaymentTab(){
 function modalEditDriver(payload){
   if(payload && payload.tab) editModeTab = payload.tab;
   if(payload && payload.openFieldBuilder){
+    fieldBuilderTarget = 'info';
     fieldBuilderDraft = {label: payload.prefillLabel || '', type:'select', options:['','']};
     fieldBuilderOpen = true;
   }
