@@ -764,6 +764,13 @@
   .emod-gap-badge{font-size:9px;font-weight:700;color:#8a5a00;background:#FFF4E6;border:1px dashed #e8c07a;border-radius:20px;padding:1px 7px;white-space:nowrap;}
   .emod-input{flex:1;border:1px solid var(--border2);border-radius:8px;padding:8px 10px;font-size:12.5px;color:var(--text900);font-family:inherit;background:#fff;}
   .emod-input:focus{outline:none;border-color:var(--accent);}
+  .emod-select-wrap{position:relative;flex:1;}
+  .emod-select-wrap select.emod-input{
+    width:100%;appearance:none;-webkit-appearance:none;-moz-appearance:none;
+    padding-right:32px;background:#fff;cursor:pointer;
+  }
+  .emod-select-wrap select.emod-input::-ms-expand{display:none;}
+  .emod-select-chevron{position:absolute;right:9px;top:50%;transform:translateY(-50%);color:var(--text400);pointer-events:none;display:flex;}
   .emod-textarea{min-height:60px;resize:vertical;}
   .emod-multiselect{flex:1;display:flex;flex-wrap:wrap;gap:6px;}
   .emod-chip-check{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;color:var(--text600);background:var(--bg50);border:1px solid var(--border2);border-radius:20px;padding:4px 10px;cursor:pointer;}
@@ -2583,13 +2590,30 @@ function openPartnerPicker(){
 
 const FIELD_GROUP_ORDER = ['Contact','Identity','Licensing','Employment','Custom'];
 
+// A styled <select>: the native control stays underneath (full keyboard/
+// mobile-picker behaviour), its own arrow is hidden via CSS, and a real
+// expand_more icon from the same icon font used everywhere else (e.g.
+// .select-field-pill) sits on top. No file-wide select styling existed
+// before this — every other <select> in the mockup is still the bare
+// OS control; this is the pattern to extend to them, not a one-off.
+function styledSelectHTML(options, selectedValue, extraClass){
+  let html = '<div class="emod-select-wrap">'
+    + '<select class="emod-input'+(extraClass?' '+extraClass:'')+'">';
+  options.forEach(o=>{
+    const value = (o && typeof o === 'object') ? o.value : o;
+    const label = (o && typeof o === 'object') ? o.label : o;
+    html += '<option value="'+value+'"'+(value===selectedValue?' selected':'')+'>'+label+'</option>';
+  });
+  html += '</select>'
+    + '<span class="emod-select-chevron">'+iconHTML('expand_more',16)+'</span>'
+    + '</div>';
+  return html;
+}
+
 function fieldTypeInputHTML(f){
   const val = f.value == null ? '' : f.value;
   if(f.type === 'select'){
-    let html = '<select class="emod-input" data-key="'+f.key+'">';
-    (f.options||[]).forEach(o=>{ html += '<option'+(o===val?' selected':'')+'>'+o+'</option>'; });
-    html += '</select>';
-    return html;
+    return styledSelectHTML(f.options||[], val).replace('<select class="emod-input"','<select class="emod-input" data-key="'+f.key+'"');
   }
   if(f.type === 'multiselect'){
     const chosen = Array.isArray(val) ? val : [];
@@ -2703,15 +2727,14 @@ function renderFieldBuilder(){
   box.appendChild(el('<div class="emod-field-label">Label</div>'));
   box.appendChild(nameInput);
 
-  const typeSelect = el(
-    '<select class="emod-input">'+
-    ['text','number','date','email','phone','textarea','checkbox','select','multiselect'].map(t=>
-      '<option value="'+t+'"'+(t===d.type?' selected':'')+'>'+t.charAt(0).toUpperCase()+t.slice(1)+'</option>'
-    ).join('')+
-    '</select>'
-  );
+  const typeWrap = el(styledSelectHTML(
+    ['text','number','date','email','phone','textarea','checkbox','select','multiselect']
+      .map(t=>({value:t, label:t.charAt(0).toUpperCase()+t.slice(1)})),
+    d.type
+  ));
+  const typeSelect = typeWrap.querySelector('select');
   box.appendChild(el('<div class="emod-field-label" style="margin-top:10px;">Type</div>'));
-  box.appendChild(typeSelect);
+  box.appendChild(typeWrap);
 
   const optionsWrap = el('<div></div>');
   function renderOptions(){
@@ -2777,10 +2800,10 @@ function renderEditPaymentTab(){
   if(entityType === 'Company Driver'){
     const payTypeRow = el('<div class="emod-field-row"></div>');
     payTypeRow.appendChild(el('<div class="emod-field-label">Pay Type</div>'));
-    const payTypeSel = el('<select class="emod-input">'+
-      ['Per Mile','Per Load','Hourly','Salary'].map(o=>'<option'+(o===paymentSetup.payType?' selected':'')+'>'+o+'</option>').join('')+'</select>');
+    const payTypeWrap = el(styledSelectHTML(['Per Mile','Per Load','Hourly','Salary'], paymentSetup.payType));
+    const payTypeSel = payTypeWrap.querySelector('select');
     payTypeSel.onchange = ()=>{ paymentSetup.payType = payTypeSel.value; render(); };
-    payTypeRow.appendChild(payTypeSel);
+    payTypeRow.appendChild(payTypeWrap);
     section.appendChild(payTypeRow);
 
     const suffix = {'Per Mile':'/ mi','Per Load':'/ load','Hourly':'/ hr','Salary':'/ yr'}[paymentSetup.payType];
@@ -2809,10 +2832,10 @@ function renderEditPaymentTab(){
   methodSection.appendChild(el('<div class="emod-group-title">PAYMENT METHOD</div>'));
   const methodRow = el('<div class="emod-field-row"></div>');
   methodRow.appendChild(el('<div class="emod-field-label">Method</div>'));
-  const methodSel = el('<select class="emod-input">'+
-    ['Direct Deposit','Check','Cash'].map(o=>'<option'+(o===paymentSetup.paymentMethod?' selected':'')+'>'+o+'</option>').join('')+'</select>');
+  const methodWrap = el(styledSelectHTML(['Direct Deposit','Check','Cash'], paymentSetup.paymentMethod));
+  const methodSel = methodWrap.querySelector('select');
   methodSel.onchange = ()=>{ paymentSetup.paymentMethod = methodSel.value; render(); };
-  methodRow.appendChild(methodSel);
+  methodRow.appendChild(methodWrap);
   methodSection.appendChild(methodRow);
 
   if(paymentSetup.paymentMethod === 'Direct Deposit'){
