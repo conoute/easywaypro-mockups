@@ -2592,10 +2592,19 @@ const PAYMENT_METHODS = [
   {key:'cashapp', label:'Cash App', kind:'handle', handleLabel:'Cashtag', placeholder:'$cashtag'},
 ];
 
+// The carrier itself also keeps multiple bank accounts on file (e.g. one for
+// payroll, one for operating expenses) — same shape as a partner's accounts,
+// just belonging to this company instead. Picked here, never typed here.
+const CARRIER_BANK_ACCOUNTS = [
+  {id:'c1', label:'Payroll Account — Chase Business •••2211'},
+  {id:'c2', label:'Operating Account — Bank of America •••7788'},
+];
+
 let paymentSetup = {
   payType: 'Per Mile',
   rate: '0.58',
   methodKey: 'direct_deposit',
+  carrierBankAccountId: CARRIER_BANK_ACCOUNTS[0].id, // which of THIS carrier's own accounts pays this driver
   bank: {
     accountType: 'Checking',      // Checking · Savings
     holderType: 'Personal',       // Personal · Business
@@ -3062,6 +3071,17 @@ function renderEditPaymentTab(){
     }
     wrap.appendChild(methodSection);
   } else {
+    const paidFromRow = el('<div class="emod-field-row"></div>');
+    paidFromRow.appendChild(el('<div class="emod-field-label">Paid From</div>'));
+    const paidFromOptions = CARRIER_BANK_ACCOUNTS.map(a=>({value:a.id, label:a.label}));
+    const paidFromWrap = el(styledSelectHTML(paidFromOptions, paymentSetup.carrierBankAccountId));
+    const paidFromSel = paidFromWrap.querySelector('select');
+    paidFromSel.onchange = ()=>{ paymentSetup.carrierBankAccountId = paidFromSel.value; };
+    paidFromRow.appendChild(paidFromWrap);
+    methodSection.appendChild(paidFromRow);
+    methodSection.appendChild(el('<div class="emod-note">'+iconHTML('info',13)+
+      ' Which of '+CARRIER_NAME+'\'s own accounts this driver is paid from. Add more accounts on the company profile, not here.</div>'));
+
     const methodRow = el('<div class="emod-field-row"></div>');
     methodRow.appendChild(el('<div class="emod-field-label">Method</div>'));
     const methodOptions = PAYMENT_METHODS.map(m=>({value:m.key, label:m.label}));
