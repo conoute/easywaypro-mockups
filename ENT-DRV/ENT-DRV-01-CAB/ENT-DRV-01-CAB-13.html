@@ -740,6 +740,49 @@
   .profile-wrap{display:flex;gap:12px;flex:1;overflow:hidden;}
   .profile-left{width:44px;border-right:1px solid var(--border2);overflow-y:auto;flex-shrink:0;}
   .profile-right{flex:1;overflow-y:auto;padding:0;}
+  /* ---- Edit Mode (ENT-DRV-*-CAB-14) ---- */
+  .emod-modal{width:820px;max-width:94vw;max-height:88vh;padding:0;display:flex;flex-direction:column;}
+  .emod-header{display:flex;align-items:center;gap:12px;padding:24px 56px 16px 28px;flex-shrink:0;}
+  .emod-header-avatar{width:40px;height:40px;border-radius:50%;background:linear-gradient(160deg,#dfe3f0,#c7cfe4);display:flex;align-items:center;justify-content:center;color:var(--text400);overflow:hidden;flex-shrink:0;}
+  .emod-header-avatar img{width:100%;height:100%;object-fit:cover;}
+  .emod-header-name{font-size:15px;font-weight:700;color:var(--text900);}
+  .emod-header-sub{font-size:11.5px;color:var(--text400);margin-top:2px;}
+  .emod-tabs{display:flex;gap:22px;padding:0 28px;border-bottom:1px solid var(--border2);flex-shrink:0;}
+  .emod-tab{font-size:12.5px;font-weight:700;color:var(--text400);padding:10px 0;cursor:pointer;border-bottom:2px solid transparent;}
+  .emod-tab.active{color:var(--accent);border-bottom-color:var(--accent);}
+  .emod-body{flex:1;overflow-y:auto;padding:20px 28px;}
+  .emod-footer{display:flex;justify-content:flex-end;gap:10px;padding:14px 28px;border-top:1px solid var(--border2);flex-shrink:0;}
+  .emod-footer .btn{flex:0 0 auto;padding:9px 18px;}
+
+  .emod-proposed-banner{display:flex;align-items:flex-start;gap:8px;background:#FFF4E6;color:#8a5a00;border-radius:8px;padding:10px 12px;font-size:11.5px;line-height:1.5;margin-bottom:16px;}
+  .emod-group{margin-bottom:22px;}
+  .emod-group-title{font-size:10.5px;font-weight:700;color:var(--text400);letter-spacing:.04em;margin-bottom:10px;}
+  .emod-note{display:flex;align-items:flex-start;gap:6px;font-size:11px;color:var(--text400);background:var(--bg50);border-radius:8px;padding:8px 10px;margin-bottom:10px;line-height:1.5;}
+  .emod-field-row{display:flex;align-items:center;gap:12px;margin-bottom:10px;}
+  .emod-field-label{width:220px;flex-shrink:0;font-size:12px;color:var(--text600);display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+  .emod-field-suffix{color:var(--text400);font-weight:400;}
+  .emod-gap-badge{font-size:9px;font-weight:700;color:#8a5a00;background:#FFF4E6;border:1px dashed #e8c07a;border-radius:20px;padding:1px 7px;white-space:nowrap;}
+  .emod-input{flex:1;border:1px solid var(--border2);border-radius:8px;padding:8px 10px;font-size:12.5px;color:var(--text900);font-family:inherit;background:#fff;}
+  .emod-input:focus{outline:none;border-color:var(--accent);}
+  .emod-textarea{min-height:60px;resize:vertical;}
+  .emod-multiselect{flex:1;display:flex;flex-wrap:wrap;gap:6px;}
+  .emod-chip-check{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;color:var(--text600);background:var(--bg50);border:1px solid var(--border2);border-radius:20px;padding:4px 10px;cursor:pointer;}
+  .emod-chip-check input{margin:0;}
+  .emod-field-delete{color:var(--text400);cursor:pointer;flex-shrink:0;}
+  .emod-field-delete:hover{color:var(--danger);}
+
+  .emod-add-field-btn{display:inline-flex;align-items:center;gap:6px;border:1.5px dashed var(--neutral200);background:none;color:var(--accent);font-size:12px;font-weight:700;padding:8px 14px;border-radius:8px;cursor:pointer;}
+  .emod-add-field-btn:hover{background:var(--bg50);}
+  .emod-field-builder{background:var(--bg50);border:1px solid var(--border2);border-radius:10px;padding:14px;margin-bottom:8px;}
+  .emod-option-row{display:flex;align-items:center;gap:8px;margin-bottom:6px;}
+  .emod-option-remove{color:var(--text400);cursor:pointer;flex-shrink:0;}
+  .emod-option-remove:hover{color:var(--danger);}
+  .emod-option-add{display:inline-flex;align-items:center;gap:4px;font-size:11.5px;font-weight:700;color:var(--accent);cursor:pointer;margin-top:2px;}
+  .emod-builder-actions{display:flex;gap:8px;margin-top:14px;}
+  .emod-builder-actions .btn{flex:1;padding:8px;}
+
+  .emod-partner-btn{width:100%;display:flex;align-items:center;justify-content:space-between;padding:9px 12px;font-size:12.5px;}
+  .emod-doclink{cursor:pointer;}
 </style>
 </head>
 <body>
@@ -1400,6 +1443,7 @@ function render(){
   const prevTableScrollLeft = tableOuterBefore?.scrollLeft || 0;
   const prevContentScroll = document.querySelector('.content')?.scrollTop || 0;
   const prevLeftScroll = document.querySelector('.cab-left')?.scrollTop || 0;
+  const prevEmodScroll = document.querySelector('.emod-body')?.scrollTop || 0;
 
   app.innerHTML = '';
   app.appendChild(renderRail());
@@ -1416,6 +1460,8 @@ function render(){
   content.scrollTop = prevContentScroll;
   const newLeft = document.querySelector('.cab-left');
   if(newLeft) newLeft.scrollTop = prevLeftScroll;
+  const newEmodBody = document.querySelector('.emod-body');
+  if(newEmodBody) newEmodBody.scrollTop = prevEmodScroll;
 }
 function renderInPlace(){ render(); }
 
@@ -1590,24 +1636,53 @@ let daConsortium = false;
 // the edit form (grouped, searchable), so any field added to the driver's
 // edit model later automatically becomes available here. Custom one-off
 // fields are also possible, appended to the catalog under "Custom". ----
+const US_STATE_CODES = ['AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA','HI','ID','IL','IN','IA','KS','KY','LA','ME','MD','MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ','NM','NY','NC','ND','OH','OK','OR','PA','RI','SC','SD','TN','TX','UT','VT','VA','WA','WV','WI','WY'];
+
+// Field catalogue — the single source both Edit Mode's Info tab and the Quick
+// Info Panel's Personal Data module read from and write to. Adding a field in
+// either surface makes it available in the other; there is no second copy.
+//
+// `source: 'api'`  — a real column on the driver record (17_API_Surface_Reference §4)
+// `source: 'gap'`  — the product wants it; no backend column exists yet (17 §4b)
+// `source: 'custom'` — created by a user through "+ Add custom field"
+//
+// `type` drives which input Edit Mode renders: text · number · date · email ·
+// phone · select · multiselect · checkbox · textarea.
 let DRIVER_FIELD_CATALOG = [
-  {key:'phone', label:'Phone', icon:'call', value:'+1 (252) 322-5222', group:'Contact'},
-  {key:'email', label:'Email', icon:'mail', value:'mgerasimov@gmail.com', group:'Contact'},
-  {key:'address', label:'Address', icon:'location_on', value:'Charlotte, NC 28202', group:'Contact'},
-  {key:'emergency', label:'Emergency Contact', icon:'e911_emergency', value:'Elena G. — +1 (252) 310-8841', group:'Contact'},
-  {key:'dob', label:'Date of Birth', icon:'cake', value:'Mar 14, 1991', group:'Identity'},
-  {key:'ssn', label:'SSN', icon:'lock', value:'514-22-4921', masked:true, group:'Identity'},
-  {key:'cdl', label:'CDL Number', icon:'badge', value:'NC-8842213', group:'Licensing'},
-  {key:'cdlClass', label:'CDL Class', icon:'badge', value:'Class A', group:'Licensing'},
-  {key:'cdlExp', label:'CDL Expiration', icon:'event', value:'Jun 30, 2028', group:'Licensing'},
-  {key:'endorsements', label:'Endorsements', icon:'verified', value:'Hazmat, Tanker', group:'Licensing'},
-  {key:'medCardExp', label:'Medical Card Exp.', icon:'medical_services', value:'Oct 3, 2026', group:'Licensing'},
-  {key:'source', label:'Source', icon:'travel_explore', value:'Indeed', group:'Employment'},
-  {key:'position', label:'Position', icon:'work', value:'Company driver', group:'Employment'},
-  {key:'experience', label:'Experience', icon:'timeline', value:'5+ years OTR', group:'Employment'},
-  {key:'recruiter', label:'Recruiter', icon:'headset_mic', value:'Marcus Webb', group:'Employment'},
-  {key:'applied', label:'Applied', icon:'event_available', value:'Sep 3, 2026', group:'Employment'},
-  {key:'available', label:'Available From', icon:'event', value:'Sep 15, 2026', group:'Employment'},
+  // ---- Contact — all real columns ----
+  {key:'phone', label:'Phone', icon:'call', value:'+1 (252) 322-5222', group:'Contact', type:'phone', source:'api'},
+  {key:'email', label:'Email', icon:'mail', value:'mgerasimov@gmail.com', group:'Contact', type:'email', source:'api'},
+  {key:'address', label:'Address', icon:'location_on', value:'4118 Providence Rd, Charlotte, NC', group:'Contact', type:'text', source:'api'},
+  {key:'zip', label:'ZIP Code', icon:'location_on', value:'28202', group:'Contact', type:'text', source:'api'},
+  {key:'emergencyContactName', label:'Emergency Contact — Name', icon:'e911_emergency', value:'Elena Gerasimova', group:'Contact', type:'text', source:'api'},
+  {key:'emergencyContactPhone', label:'Emergency Contact — Phone', icon:'e911_emergency', value:'+1 (252) 310-8841', group:'Contact', type:'phone', source:'api'},
+
+  // ---- Identity — all real columns ----
+  {key:'middleName', label:'Middle Name', icon:'badge', value:'', group:'Identity', type:'text', source:'api'},
+  {key:'dob', label:'Date of Birth', icon:'cake', value:'1991-03-14', group:'Identity', type:'date', source:'api'},
+  {key:'gender', label:'Gender', icon:'wc', value:'Male', group:'Identity', type:'select', options:['Male','Female','Other'], source:'api'},
+  {key:'ssn', label:'SSN', icon:'lock', value:'514-22-4921', masked:true, group:'Identity', type:'text', source:'api'},
+  {key:'unitNumber', label:'Unit Number', icon:'tag', value:'', group:'Identity', type:'text', source:'api'},
+
+  // ---- Licensing — real columns marked api; two derived-from-Documents fields
+  // are intentionally read-only here (see the note rendered above this group
+  // in the Info tab) instead of being a second, driftable copy of expire_at.
+  {key:'cdl', label:'CDL Number', icon:'badge', value:'NC-8842213', group:'Licensing', type:'text', source:'api'},
+  {key:'cdlStateCode', label:'CDL Issuing State', icon:'badge', value:'NC', group:'Licensing', type:'select', options:US_STATE_CODES, source:'api'},
+  {key:'medicalExaminerFullName', label:'Medical Examiner — Name', icon:'medical_services', value:'Dr. Angela Ruiz', group:'Licensing', type:'text', source:'api'},
+  {key:'nationalRegistryNumber', label:'Medical Examiner — Nat\'l Registry #', icon:'medical_services', value:'5817264', group:'Licensing', type:'text', source:'api'},
+  {key:'cdlClass', label:'CDL Class', icon:'badge', value:'Class A', group:'Licensing', type:'select', options:['Class A','Class B','Class C'], source:'gap'},
+  {key:'endorsements', label:'Endorsements', icon:'verified', value:['Hazmat','Tanker'], group:'Licensing', type:'multiselect', options:['Hazmat','Tanker','Doubles/Triples','Passenger','School Bus'], source:'gap'},
+
+  // ---- Employment — entityType is real (maps to the API's `entity` column
+  // and forks the Payment Setup tab); the rest are product asks with no
+  // column yet.
+  {key:'entityType', label:'Employment Type', icon:'work', value:'Company Driver', group:'Employment', type:'select', options:['Company Driver','Owner-Operator','Self-Employed'], source:'api'},
+  {key:'source', label:'Source', icon:'travel_explore', value:'Indeed', group:'Employment', type:'select', options:['Indeed','Referral','Walk-in','Company website','Other'], source:'gap'},
+  {key:'experience', label:'Experience', icon:'timeline', value:'5+ years OTR', group:'Employment', type:'text', source:'gap'},
+  {key:'recruiter', label:'Recruiter', icon:'headset_mic', value:'Marcus Webb', group:'Employment', type:'text', source:'gap'},
+  {key:'applied', label:'Applied', icon:'event_available', value:'2026-09-03', group:'Employment', type:'date', source:'gap'},
+  {key:'available', label:'Available From', icon:'event', value:'2026-09-15', group:'Employment', type:'date', source:'gap'},
 ];
 let VISIBLE_FIELD_KEYS = ['phone','email','address','cdl','ssn'];
 let PANEL_COMMENTS = [
@@ -2401,7 +2476,8 @@ function renderInfoPanel(){
       VISIBLE_FIELD_KEYS.forEach(k=>{
         const f = DRIVER_FIELD_CATALOG.find(x=>x.key===k);
         if(!f) return;
-        const shown = f.masked && !ssnRevealed ? '•••-••-'+f.value.slice(-4) : f.value;
+        const raw = Array.isArray(f.value) ? f.value.join(', ') : f.value;
+        const shown = f.masked && !ssnRevealed ? '•••-••-'+String(f.value).slice(-4) : (raw || '—');
         const row = el(`<div class="cab-contact-row">${iconHTML(f.icon,15)}<span class="k">${f.label}</span><span class="v">${shown}</span>${f.masked?`<span class="ssn-eye">${iconHTML(ssnRevealed?'visibility_off':'visibility',15)}</span>`:''}</div>`);
         if(f.masked){
           const eye = row.querySelector('.ssn-eye');
@@ -2450,7 +2526,7 @@ function openQuickInfoActionsFlyout(anchor){
     <button data-a="terminate" class="danger">${iconHTML('person_off',16)}Terminate</button>
   </div>`);
   positionFlyout(menu, anchor);
-  menu.querySelector('[data-a="edit"]').onclick = ()=>{ menu.remove(); panelEditMode = true; render(); };
+  menu.querySelector('[data-a="edit"]').onclick = ()=>{ menu.remove(); openModal('editDriver'); };
   menu.querySelector('[data-a="status"]').onclick = ()=>{ menu.remove(); showToast('Change status — not wired in this mock'); };
   menu.querySelector('[data-a="team"]').onclick = ()=>{ menu.remove(); showToast('Create team — not wired in this mock'); };
   menu.querySelector('[data-a="mvr"]').onclick = ()=>{ menu.remove(); generateSystemDoc('MVR Report', 365); };
@@ -2459,6 +2535,357 @@ function openQuickInfoActionsFlyout(anchor){
   setTimeout(()=>{
     document.addEventListener('click', function h(ev){ if(!menu.contains(ev.target) && ev.target!==anchor){ menu.remove(); document.removeEventListener('click',h); } });
   },0);
+}
+
+// ============ EDIT MODE (ENT-DRV-*-CAB-14) ============
+// Launched from the panel's kebab menu ("Edit"). One modal, three internal
+// tabs: Info (the full, editable field catalogue), Payment Setup (forks on
+// Employment Type), Activity (the same real timeline as the cabinet's own
+// Activity tab — same data, same component, no second implementation).
+//
+// Info tab writes directly into DRIVER_FIELD_CATALOG — the SAME array the
+// Quick Info Panel's Personal Data module and its Customize picker read from.
+// A field added here is immediately choosable there; nothing is duplicated.
+let editModeTab = 'info';
+let fieldBuilderOpen = false;
+let fieldBuilderDraft = null; // {label, type, options:[...], required}
+
+// Payment Setup — kept OUTSIDE DRIVER_FIELD_CATALOG on purpose. Unlike the
+// Info tab (reconciled against real `driver` API fields, 17_API_Surface_
+// Reference §4), no fields() list exists for `paystub-setting` in that
+// reference — only its endpoint paths do. This shape is a proposal, not a
+// confirmed schema. Said again, visibly, inside the tab itself.
+let paymentSetup = {
+  payType: 'Per Mile',
+  rate: '0.58',
+  paymentMethod: 'Direct Deposit',
+  bankName: '',
+  routingNumber: '',
+  accountNumber: '',
+};
+const AVAILABLE_PARTNERS = [
+  {id:'P001', name:'Silver Arrow Logistics LLC', commission:'88%'},
+  {id:'P002', name:'Redline Freight Partners', commission:'85%'},
+  {id:'P003', name:'Continental Carrier Group', commission:'90%'},
+];
+let linkedPartnerId = null;
+
+function openPartnerPicker(){
+  entityPickerState.selectedId = linkedPartnerId;
+  return openEntityPicker({
+    title:'Link Partner Contract',
+    subtitle:'The commission percentage on the linked contract feeds Payroll for this driver.',
+    items:AVAILABLE_PARTNERS, icon:'handshake', searchPlaceholder:'Search partners by name...',
+    searchFields:['name'], primaryKey:'name', secondaryKey:(it)=>'Commission '+it.commission,
+    onConfirm:(item)=>{ linkedPartnerId = item.id; showToast('Linked to '+item.name); render(); }
+  });
+}
+
+const FIELD_GROUP_ORDER = ['Contact','Identity','Licensing','Employment','Custom'];
+
+function fieldTypeInputHTML(f){
+  const val = f.value == null ? '' : f.value;
+  if(f.type === 'select'){
+    let html = '<select class="emod-input" data-key="'+f.key+'">';
+    (f.options||[]).forEach(o=>{ html += '<option'+(o===val?' selected':'')+'>'+o+'</option>'; });
+    html += '</select>';
+    return html;
+  }
+  if(f.type === 'multiselect'){
+    const chosen = Array.isArray(val) ? val : [];
+    let html = '<div class="emod-multiselect" data-key="'+f.key+'">';
+    (f.options||[]).forEach(o=>{
+      html += '<label class="emod-chip-check"><input type="checkbox" value="'+o+'"'+(chosen.includes(o)?' checked':'')+'>'+o+'</label>';
+    });
+    html += '</div>';
+    return html;
+  }
+  if(f.type === 'checkbox'){
+    return '<label class="switch"><input type="checkbox" class="emod-input" data-key="'+f.key+'"'+(val?' checked':'')+'><span class="slider"></span></label>';
+  }
+  if(f.type === 'textarea'){
+    return '<textarea class="emod-input emod-textarea" data-key="'+f.key+'">'+val+'</textarea>';
+  }
+  const htmlType = f.type === 'phone' ? 'tel' : (f.type || 'text');
+  return '<input class="emod-input" type="'+htmlType+'" data-key="'+f.key+'" value="'+String(val).replace(/"/g,'&quot;')+'">';
+}
+
+function wireFieldInput(row, f){
+  const input = row.querySelector('.emod-input, .emod-multiselect');
+  if(!input) return;
+  if(f.type === 'multiselect'){
+    row.querySelectorAll('.emod-multiselect input[type="checkbox"]').forEach(cb=>{
+      cb.onchange = ()=>{
+        const checked = Array.from(row.querySelectorAll('.emod-multiselect input:checked')).map(c=>c.value);
+        f.value = checked;
+        render();
+      };
+    });
+    return;
+  }
+  if(f.type === 'select'){
+    input.onchange = ()=>{
+      f.value = input.value;
+      if(f.key === 'entityType'){ render(); } // Payment Setup forks on this
+    };
+    return;
+  }
+  if(f.type === 'checkbox'){
+    input.onchange = ()=>{ f.value = input.checked; };
+    return;
+  }
+  input.oninput = ()=>{ f.value = input.value; }; // no render() — keeps text focus (see note above)
+}
+
+function renderEditInfoTab(){
+  const wrap = el('<div class="emod-tab-content"></div>');
+
+  FIELD_GROUP_ORDER.forEach(group=>{
+    const rows = DRIVER_FIELD_CATALOG.filter(f=>f.group===group);
+    if(rows.length === 0 && group !== 'Custom') return;
+
+    const section = el('<div class="emod-group"></div>');
+    section.appendChild(el('<div class="emod-group-title">'+group.toUpperCase()+'</div>'));
+
+    if(group === 'Licensing'){
+      section.appendChild(el('<div class="emod-note">'+iconHTML('info',13)+
+        ' CDL and Medical Card expiration dates are tracked from the documents themselves, in the Documents tab — not duplicated here.</div>'));
+    }
+
+    rows.forEach(f=>{
+      const row = el('<div class="emod-field-row"></div>');
+      let labelHTML = '<div class="emod-field-label">'+f.label;
+      if(f.source === 'gap') labelHTML += ' <span class="emod-gap-badge" title="Product field — no backend column yet (see 17_API_Surface_Reference §4b)">no backend field yet</span>';
+      labelHTML += '</div>';
+      row.appendChild(el(labelHTML));
+      row.appendChild(el(fieldTypeInputHTML(f)));
+      if(f.source === 'custom'){
+        const delBtn = el('<span class="emod-field-delete" title="Remove custom field">'+iconHTML('delete',15)+'</span>');
+        delBtn.onclick = ()=>{
+          DRIVER_FIELD_CATALOG = DRIVER_FIELD_CATALOG.filter(x=>x.key!==f.key);
+          VISIBLE_FIELD_KEYS = VISIBLE_FIELD_KEYS.filter(k=>k!==f.key);
+          showToast('Custom field removed');
+          render();
+        };
+        row.appendChild(delBtn);
+      }
+      section.appendChild(row);
+      wireFieldInput(row, f);
+    });
+
+    if(group === 'Custom'){
+      if(!fieldBuilderOpen){
+        const addBtn = el('<button class="emod-add-field-btn">'+iconHTML('add',15)+'Add custom field</button>');
+        addBtn.onclick = ()=>{
+          fieldBuilderDraft = {label:'', type:'text', options:['']}; fieldBuilderOpen = true; render();
+          const builder = document.querySelector('.emod-field-builder');
+          if(builder) builder.scrollIntoView({block:'nearest', behavior:'smooth'});
+        };
+        section.appendChild(addBtn);
+      } else {
+        section.appendChild(renderFieldBuilder());
+      }
+    }
+
+    wrap.appendChild(section);
+  });
+
+  return wrap;
+}
+
+function renderFieldBuilder(){
+  const d = fieldBuilderDraft;
+  const box = el('<div class="emod-field-builder"></div>');
+  box.appendChild(el('<div class="emod-group-title" style="margin-bottom:8px;">CREATE CUSTOM FIELD</div>'));
+
+  const nameInput = el('<input class="emod-input" placeholder="Field name" value="'+d.label.replace(/"/g,'&quot;')+'">');
+  nameInput.oninput = ()=>{ d.label = nameInput.value; };
+  box.appendChild(el('<div class="emod-field-label">Label</div>'));
+  box.appendChild(nameInput);
+
+  const typeSelect = el(
+    '<select class="emod-input">'+
+    ['text','number','date','email','phone','textarea','checkbox','select','multiselect'].map(t=>
+      '<option value="'+t+'"'+(t===d.type?' selected':'')+'>'+t.charAt(0).toUpperCase()+t.slice(1)+'</option>'
+    ).join('')+
+    '</select>'
+  );
+  box.appendChild(el('<div class="emod-field-label" style="margin-top:10px;">Type</div>'));
+  box.appendChild(typeSelect);
+
+  const optionsWrap = el('<div></div>');
+  function renderOptions(){
+    optionsWrap.innerHTML = '';
+    if(d.type !== 'select' && d.type !== 'multiselect') return;
+    optionsWrap.appendChild(el('<div class="emod-field-label" style="margin-top:10px;">Options</div>'));
+    d.options.forEach((opt,i)=>{
+      const row = el('<div class="emod-option-row"></div>');
+      const inp = el('<input class="emod-input" value="'+opt.replace(/"/g,'&quot;')+'" placeholder="Option '+(i+1)+'">');
+      inp.oninput = ()=>{ d.options[i] = inp.value; };
+      row.appendChild(inp);
+      const rm = el('<span class="emod-option-remove">'+iconHTML('close',14)+'</span>');
+      rm.onclick = ()=>{ d.options.splice(i,1); if(d.options.length===0) d.options.push(''); renderOptions(); };
+      row.appendChild(rm);
+      optionsWrap.appendChild(row);
+    });
+    const addOpt = el('<span class="emod-option-add">'+iconHTML('add',13)+'Add option</span>');
+    addOpt.onclick = ()=>{ d.options.push(''); renderOptions(); };
+    optionsWrap.appendChild(addOpt);
+  }
+  renderOptions();
+  typeSelect.onchange = ()=>{ d.type = typeSelect.value; renderOptions(); };
+  box.appendChild(optionsWrap);
+
+  const actions = el('<div class="emod-builder-actions"></div>');
+  const cancelBtn = el('<button class="btn">Cancel</button>');
+  cancelBtn.onclick = ()=>{ fieldBuilderOpen = false; fieldBuilderDraft = null; render(); };
+  const saveBtn = el('<button class="btn primary">Add field</button>');
+  saveBtn.onclick = ()=>{
+    const label = d.label.trim();
+    if(!label){ showToast('Field name is required'); return; }
+    const cleanOptions = (d.options||[]).map(o=>o.trim()).filter(Boolean);
+    if((d.type==='select'||d.type==='multiselect') && cleanOptions.length < 2){
+      showToast('Add at least two options'); return;
+    }
+    const key = 'c'+Math.random().toString(36).slice(2,7);
+    const defaultValue = d.type==='multiselect' ? [] : (d.type==='checkbox' ? false : '');
+    DRIVER_FIELD_CATALOG.push({
+      key, label, value:defaultValue, icon:'sell', group:'Custom',
+      type:d.type, options:cleanOptions.length?cleanOptions:undefined, source:'custom'
+    });
+    VISIBLE_FIELD_KEYS.push(key);
+    fieldBuilderOpen = false; fieldBuilderDraft = null;
+    showToast('Custom field added — choose it in the Quick Info Panel to surface it there too');
+    render();
+  };
+  actions.appendChild(cancelBtn); actions.appendChild(saveBtn);
+  box.appendChild(actions);
+  return box;
+}
+
+function renderEditPaymentTab(){
+  const wrap = el('<div class="emod-tab-content"></div>');
+  const entityTypeField = DRIVER_FIELD_CATALOG.find(f=>f.key==='entityType');
+  const entityType = entityTypeField ? entityTypeField.value : 'Company Driver';
+
+  wrap.appendChild(el('<div class="emod-proposed-banner">'+iconHTML('warning',14)+
+    ' Proposed layout — no confirmed field list exists yet for payroll settings on the backend (only its endpoints do). Do not treat this tab\'s fields as final.</div>'));
+
+  const section = el('<div class="emod-group"></div>');
+  section.appendChild(el('<div class="emod-group-title">'+(entityType === 'Company Driver' ? 'COMPANY DRIVER PAY' : 'CONTRACT PAY').toUpperCase()+'</div>'));
+
+  if(entityType === 'Company Driver'){
+    const payTypeRow = el('<div class="emod-field-row"></div>');
+    payTypeRow.appendChild(el('<div class="emod-field-label">Pay Type</div>'));
+    const payTypeSel = el('<select class="emod-input">'+
+      ['Per Mile','Per Load','Hourly','Salary'].map(o=>'<option'+(o===paymentSetup.payType?' selected':'')+'>'+o+'</option>').join('')+'</select>');
+    payTypeSel.onchange = ()=>{ paymentSetup.payType = payTypeSel.value; render(); };
+    payTypeRow.appendChild(payTypeSel);
+    section.appendChild(payTypeRow);
+
+    const suffix = {'Per Mile':'/ mi','Per Load':'/ load','Hourly':'/ hr','Salary':'/ yr'}[paymentSetup.payType];
+    const rateRow = el('<div class="emod-field-row"></div>');
+    rateRow.appendChild(el('<div class="emod-field-label">Rate <span class="emod-field-suffix">('+suffix+')</span></div>'));
+    const rateInput = el('<input class="emod-input" type="number" step="0.01" value="'+paymentSetup.rate+'">');
+    rateInput.oninput = ()=>{ paymentSetup.rate = rateInput.value; };
+    rateRow.appendChild(rateInput);
+    section.appendChild(rateRow);
+  } else {
+    const partnerRow = el('<div class="emod-field-row"></div>');
+    partnerRow.appendChild(el('<div class="emod-field-label">Linked Partner Contract</div>'));
+    const linked = AVAILABLE_PARTNERS.find(p=>p.id===linkedPartnerId);
+    const partnerBtn = el('<button class="btn emod-partner-btn">'+
+      (linked ? linked.name+' · '+linked.commission+' commission' : 'Select partner contract')+
+      iconHTML('chevron_right',15)+'</button>');
+    partnerBtn.onclick = ()=> openModal('partnerPicker');
+    partnerRow.appendChild(partnerBtn);
+    section.appendChild(partnerRow);
+    section.appendChild(el('<div class="emod-note">'+iconHTML('info',13)+
+      ' Commission % is read from the linked partner contract (see 01_Primary_Schema §4) and is not edited here.</div>'));
+  }
+  wrap.appendChild(section);
+
+  const methodSection = el('<div class="emod-group"></div>');
+  methodSection.appendChild(el('<div class="emod-group-title">PAYMENT METHOD</div>'));
+  const methodRow = el('<div class="emod-field-row"></div>');
+  methodRow.appendChild(el('<div class="emod-field-label">Method</div>'));
+  const methodSel = el('<select class="emod-input">'+
+    ['Direct Deposit','Check','Cash'].map(o=>'<option'+(o===paymentSetup.paymentMethod?' selected':'')+'>'+o+'</option>').join('')+'</select>');
+  methodSel.onchange = ()=>{ paymentSetup.paymentMethod = methodSel.value; render(); };
+  methodRow.appendChild(methodSel);
+  methodSection.appendChild(methodRow);
+
+  if(paymentSetup.paymentMethod === 'Direct Deposit'){
+    [['bankName','Bank Name'],['routingNumber','Routing Number'],['accountNumber','Account Number']].forEach(([k,lbl])=>{
+      const row = el('<div class="emod-field-row"></div>');
+      row.appendChild(el('<div class="emod-field-label">'+lbl+'</div>'));
+      const inp = el('<input class="emod-input" type="'+(k==='accountNumber'?'password':'text')+'" value="'+paymentSetup[k]+'">');
+      inp.oninput = ()=>{ paymentSetup[k] = inp.value; };
+      row.appendChild(inp);
+      methodSection.appendChild(row);
+    });
+  }
+  wrap.appendChild(methodSection);
+
+  const docsSection = el('<div class="emod-group"></div>');
+  docsSection.appendChild(el('<div class="emod-group-title">TAX FORMS</div>'));
+  const docLabel = entityType === 'Company Driver' ? 'W-4' : '1099';
+  docsSection.appendChild(el('<div class="emod-note">'+iconHTML('description',13)+
+    ' '+docLabel+' on file — tracked in Documents, not editable here. <span class="emod-doclink">Open Documents →</span></div>'));
+  const docLink = docsSection.querySelector('.emod-doclink');
+  docLink.style.cursor = 'pointer'; docLink.style.color = 'var(--accent)'; docLink.style.fontWeight = '700';
+  docLink.onclick = ()=>{ closeModal(); state.activeTab = 'documents'; render(); };
+  wrap.appendChild(docsSection);
+
+  return wrap;
+}
+
+function modalEditDriver(payload){
+  if(payload && payload.tab) editModeTab = payload.tab;
+  if(payload && payload.openFieldBuilder){
+    fieldBuilderDraft = {label: payload.prefillLabel || '', type:'select', options:['','']};
+    fieldBuilderOpen = true;
+  }
+
+  const modal = el('<div class="modal emod-modal"></div>');
+  const closeBtn = el('<button class="modal-close">'+iconHTML('close',16)+'</button>');
+  closeBtn.onclick = closeModal;
+  modal.appendChild(closeBtn);
+
+  const header = el('<div class="emod-header"></div>');
+  header.appendChild(el('<div class="emod-header-avatar">'+
+    (driverPhoto ? '<img src="'+driverPhoto+'">' : iconHTML('person',20)) + '</div>'));
+  header.appendChild(el('<div><div class="emod-header-name">Edit — Maksim Gerasimov</div>'+
+    '<div class="emod-header-sub">Candidate · Onboarding</div></div>'));
+  modal.appendChild(header);
+
+  const tabs = el('<div class="emod-tabs"></div>');
+  [['info','Info'],['payment','Payment Setup'],['activity','Activity']].forEach(([key,label])=>{
+    const t = el('<span class="emod-tab'+(editModeTab===key?' active':'')+'">'+label+'</span>');
+    t.onclick = ()=>{ editModeTab = key; fieldBuilderOpen = false; render(); };
+    tabs.appendChild(t);
+  });
+  modal.appendChild(tabs);
+
+  const body = el('<div class="emod-body"></div>');
+  if(editModeTab === 'info') body.appendChild(renderEditInfoTab());
+  else if(editModeTab === 'payment') body.appendChild(renderEditPaymentTab());
+  else body.appendChild(renderActivityTab());
+  modal.appendChild(body);
+
+  const footer = el('<div class="emod-footer"></div>');
+  const cancelBtn = el('<button class="btn">Cancel</button>');
+  cancelBtn.onclick = closeModal;
+  const saveBtn = el('<button class="btn primary">Save changes</button>');
+  saveBtn.onclick = ()=>{
+    logActivity('Profile updated', 'Info tab fields edited via Edit Mode', 'action');
+    closeModal();
+    showToast('Changes saved');
+  };
+  footer.appendChild(cancelBtn); footer.appendChild(saveBtn);
+  modal.appendChild(footer);
+
+  return modal;
 }
 
 function modalCustomizeInfoPanel(){
@@ -2568,12 +2995,20 @@ function modalCustomizeInfoPanel(){
         form.querySelector('.pdc-add').onclick = ()=>{
           const name = nameInput.value.trim();
           if(!name){ showToast('Field name is required'); return; }
+          const chosenType = form.querySelector('.pdc-type').value;
+          if(chosenType === 'select'){
+            form.remove();
+            showToast('Single-select fields need options — opening the full field builder');
+            openModal('editDriver', {tab:'info', openFieldBuilder:true, prefillLabel:name});
+            return;
+          }
           const key = 'c'+Math.random().toString(36).slice(2,7);
-          DRIVER_FIELD_CATALOG.push({key, label:name, value:'—', icon:'sell', group:'Custom'});
+          const emptyValue = chosenType === 'date' ? '' : (chosenType === 'number' ? '' : '');
+          DRIVER_FIELD_CATALOG.push({key, label:name, value:emptyValue, icon:'sell', group:'Custom', type:chosenType, source:'custom'});
           VISIBLE_FIELD_KEYS.push(key);
           form.remove();
           renderPDFields();
-          showToast('Custom field added');
+          showToast('Custom field added — set its value from the Edit action');
         };
       };
       
@@ -4054,6 +4489,8 @@ function renderModal(){
   else if(type==='shareConfirm') node = modalShareConfirm(payload);
   else if(type==='shareLinkReady') node = modalShareLinkReady(payload);
   else if(type==='rejectSigned') node = (payload && payload.doc) ? modalRejectSigned(payload.doc, payload.onDone) : modalRejectSigned(payload);
+  else if(type==='editDriver') node = modalEditDriver(payload);
+  else if(type==='partnerPicker') node = openPartnerPicker();
   if(!node) return;
   const scrim = el('<div class="modal-scrim"></div>');
   scrim.onclick = (e)=>{ if(e.target===scrim) closeModal(); };
